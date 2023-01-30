@@ -10,12 +10,10 @@ for i in `seq 1 3`; do mv p"$i"new.recode.vcf p"$i"new.vcf; done
 # Longmatchquery -- find matches longer than L.
 # take p1new.vcf as panel haplotypes, and p3new.vcf as query haplotypes.
 
-./exelmq_1swp_dpbwt.exe -i p1new.vcf -q p3new.vcf -m -L 1 -o p1match.txt
-./exelmq_1swp_dpbwt.exe -i p2new.vcf -q p3new.vcf -m -L 1 -o p2match.txt
+for i in {1..2}; do ./exelmq_swp_dpbwt.exe -i p"$i"new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
 
 # we can also use pbwt in longmatchquery, which is faster:
-./exelmq_1swp_pbwt.exe -i p1new.vcf -q p3new.vcf -m -L 1 -o p1match.txt
-./exelmq_1swp_pbwt.exe -i p2new.vcf -q p3new.vcf -m -L 1 -o p2match.txt
+for i in {1..2}; do ./exelmq_swp_pbwt.exe -i p"$i"new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
 
 
 # we want to compare the speed of d-pbwt software with pbwt software

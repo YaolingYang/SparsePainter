@@ -20,5 +20,5 @@ pbwt -readVcfGT p1new.vcf -write p1.pbwt
 pbwt -readVcfGT p2new.vcf -write p2.pbwt
 pbwt -readVcfGT p3new.vcf -write p3.pbwt
 
-pbwt -readVcfGT p1new.vcf -matchIndexed p3.pbwt > p1matchp3.txt
-# but the above returns the error
+pbwt -read p1.pbwt -matchIndexed p3.pbwt > p1matchp3.txt
+pbwt -read p2.pbwt -matchIndexed p3.pbwt > p2matchp3.txt

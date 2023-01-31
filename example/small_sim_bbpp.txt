@@ -1,0 +1,98 @@
+initialize() {
+ initializeMutationRate(4e-9);
+ initializeMutationType("m0", 0.5, "f", 0.0); // neutral
+ initializeMutationType("m1", 0.5, "f", 1.0);
+ initializeMutationType("m2", 0.5, "f", 1.0);
+ initializeGenomicElementType("g1", m0, 1);
+ m0.convertToSubstitution = F;
+ m1.convertToSubstitution = F;
+ m2.convertToSubstitution = F;
+ m1.color = "green";
+ m2.color = "red";
+ initializeGenomicElement(g1, 0, 10000000);
+ initializeRecombinationRate(1e-8); 
+}
+fitness(m1) { return 1.0; }
+fitness(m2) { return 1.0; }
+1 {
+sim.addSubpop("p0", 8000);
+}
+
+2201 { 
+sim.addSubpopSplit("p1", 8000, p0); 
+sim.addSubpopSplit("p2", 8000, p0); 
+p0.setSubpopulationSize(0);
+} 
+
+2601 late(){
+target = sample(p1.genomes, 400);
+target.addNewDrawnMutation(m1, 3000000);
+target = sample(p2.genomes, 400);
+target.addNewDrawnMutation(m2, 6000000);
+}
+
+2601:2899 fitness(m2,p2) {
+return 1.5-sim.mutationFrequencies(p2, mut);
+}
+
+2601:2899 fitness(m1,p1) {
+return 1.5-sim.mutationFrequencies(p1, mut);
+}
+
+
+2601:2899 {
+     for (subpop in p2){
+      inds = subpop.individuals;
+      phenotypes2 = inds.sumOfMutationsOfType(m2);
+      if (sim.generation % 10 == 0){
+        catn(sim.generation + ": Mean phenotype p2 m2== " + mean(phenotypes2));
+      }
+    }
+     for (subpop in p1){
+      inds = subpop.individuals;
+      phenotypes3 = inds.sumOfMutationsOfType(m1);
+      if (sim.generation % 10 == 0){
+        catn(sim.generation + ": Mean phenotype p1 m1== " + mean(phenotypes3));
+      }
+    }
+}
+
+2899 late() {
+p1.outputVCFSample(20, replace=F, filePath="p1.vcf"); 
+p2.outputVCFSample(20, replace=F, filePath="p2.vcf"); 
+}
+
+
+2900 early() {
+// set up p3 to generate itself entirely from migrants
+sim.addSubpop("p3", 8000);
+p3.setMigrationRates(c(p1, p2), c(0.5, 0.5));
+}
+
+2900 late() {
+// remove the source subpopulations
+p3.setMigrationRates(c(p1, p2), c(0.0, 0.0));
+p1.setSubpopulationSize(0);
+p2.setSubpopulationSize(0);
+} 
+
+2901:2920 {
+      inds = p3.individuals;
+      phenotypes5 = inds.sumOfMutationsOfType(m1);
+      phenotypes6 = inds.sumOfMutationsOfType(m2);
+      catn(sim.generation + ": Mean phenotype p3 m1 == " + mean(phenotypes5));
+      catn(sim.generation + ": Mean phenotype p3 m2 == " + mean(phenotypes6));
+}
+
+2901:2920 fitness(m1,p3) {
+return 2.0;
+}
+
+2901:2920 fitness(m2,p3) {
+return 2.0;
+}
+
+2920 late() 
+{
+p3.outputVCFSample(500, replace=F, filePath="p3.vcf"); 
+}

@@ -8,7 +8,8 @@ module load apps/vcftools/0.1.17
 slim small_sim_bbpp.txt
 
 vcftools --vcf p2.vcf --positions-overlap p1.vcf --out p2new --recode
-vcftools --vcf p2new.recode.vcf --positions-overlap p3.vcf --out p2new --recode
+mv p2new.recode.vcf p2new.recode.tmp.vcf
+vcftools --vcf p2new.recode.tmp.vcf --positions-overlap p3.vcf --out p2new --recode
 
 vcftools --vcf p1.vcf --positions-overlap p2new.recode.vcf --out p1new --recode
 vcftools --vcf p3.vcf --positions-overlap p2new.recode.vcf --out p3new --recode

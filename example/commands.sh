@@ -19,7 +19,7 @@ vcftools --vcf p2new.recode.tmp.vcf --positions-overlap p3.vcf.gz --out p2new --
 vcftools --gzvcf p1.vcf.gz --positions-overlap p2new.recode.vcf --out p1new --recode
 vcftools --gzvcf p3.vcf.gz --positions-overlap p2new.recode.vcf --out p3new --recode
 
-for i in `seq 1 3`; do mv p"$i"new.recode.vcf p"$i"new.vcf; done
+for i in `seq 1 3`; do mv p${i}new.recode.vcf p${i}new.vcf; done
 
 for i in {1..3}; do bgzip -k -f p${i}new.vcf; tabix p${i}new.vcf.gz; done
 
@@ -30,14 +30,14 @@ for i in {1..3}; do zcat p${i}new.vcf.gz > p${i}new.vcf ; done
 # Longmatchquery -- find matches longer than L.
 # take p1new.vcf as panel haplotypes, and p3new.vcf as query haplotypes.
 
-#for i in {1..2}; do ${bindir}exelmq_1swp_dpbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
+for i in {1..2}; do ${bindir}exelmq_1swp_dpbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p${i}match.txt; done
 
-# we can also use pbwt in longmatchquery, which is faster:
-for i in {1..2}; do ${bindir}exelmq_1swp_pbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
+# we can also use pbwt in longmatchquery, which is faster but results may be incorrect!
+# for i in {1..2}; do ${bindir}exelmq_1swp_pbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p${i}match.txt; done
 
 # Then we merge the match files into a single file, which is the input to R
 for i in {2..2}; 
-do awk '{$1=$1+40; print $0}' p${i}match.txt > p${i}matchnew.txt; 
+do awk '{$1=$1+40*($((i-1))); print $0}' p${i}match.txt > p${i}matchnew.txt; 
    mv p${i}matchnew.txt p${i}match.txt; 
    cat p$((i-1))match.txt p${i}match.txt > p${i}matchnew.txt;
    mv p${i}matchnew.txt p${i}match.txt;

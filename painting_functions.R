@@ -1,12 +1,15 @@
 ## assume we get a single file called matchdata
 ## It includes 4 columns, which are ref_ind, mod_ind, match_start and match_end
 ## the ref_ind ranges from 1 to sum(n_ref_ancestry)
-data_process <- function(matchdata,map){
+data_process <- function(matchdata,map,i=NULL){
   # matchdata is the original match data
   # map is the genetic position of each SNP in 10e-8 Morgan
   colnames(matchdata)=c('ref_ind','mod_ind','start','end')
-  matchdata[,1]=matchdata[,1]+1
   matchdata[,2]=as.numeric(gsub('q','',matchdata[,2]))+1
+  if(!is.null(i)){
+    matchdata=matchdata[which(matchdata[,2]==i),]
+  }
+  matchdata[,1]=matchdata[,1]+1
   matchdata[,3]=as.numeric(gsub('[','',gsub(',','',matchdata[,3]),fixed=TRUE))+1
   matchdata[,4]=as.numeric(gsub(')','',matchdata[,4]))
   matchdata=data.frame(matchdata,length=map[matchdata$end]-map[matchdata$start])
@@ -124,7 +127,7 @@ cal_painting_full <- function(matchdata,i,map,n_ref_each,
   
   nsnp=length(map)
   
-  match=data_process(matchdata,map)
+  match=data_process(matchdata,map,i)
   
   if(is.null(fix_rho)){
     rho=est_rho(match,i,map)

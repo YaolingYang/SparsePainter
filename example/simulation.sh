@@ -16,6 +16,12 @@ vcftools --vcf p3.vcf --positions-overlap p2new.recode.vcf --out p3new --recode
 
 for i in `seq 1 3`; do mv p"$i"new.recode.vcf p"$i"new.vcf; done
 
+for i in {1..3}; do bgzip -k -f p${i}new.vcf; tabix p${i}new.vcf.gz; done
+
+for i in {1..3}; do bcftools norm -d all p${i}new.vcf.gz | bgzip -f > p${i}new.bak.vcf.gz; mv p${i}new.bak.vcf.gz p${i}new.vcf.gz; tabix -f p${i}new.vcf.gz; done
+
+for i in {1..3}; do zcat p${i}new.vcf.gz > p${i}new.vcf ; done
+
 bgzip -f p1new.vcf
 bgzip -f p2new.vcf
 bgzip -f p3new.vcf

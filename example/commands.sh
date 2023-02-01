@@ -30,11 +30,23 @@ for i in {1..3}; do zcat p${i}new.vcf.gz > p${i}new.vcf ; done
 # Longmatchquery -- find matches longer than L.
 # take p1new.vcf as panel haplotypes, and p3new.vcf as query haplotypes.
 
-for i in {1..2}; do ${bindir}lmq_1swp_dpbwt$exe -i p"$i"new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
+for i in {1..2}; do ${bindir}lmq_1swp_dpbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
 
 # we can also use pbwt in longmatchquery, which is faster:
-for i in {1..2}; do ${bindir}lmq_1swp_pbwt$exe -i p"$i"new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
+for i in {1..2}; do ${bindir}lmq_1swp_pbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
 
+# Then we merge the match files into a single file, which is the input to R
+for i in {2..2}; 
+do awk '{$1=$1+40; print $0}' p${i}match.txt > p${i}matchnew.txt; 
+   mv p${i}matchnew.txt p${i}match.txt; 
+   cat p$((i-1))match.txt p${i}match.txt > p${i}matchnew.txt;
+   mv p${i}matchnew.txt p${i}match.txt;
+done
+
+mv p2match.txt matchdata.txt
+
+# we need the map showing the recombination distance
+plink --vcf p1new.vcf --recode --out p1new
 
 # we want to compare the speed of d-pbwt software with pbwt software
 # the pbwt software is only able to find the set-maximal matches

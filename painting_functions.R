@@ -64,8 +64,16 @@ cal_sameprob <- function(nsnp,rho,map){
 cal_forward <- function(i,matchmat,nsnp,n_ref,sameprob){
   otherprob = (1-sameprob)/n_ref
   forward_prob <- matrix(0,nrow=n_ref,ncol=nsnp)
-  forward_prob[,1] = as.numeric(matchmat[,1])/sum(matchmat[,1])
+  if(sum(matchmat[,1])!=0){
+    forward_prob[,1] = as.numeric(matchmat[,1])/sum(matchmat[,1])
+  }else{
+    forward_prob[,1] = 1/n_ref
+  }
+  
   for(j in 2:nsnp){
+    if(sum(matchmat[,j])==0){
+      matchmat[,j]=1
+    }
     forward_prob[,j] = matchmat[,j] * (sameprob[j-1] * forward_prob[,j-1] + otherprob[j-1])
     forward_prob[,j] = forward_prob[,j]/sum(forward_prob[,j])
   }
@@ -78,6 +86,9 @@ cal_backward <- function(i,matchmat,nsnp,n_ref,sameprob){
   backward_prob <- matrix(0,nrow=n_ref,ncol=nsnp)
   backward_prob[,nsnp]=1
   for(j in (nsnp-1):1){
+    if(sum(matchmat[,j+1])==0){
+      matchmat[,j+1]=1
+    }
     Bjp1=matchmat[,j+1] * backward_prob[,j+1]
     backward_prob[,j] = otherprob[j] * sum(Bjp1) + sameprob[j] * Bjp1
     backward_prob[,j] = backward_prob[,j]/sum(backward_prob[,j])

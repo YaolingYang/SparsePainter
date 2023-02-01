@@ -30,7 +30,7 @@ for i in {1..3}; do zcat p${i}new.vcf.gz > p${i}new.vcf ; done
 # Longmatchquery -- find matches longer than L.
 # take p1new.vcf as panel haplotypes, and p3new.vcf as query haplotypes.
 
-for i in {1..2}; do ${bindir}exelmq_1swp_dpbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
+#for i in {1..2}; do ${bindir}exelmq_1swp_dpbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
 
 # we can also use pbwt in longmatchquery, which is faster:
 for i in {1..2}; do ${bindir}exelmq_1swp_pbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
@@ -51,9 +51,9 @@ plink --vcf p1new.vcf --recode --out p1new
 # we want to compare the speed of d-pbwt software with pbwt software
 # the pbwt software is only able to find the set-maximal matches
 
-pbwt -readVcfGT p1new.vcf.gz -write p1.pbwt
-pbwt -readVcfGT p2new.vcf.gz -write p2.pbwt
-pbwt -readVcfGT p3new.vcf.gz -write p3.pbwt
+#pbwt -readVcfGT p1new.vcf.gz -write p1.pbwt
+#pbwt -readVcfGT p2new.vcf.gz -write p2.pbwt
+#pbwt -readVcfGT p3new.vcf.gz -write p3.pbwt
 
-pbwt -read p1.pbwt -matchIndexed p3.pbwt > p1matchp3.txt
-pbwt -read p2.pbwt -matchIndexed p3.pbwt > p2matchp3.txt
+#pbwt -read p1.pbwt -matchIndexed p3.pbwt > p1matchp3.txt
+#pbwt -read p2.pbwt -matchIndexed p3.pbwt > p2matchp3.txt

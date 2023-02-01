@@ -30,10 +30,10 @@ for i in {1..3}; do zcat p${i}new.vcf.gz > p${i}new.vcf ; done
 # Longmatchquery -- find matches longer than L.
 # take p1new.vcf as panel haplotypes, and p3new.vcf as query haplotypes.
 
-for i in {1..2}; do ${bindir}lmq_1swp_dpbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
+for i in {1..2}; do ${bindir}exelmq_1swp_dpbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
 
 # we can also use pbwt in longmatchquery, which is faster:
-for i in {1..2}; do ${bindir}lmq_1swp_pbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
+for i in {1..2}; do ${bindir}exelmq_1swp_pbwt$exe -i p${i}new.vcf -q p3new.vcf -m -L 1 -o p"$i"match.txt; done
 
 # Then we merge the match files into a single file, which is the input to R
 for i in {2..2}; 

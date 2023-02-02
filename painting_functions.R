@@ -1,27 +1,40 @@
+get_gd <- function(map,rate){
+  # if the map file doesn't have a recombination distance
+  if(all(!map[,1])){
+    if(is.null(rate)){
+      rate=1e-8
+    }
+    return(map[,2]*rate)
+  }else{
+    return(map[,1])
+  }
+}
+
 ## assume we get a single file called matchdata
 ## It includes 4 columns, which are ref_ind, mod_ind, match_start and match_end
 ## the ref_ind ranges from 1 to sum(n_ref_ancestry)
-data_process <- function(matchdata,map,i=NULL){
+data_process <- function(matchdata,gd){
   # matchdata is the original match data
-  # map is the genetic position of each SNP in 10e-8 Morgan
+  # gd is the genetic position of each SNP in Morgan
   colnames(matchdata)=c('ref_ind','mod_ind','start','end')
   matchdata[,2]=as.numeric(gsub('q','',matchdata[,2]))+1
-  if(!is.null(i)){
-    matchdata=matchdata[which(matchdata[,2]==i),]
-  }
+  #if(!is.null(i)){
+  #  matchdata=matchdata[which(matchdata[,2]==i),]
+  #}
   matchdata[,1]=matchdata[,1]+1
   matchdata[,3]=as.numeric(gsub('[','',gsub(',','',matchdata[,3]),fixed=TRUE))+1
   matchdata[,4]=as.numeric(gsub(')','',matchdata[,4]))
-  matchdata=data.frame(matchdata,length=map[matchdata$end]-map[matchdata$start])
+  matchdata=data.frame(matchdata,length=gd[matchdata$end]-gd[matchdata$start])
   return(matchdata)
 }
 
 #estimate \rho
-est_rho <- function(match,i,map){
+est_rho <- function(match,gd){
   # match is the match data after data_process
   # i is the index of target individual
-  data=match[which(match$mod_ind==i),c(3,4)]
-  nsnp=length(map)
+  #data=match[which(match$mod_ind==i),c(3,4)]
+  data=match[,c(3,4)]
+  nsnp=length(gd)
   # recombination position
   rec_pos=vector()
   j=1
@@ -38,33 +51,33 @@ est_rho <- function(match,i,map){
     }
   }
   n_rec=length(rec_pos)
-  return(n_rec*1e8/(map[nsnp_use]-map[1]))
+  return(n_rec/(gd[nsnp_use]-gd[1]))
 }
 
 # a logical matrix describing whether the ith target individual match
 # each reference samples at each SNP
-matchmatrix <- function(match,i,n_ref,nsnp){
+matchmatrix <- function(match,n_ref,nsnp){
   matchmat=matrix(FALSE,nrow=n_ref,ncol=nsnp)
   for(j in 1:nsnp){
-    data=match[which(match$mod_ind==i),]
-    data=data[which(data$start<=j & data$end>=j),]
+    #data=match[which(match$mod_ind==i),]
+    data=match[which(match$start<=j & match$end>=j),]
     matchmat[data$ref_ind,j]=TRUE
   }
   return(matchmat)
 }
 
 # the probability for transitting to the same state
-cal_sameprob <- function(nsnp,rho,map){
+cal_sameprob <- function(nsnp,rho,gd){
   sameprob=vector()
   for(j in 1:(nsnp-1)){
-    gd=(map[j+1]-map[j])*1e-6
-    sameprob[j]=exp(-rho*gd)
+    gd_use=(gd[j+1]-gd[j])*100
+    sameprob[j]=exp(-rho*gd_use)
   }
   return(sameprob)
 }
 
 # calculate the forward probability for target individual i
-cal_forward <- function(i,matchmat,nsnp,n_ref,sameprob){
+cal_forward <- function(matchmat,nsnp,n_ref,sameprob){
   otherprob = (1-sameprob)/n_ref
   forward_prob <- matrix(0,nrow=n_ref,ncol=nsnp)
   if(sum(matchmat[,1])!=0){
@@ -84,7 +97,7 @@ cal_forward <- function(i,matchmat,nsnp,n_ref,sameprob){
 }
 
 # calculate the backward probability for target individual i
-cal_backward <- function(i,matchmat,nsnp,n_ref,sameprob){
+cal_backward <- function(matchmat,nsnp,n_ref,sameprob){
   otherprob=(1-sameprob)/n_ref
   backward_prob <- matrix(0,nrow=n_ref,ncol=nsnp)
   backward_prob[,nsnp]=1
@@ -121,27 +134,27 @@ cal_painting <- function(marginal_prob,n_ref_each){
   return(painting)
 }
 
-cal_painting_full <- function(matchdata,i,map,n_ref_each,
+cal_painting_full <- function(match,gd,n_ref_each,
                               fix_rho=NULL,returneachref=FALSE){
   n_ref=sum(n_ref_each)
   
-  nsnp=length(map)
+  nsnp=length(gd)
   
-  match=data_process(matchdata,map,i)
+  #match=data_process(matchdata,gd,i)
   
   if(is.null(fix_rho)){
-    rho=est_rho(match,i,map)
+    rho=est_rho(match,i,gd)
   }else{
     rho=fix_rho
   }
   
-  matchmat=matchmatrix(match,i,n_ref,nsnp)
+  matchmat=matchmatrix(match,n_ref,nsnp)
   
-  sameprob=cal_sameprob(nsnp,rho,map)
+  sameprob=cal_sameprob(nsnp,rho,gd)
   
-  forward_prob = cal_forward(i,matchmat,nsnp,n_ref,sameprob)
+  forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob)
   
-  backward_prob = cal_backward(i,matchmat,nsnp,n_ref,sameprob)
+  backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob)
   
   marginal_prob = cal_marginal(forward_prob,backward_prob)
   

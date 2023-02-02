@@ -51,7 +51,7 @@ est_rho <- function(match,gd){
     }
   }
   n_rec=length(rec_pos)
-  return(n_rec/(gd[nsnp_use]-gd[1]))
+  return(n_rec/(gd[nsnp]-gd[1]))
 }
 
 # a logical matrix describing whether the ith target individual match
@@ -143,7 +143,7 @@ cal_painting_full <- function(match,gd,n_ref_each,
   #match=data_process(matchdata,gd,i)
   
   if(is.null(fix_rho)){
-    rho=est_rho(match,i,gd)
+    rho=est_rho(match,gd)
   }else{
     rho=fix_rho
   }

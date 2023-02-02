@@ -36,5 +36,5 @@ for(i in 1:1000){
 lda=LDA(painting_all)
 # gd should be in cM in function LDAS
 map_use=data.frame(SNP=map[nrow(map):1,2],gd=gd[length(gd):1]*100) 
-ldas = LDAS(lda,map_use,window=5)
-plot(x=ldas_result$SNP/1e6,y=ldas_result$LDAS)
+ldas = LDAS(lda,map_use,window=2)
+plot(x=ldas$SNP/1e6,y=ldas$LDAS,xlab='Physical position (cM)',ylab='LDAS')

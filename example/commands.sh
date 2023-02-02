@@ -37,7 +37,7 @@ for i in {1..2}; do ${bindir}exelmq_1swp_dpbwt$exe -i p${i}new.vcf -q p3new.vcf 
 
 # Then we merge the match files into a single file, which is the input to R
 for i in {2..2}; 
-do awk '{$1=$1+40*($((i-1))); print $0}' p${i}match.txt > p${i}matchnew.txt; 
+do awk '{$1=$1+40*(i-1); print $0}' p${i}match.txt > p${i}matchnew.txt; 
    mv p${i}matchnew.txt p${i}match.txt; 
    cat p$((i-1))match.txt p${i}match.txt > p${i}matchnew.txt;
    mv p${i}matchnew.txt p${i}match.txt;

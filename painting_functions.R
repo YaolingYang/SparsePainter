@@ -1,4 +1,4 @@
-get_gd <- function(map,rate){
+get_gd <- function(map,rate=NULL){
   # if the map file doesn't have a recombination distance
   if(all(!map[,1])){
     if(is.null(rate)){
@@ -28,8 +28,8 @@ data_process <- function(matchdata,gd){
   return(matchdata)
 }
 
-#estimate \rho
-est_rho <- function(match,gd){
+# estimate \rho using Viterbi algorithm
+est_rho_Viterbi <- function(match,gd){
   # match is the match data after data_process
   # i is the index of target individual
   #data=match[which(match$mod_ind==i),c(3,4)]
@@ -54,6 +54,76 @@ est_rho <- function(match,gd){
   return(n_rec/(gd[nsnp]-gd[1]))
 }
 
+est_rho_EM <- function(match,gd,n_ref_each,ite_time){
+  nsnp=length(gd)
+  rho_ite <- 400000/sum(n_ref_each)
+  
+  n_ref=sum(n_ref_each)
+  nsnp=length(gd)
+  matchmat=matchmatrix(match,n_ref,nsnp)
+  
+  times=0
+  
+  while(times<=ite_time){
+    
+    #match=data_process(matchdata,gd,i)
+    
+    sameprob=cal_sameprob(nsnp,rho_ite,gd)
+    
+    forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+    
+    backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+    
+    gl <- vector()
+    pl <- vector()
+    f <- vector()
+    pcon <- sum(forward_prob[,nsnp])
+    for(j in 1:(nsnp-1)){
+      gl[j]=(gd[j+1]-gd[j])
+      pl[j]=rho_ite*gl[j]
+      
+      f[j]=1/pcon*sum(forward_prob[,j+1]*backward_prob[,j+1] - 
+                     forward_prob[,j]*backward_prob[,j+1]*matchmat[,j+1]*exp(-pl[j]))
+    }
+    
+    rho_ite <- sum(f*pl/(1-exp(-pl)))/sum(gl)
+    times=times+1
+  }
+  
+  return(rho_ite)
+}
+
+
+
+est_rho_all <- function(n_ref_each,gd,method='Viterbi',
+                        matchtype='target',fix_rho=TRUE,ite_time=20){
+  rho_all=vector()
+  for(i in 1:sum(n_ref_each)){
+    if(matchtype=='target'){
+      matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
+      match=data_process(matchdata,gd)
+    }
+    if(matchtype=='donor'){
+      matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
+      match=data_process(matchdata,gd)
+      remove_index=i
+      for(k in 2:length(n_ref_each)){
+        set.seed(i*length(n_ref_each)+k)
+        remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+      }
+      match <- match[!match$ref_ind %in% remove_index, ]
+      match$ref_ind=as.integer(factor(match$ref_ind))
+    }
+    if(method=='Viterbi') rho_all[i]=est_rho_Viterbi(match,gd)
+    if(method=='EM') rho_all[i]=est_rho_EM(match,gd,n_ref_each,ite_time)
+  }
+  if(fix_rho){
+    return(mean(rho_all))
+  }else{
+    return(rho_all)
+  }
+}
+
 # a logical matrix describing whether the ith target individual match
 # each reference samples at each SNP
 matchmatrix <- function(match,n_ref,nsnp){
@@ -70,14 +140,14 @@ matchmatrix <- function(match,n_ref,nsnp){
 cal_sameprob <- function(nsnp,rho,gd){
   sameprob=vector()
   for(j in 1:(nsnp-1)){
-    gd_use=(gd[j+1]-gd[j])*100
+    gd_use=gd[j+1]-gd[j]
     sameprob[j]=exp(-rho*gd_use)
   }
   return(sameprob)
 }
 
 # calculate the forward probability for target individual i
-cal_forward <- function(matchmat,nsnp,n_ref,sameprob){
+cal_forward <- function(matchmat,nsnp,n_ref,sameprob,normalize=FALSE){
   otherprob = (1-sameprob)/n_ref
   forward_prob <- matrix(0,nrow=n_ref,ncol=nsnp)
   if(sum(matchmat[,1])!=0){
@@ -90,14 +160,19 @@ cal_forward <- function(matchmat,nsnp,n_ref,sameprob){
     if(sum(matchmat[,j])==0){
       matchmat[,j]=1
     }
-    forward_prob[,j] = matchmat[,j] * (sameprob[j-1] * forward_prob[,j-1] + otherprob[j-1])
-    forward_prob[,j] = forward_prob[,j]/sum(forward_prob[,j])
+    if(normalize){
+      forward_prob[,j] = matchmat[,j] * (sameprob[j-1] * forward_prob[,j-1] + otherprob[j-1])
+      forward_prob[,j] = forward_prob[,j]/sum(forward_prob[,j])
+    }else{
+      forward_prob[,j] = matchmat[,j] * (sameprob[j-1] * forward_prob[,j-1] + 
+                                         otherprob[j-1] * sum(forward_prob[,j-1]))
+    }
   }
   return(forward_prob)
 }
 
 # calculate the backward probability for target individual i
-cal_backward <- function(matchmat,nsnp,n_ref,sameprob){
+cal_backward <- function(matchmat,nsnp,n_ref,sameprob,normalize=FALSE){
   otherprob=(1-sameprob)/n_ref
   backward_prob <- matrix(0,nrow=n_ref,ncol=nsnp)
   backward_prob[,nsnp]=1
@@ -107,7 +182,9 @@ cal_backward <- function(matchmat,nsnp,n_ref,sameprob){
     }
     Bjp1=matchmat[,j+1] * backward_prob[,j+1]
     backward_prob[,j] = otherprob[j] * sum(Bjp1) + sameprob[j] * Bjp1
-    backward_prob[,j] = backward_prob[,j]/sum(backward_prob[,j])
+    if(normalize){
+      backward_prob[,j] = backward_prob[,j]/sum(backward_prob[,j])
+    }
   } 
   return(backward_prob)
 }
@@ -134,36 +211,133 @@ cal_painting <- function(marginal_prob,n_ref_each){
   return(painting)
 }
 
-cal_painting_full <- function(match,gd,n_ref_each,
-                              fix_rho=NULL,returneachref=FALSE){
+
+## calculate painting for each target individual
+cal_painting_each <- function(match,gd,n_ref_each,rho,
+                              returneachref=FALSE,coancestry=FALSE,normalize=FALSE){
   n_ref=sum(n_ref_each)
   
   nsnp=length(gd)
   
   #match=data_process(matchdata,gd,i)
-  
-  if(is.null(fix_rho)){
-    rho=est_rho(match,gd)
-  }else{
-    rho=fix_rho
-  }
-  
+
   matchmat=matchmatrix(match,n_ref,nsnp)
   
   sameprob=cal_sameprob(nsnp,rho,gd)
   
-  forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob)
+  forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob,normalize)
   
-  backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob)
+  backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob,normalize)
   
   marginal_prob = cal_marginal(forward_prob,backward_prob)
   
-  if(returneachref){
-    return(marginal_prob)
+  if(coancestry){
+    painting = sum(marginal_prob[1:n_ref_each[1],])/nsnp
+    start=n_ref_each[1]+1
+    for(k in 2:length(n_ref_each)){
+      painting[k] = sum(marginal_prob[start:(start+n_ref_each[k]-1),])/nsnp
+      start=start+n_ref_each[k]
+    }
+    return(painting)
   }else{
-    return(cal_painting(marginal_prob,n_ref_each))
+    if(returneachref){
+      return(marginal_prob)
+    }else{
+      return(cal_painting(marginal_prob,n_ref_each))
+    }
   }
 }
 
+
+## calculate painting for all target individuals
+cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
+                             rate=1e-8,normalize=FALSE){
+  
+  gd=get_gd(map,rate=rate)
+  
+  cat('Begin estimating rho \n')
+  
+  rho_all = est_rho_all(n_ref_each,gd,method,matchtype='target',fix_rho=fix_rho)
+  
+  for(i in 1:N){
+    cat('Calculating painting for target individual ',i,'\n')
+    matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
+    
+    match=data_process(matchdata,gd)
+    
+    if(fix_rho){
+      rho=rho_all
+    }else{
+      rho=rho_all[i]
+    }
+    
+    painting=cal_painting_each(match,gd,n_ref_each,rho,normalize=normalize)
+    
+    n_ref=length(n_ref_each)
+    if(i==1){
+      painting_all=painting
+    }else{
+      for(j in 1:n_ref){
+        painting_all[[j]]=rbind(painting_all[[j]],painting[[j]])
+      }
+      if(i==2){
+        for(j in 1:n_ref){
+          colnames(painting_all[[j]])=map[,2]
+        }
+      }
+    }
+  }
+  return(painting_all)
+}
+
+
+cal_coancestry <- function(n_ref_each,map,method='Viterbi',fix_rho=TRUE,
+                           rate=1e-8){
+  
+  gd=get_gd(map,rate=rate)
+  
+  cat('Begin estimating rho \n')
+  
+  rho_all = est_rho_all(n_ref_each,gd,method,matchtype='donor',fix_rho)
+  
+  coa_mat_ref <- matrix(0,nrow=sum(n_ref_each),ncol=length(n_ref_each))
+  
+  for(i in 1:sum(n_ref_each)){
+    cat('Calculating painting for donor individual ',i,'\n')
+    
+    matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
+    match=data_process(matchdata,gd)
+    remove_index=i
+    
+    for(k in 2:length(n_ref_each)){
+      set.seed(i*length(n_ref_each)+k)
+      remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+    }
+    
+    match <- match[!match$ref_ind %in% remove_index, ]
+    match$ref_ind=as.integer(factor(match$ref_ind))
+    
+    if(fix_rho){
+      rho=rho_all
+    }else{
+      rho=rho_all[i]
+    }
+    
+    coa_mat_ref[i,]=cal_painting_each(match,gd,n_ref_each-1,
+                                      rho=rho,coancestry=TRUE)
+  }
+  
+  coa_mat <- matrix(0,nrow=length(n_ref_each),ncol=length(n_ref_each))
+  start=1
+  
+  for(k in 1:length(n_ref_each)){
+    for(q in 1:length(n_ref_each)){
+      coa_mat[k,q] = mean(coa_mat_ref[start:(start+n_ref_each[k]-1),q])
+    }
+    start=start+n_ref_each[k]
+  }
+  
+  return(coa_mat)
+}
 
 

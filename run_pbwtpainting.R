@@ -1,36 +1,17 @@
 source("painting_functions.R")
 library(LDAandLDAS)
 
-map=read.table('p1new.map')[,3:4]
+#later we read popnames.ids to get all information.
+#compute painting
+painting_all = cal_painting_all(N=1000,n_ref_each=c(40,40),map=read.table('p.map')[,3:4],
+                              method='Viterbi',fix_rho=TRUE,rate=1e-8)
 
-gd=get_gd(map,rate=1e-8) ### gd is the genetic distance in Morgan
-
-for(i in 1:1000){
-  print(i)
-  matchdata=read.table(paste0('match',i-1,'.txt'))[,c(1,3,5,6)]
-  
-  match=data_process(matchdata,gd)
-  
-  #match=match[which(match$mod_ind==1),]
-  
-  painting=cal_painting_full(match,gd,n_ref_each=c(40,40),
-                             fix_rho=90.6536,returneachref=FALSE)
-  
-  n_ref=length(n_ref_each)
-  if(i==1){
-    painting_all=painting
-  }else{
-    for(j in 1:n_ref){
-      painting_all[[j]]=rbind(painting_all[[j]],painting[[j]])
-    }
-    if(i==2){
-      for(j in 1:n_ref){
-        colnames(painting_all[[j]])=map[,2]
-      }
-    }
-  }
-}
-
+#compute coancestry_matrix
+coa_matrix = cal_coancestry(n_ref_each=c(40,40),map=read.table('p.map')[,3:4],
+                            method='EM',fix_rho=TRUE,rate=1e-8)
+# comparison -- significant difference
+coa_matrix = cal_coancestry(n_ref_each=c(40,40),map=read.table('p.map')[,3:4],
+                            method='Viterbi',fix_rho=TRUE,rate=1e-8)
 
 #compute LDA and LDAS
 lda=LDA(painting_all)

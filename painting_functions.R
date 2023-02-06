@@ -292,13 +292,13 @@ cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
 
 
 cal_coancestry <- function(n_ref_each,map,method='Viterbi',fix_rho=TRUE,
-                           rate=1e-8){
+                           rate=1e-8,ite_time=20){
   
   gd=get_gd(map,rate=rate)
   
   cat('Begin estimating rho \n')
   
-  rho_all = est_rho_all(n_ref_each,gd,method,matchtype='donor',fix_rho)
+  rho_all = est_rho_all(n_ref_each,gd,method,matchtype='donor',fix_rho,ite_time=ite_time)
   
   coa_mat_ref <- matrix(0,nrow=sum(n_ref_each),ncol=length(n_ref_each))
   

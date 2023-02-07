@@ -1,3 +1,4 @@
+# compute the genetic distance in Morgan
 get_gd <- function(map,rate=NULL){
   # if the map file doesn't have a recombination distance
   if(all(!map[,1])){
@@ -77,12 +78,12 @@ est_rho_EM <- function(match,gd,n_ref_each,ite_time){
     gl <- vector()
     pl <- vector()
     f <- vector()
-    pcon <- sum(forward_prob[,nsnp])
+    pD <- sum(forward_prob[,nsnp]) 
     for(j in 1:(nsnp-1)){
       gl[j]=(gd[j+1]-gd[j])
       pl[j]=rho_ite*gl[j]
       
-      f[j]=1/pcon*sum(forward_prob[,j+1]*backward_prob[,j+1] - 
+      f[j]=1/pD*sum(forward_prob[,j+1]*backward_prob[,j+1] - 
                      forward_prob[,j]*backward_prob[,j+1]*matchmat[,j+1]*exp(-pl[j]))
     }
     
@@ -214,12 +215,10 @@ cal_painting <- function(marginal_prob,n_ref_each){
 
 ## calculate painting for each target individual
 cal_painting_each <- function(match,gd,n_ref_each,rho,
-                              returneachref=FALSE,coancestry=FALSE,normalize=FALSE){
+                              returneachref=FALSE,donoronly=FALSE,normalize=FALSE){
   n_ref=sum(n_ref_each)
   
   nsnp=length(gd)
-  
-  #match=data_process(matchdata,gd,i)
 
   matchmat=matchmatrix(match,n_ref,nsnp)
   
@@ -231,7 +230,8 @@ cal_painting_each <- function(match,gd,n_ref_each,rho,
   
   marginal_prob = cal_marginal(forward_prob,backward_prob)
   
-  if(coancestry){
+  if(donoronly){
+    # compute the painting in the donor samples
     painting = sum(marginal_prob[1:n_ref_each[1],])/nsnp
     start=n_ref_each[1]+1
     for(k in 2:length(n_ref_each)){
@@ -248,16 +248,65 @@ cal_painting_each <- function(match,gd,n_ref_each,rho,
   }
 }
 
+## calculate the chunk length for each individual
+cal_chunklength <- function(match,gd,n_ref_each,rho){
+  
+  nsnp=length(gd)
+  
+  n_ref=sum(n_ref_each)
+  
+  matchmat=matchmatrix(match,n_ref,nsnp)
+  
+  sameprob=cal_sameprob(nsnp,rho,gd)
+  
+  forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+  
+  backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+  
+  pD <- sum(forward_prob[,nsnp])
+  
+  gl <- vector()
+  pl <- vector()
+  for(j in 1:(nsnp-1)){
+    gl[j]=(gd[j+1]-gd[j])
+    pl[j]=rho_ite*gl[j]
+  }
+  l=vector()
+  for(i in 1:n_ref){
+    left=vector()
+    right=vector()
+    for(j in 1:(nsnp-1)){
+      left[j]=matchmat[i,j+1]*(forward_prob[i,j]*backward_prob[i,j+1]*
+                                 (exp(-pl[j])+(1-exp(-pl[j])/n_ref)))
+      right[j]=0.5*(forward_prob[i,j]*backward_prob[i,j]+
+                      forward_prob[i,j+1]*backward_prob[i,j+1]-
+                      2*forward_prob[i,j]*backward_prob[i,j+1]*
+                      matchmat[i,j+1]*(exp(-pl[j])+(1-exp(-pl[j])/n_ref)))
+    }
+    
+    l[i]=1/pD*sum(gl*(left+right))
+  }
+  cum_sum <- c(0,cumsum(n_ref_each))
+  sum_l <- vector()
+  for(k in 1:length(n_ref_each)){
+    sum_l <- c(sum_l,sum(l[(cum_sum[k]+1):cum_sum[k+1]]))
+  }
+  return(sum_l)
+}
+
+
+
 
 ## calculate painting for all target individuals
 cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
-                             rate=1e-8,normalize=FALSE){
+                             rate=1e-8,normalize=FALSE,matchtype='donor',ite_time=20){
   
   gd=get_gd(map,rate=rate)
   
   cat('Begin estimating rho \n')
   
-  rho_all = est_rho_all(n_ref_each,gd,method,matchtype='target',fix_rho=fix_rho)
+  rho_all = est_rho_all(n_ref_each,gd,method,matchtype=matchtype,
+                        fix_rho=fix_rho,ite_time=ite_time)
   
   for(i in 1:N){
     cat('Calculating painting for target individual ',i,'\n')
@@ -298,12 +347,14 @@ cal_coancestry <- function(n_ref_each,map,method='Viterbi',fix_rho=TRUE,
   
   cat('Begin estimating rho \n')
   
-  rho_all = est_rho_all(n_ref_each,gd,method,matchtype='donor',fix_rho,ite_time=ite_time)
+  rho_all = est_rho_all(n_ref_each,gd,method,matchtype='donor',
+                        fix_rho=fix_rho,ite_time=ite_time)
   
   coa_mat_ref <- matrix(0,nrow=sum(n_ref_each),ncol=length(n_ref_each))
   
   for(i in 1:sum(n_ref_each)){
-    cat('Calculating painting for donor individual ',i,'\n')
+    
+    cat('Calculating chunk length for donor individual ',i,'\n')
     
     matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
     match=data_process(matchdata,gd)
@@ -323,21 +374,31 @@ cal_coancestry <- function(n_ref_each,map,method='Viterbi',fix_rho=TRUE,
       rho=rho_all[i]
     }
     
-    coa_mat_ref[i,]=cal_painting_each(match,gd,n_ref_each-1,
-                                      rho=rho,coancestry=TRUE)
+    #ref_cum_sum <- cumsum(n_ref_each-1)
+    #ref_cum_sum=c(0,ref_cum_sum)
+    #split_match <- split(match, findInterval(match$ref_ind, 
+    #                                         ref_cum_sum,left.open=TRUE,rightmost.closed=TRUE))
+    coa_mat_ref[i,]=cal_chunklength(match,gd,n_ref_each-1,rho=rho)
+    #for(k in 1:length(n_ref_each)){
+    #  match_use=split_match[[k]]
+    #  match_use$ref_ind=match_use$ref_ind-ref_cum_sum[k]
+    #  coa_mat_ref[i,k]=cal_chunklength(match_use,gd,n_ref_each[k]-1,
+    #                                    rho=rho)
+    #}
+    
   }
   
-  coa_mat <- matrix(0,nrow=length(n_ref_each),ncol=length(n_ref_each))
-  start=1
+  #coa_mat <- matrix(0,nrow=length(n_ref_each),ncol=length(n_ref_each))
+  #start=1
   
-  for(k in 1:length(n_ref_each)){
-    for(q in 1:length(n_ref_each)){
-      coa_mat[k,q] = mean(coa_mat_ref[start:(start+n_ref_each[k]-1),q])
-    }
-    start=start+n_ref_each[k]
-  }
+  #for(k in 1:length(n_ref_each)){
+  #  for(q in 1:length(n_ref_each)){
+  #    coa_mat[k,q] = mean(coa_mat_ref[start:(start+n_ref_each[k]-1),q])
+  #  }
+  #  start=start+n_ref_each[k]
+  #}
   
-  return(coa_mat)
+  return(coa_mat_ref)
 }
 
 

@@ -46,6 +46,6 @@ grep popNeinf p_merged_filtered.cp
 
 # assume N_e is 90.6536
 for i in `seq 1 500`; do
-fs cp -b -t popnames.ids -f popnames.donor $i $i  -r p_merged_filtered.rec -n 90.6536 -M 0 -k 1 -g p_merged_filtered.phase -o p_merged_filtered/stage7/test_p_merged_filtered_stage7_tmp_mainrun.linked_file1_ind$i; done
+fs cp -b -t popnames.ids -f popnames.donor $i $i  -r p_merged_filtered.rec -n 97.9692 -M 0.00000000001 -k 1 -g p_merged_filtered.phase -o p_merged_filtered/stage7/test_p_merged_filtered_stage7_tmp_mainrun.linked_file1_ind$i; done
 
 Rscript simulation.R

@@ -55,13 +55,13 @@ est_rho_Viterbi <- function(match,gd){
   return(n_rec/(gd[nsnp]-gd[1]))
 }
 
-est_rho_EM <- function(match,gd,n_ref_each,ite_time){
+est_rho_EM <- function(match,gd,n_ref_each,ite_time=20,theta){
   nsnp=length(gd)
   rho_ite <- 400000/sum(n_ref_each)
   
   n_ref=sum(n_ref_each)
   nsnp=length(gd)
-  matchmat=matchmatrix(match,n_ref,nsnp)
+  matchmat=matchmatrix(match,n_ref,nsnp,theta)
   
   times=0
   
@@ -97,14 +97,12 @@ est_rho_EM <- function(match,gd,n_ref_each,ite_time){
 
 
 est_rho_all <- function(n_ref_each,gd,method='Viterbi',
-                        matchtype='target',fix_rho=TRUE,ite_time=20){
+                        matchtype='target',fix_rho=TRUE,ite_time=20,
+                        N=NULL,theta){
   rho_all=vector()
-  for(i in 1:sum(n_ref_each)){
-    if(matchtype=='target'){
-      matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
-      match=data_process(matchdata,gd)
-    }
-    if(matchtype=='donor'){
+  if(matchtype=='donor'){
+    for(i in 1:sum(n_ref_each)){
+
       matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
       match=data_process(matchdata,gd)
       remove_index=i
@@ -114,10 +112,21 @@ est_rho_all <- function(n_ref_each,gd,method='Viterbi',
       }
       match <- match[!match$ref_ind %in% remove_index, ]
       match$ref_ind=as.integer(factor(match$ref_ind))
+      if(method=='Viterbi') rho_all[i]=est_rho_Viterbi(match,gd)
+      if(method=='EM') rho_all[i]=est_rho_EM(match,gd,n_ref_each-1,ite_time,theta)
     }
-    if(method=='Viterbi') rho_all[i]=est_rho_Viterbi(match,gd)
-    if(method=='EM') rho_all[i]=est_rho_EM(match,gd,n_ref_each,ite_time)
   }
+  
+  if(matchtype=='target'){
+    for(i in 1:N){
+      matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
+      match=data_process(matchdata,gd)
+
+      if(method=='Viterbi') rho_all[i]=est_rho_Viterbi(match,gd)
+      if(method=='EM') rho_all[i]=est_rho_EM(match,gd,n_ref_each,ite_time,theta)
+    }
+  }
+  
   if(fix_rho){
     return(mean(rho_all))
   }else{
@@ -125,14 +134,104 @@ est_rho_all <- function(n_ref_each,gd,method='Viterbi',
   }
 }
 
+
+est_rhoandtheta_EM <- function(match,gd,n_ref_each,ite_time=20){
+  nsnp=length(gd)
+  
+  n_ref=sum(n_ref_each)
+  
+  nsnp=length(gd)
+  
+  theta_ite <- 0.5/sum(1/(1:n_ref))/(n_ref+1/sum(1/(1:n_ref)))
+  
+  rho_ite <- 400000/sum(n_ref_each)
+  
+  times=0
+  
+  while(times<=ite_time){
+    
+    matchmat = matchmatrix(match,n_ref,nsnp,theta_ite)
+    
+    unmatchmat = matchmatrix(match,n_ref,nsnp,theta=1)
+    
+    sameprob=cal_sameprob(nsnp,rho_ite,gd)
+    
+    forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+    
+    backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+    
+    gl <- vector()
+    pl <- vector()
+    f <- vector()
+    caltheta <- vector()
+    pD <- sum(forward_prob[,nsnp]) 
+    for(j in 1:(nsnp-1)){
+      gl[j]=(gd[j+1]-gd[j])
+      pl[j]=rho_ite*gl[j]
+      
+      f[j]=1/pD*sum(forward_prob[,j+1]*backward_prob[,j+1] - 
+                      forward_prob[,j]*backward_prob[,j+1]*matchmat[,j+1]*exp(-pl[j]))
+      caltheta[j]=1/pD*sum(forward_prob[,j]*backward_prob[,j]*unmatchmat[,j])
+    }
+    caltheta <- c(caltheta,1/pD*sum(forward_prob[,nsnp]*backward_prob[,nsnp]*unmatchmat[,nsnp]))
+    
+    rho_ite <- sum(f*pl/(1-exp(-pl)))/sum(gl)
+    theta_ite <- sum(caltheta)/nsnp
+    times=times+1
+  }
+  
+  return(c(rho_ite,theta_ite))
+}
+
+
+est_rhoandtheta_all <- function(n_ref_each,gd,
+                                matchtype='target',fix_rho=TRUE,ite_time=20,
+                                N=NULL,fix_theta=TRUE){
+  rho_all=vector()
+  theta_all=vector()
+  if(matchtype=='donor'){
+    for(i in 1:sum(n_ref_each)){
+      
+      matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
+      match=data_process(matchdata,gd)
+      remove_index=i
+      for(k in 2:length(n_ref_each)){
+        set.seed(i*length(n_ref_each)+k)
+        remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+      }
+      match <- match[!match$ref_ind %in% remove_index, ]
+      match$ref_ind=as.integer(factor(match$ref_ind))
+      temp=est_rhoandtheta_EM(match,gd,n_ref_each-1,ite_time)
+      rho_all[i]=temp[1]
+      theta_all[i]=temp[2]
+    }
+  }
+  
+  if(matchtype=='target'){
+    for(i in 1:N){
+      matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
+      match=data_process(matchdata,gd)
+      temp=est_rhoandtheta_EM(match,gd,n_ref_each,ite_time)
+      rho_all[i]=temp[1]
+      theta_all[i]=temp[2]
+    }
+  }
+  
+  if(fix_rho & fix_theta) return(c(mean(rho_all),mean(theta_all)))
+  if(fix_rho & !fix_theta) return(c(mean(rho_all),theta_all))
+  if(!fix_rho & fix_theta) return(c(rho_all,mean(theta_all)))
+  if(!fix_rho & !fix_theta) return(c(rho_all,theta_all))
+}
+
+
 # a logical matrix describing whether the ith target individual match
 # each reference samples at each SNP
-matchmatrix <- function(match,n_ref,nsnp){
-  matchmat=matrix(FALSE,nrow=n_ref,ncol=nsnp)
+matchmatrix <- function(match,n_ref,nsnp,theta){
+  matchmat=matrix(theta,nrow=n_ref,ncol=nsnp)
   for(j in 1:nsnp){
     #data=match[which(match$mod_ind==i),]
     data=match[which(match$start<=j & match$end>=j),]
-    matchmat[data$ref_ind,j]=TRUE
+    matchmat[data$ref_ind,j]=1-theta
   }
   return(matchmat)
 }
@@ -214,13 +313,13 @@ cal_painting <- function(marginal_prob,n_ref_each){
 
 
 ## calculate painting for each target individual
-cal_painting_each <- function(match,gd,n_ref_each,rho,
+cal_painting_each <- function(match,gd,n_ref_each,rho,theta,
                               returneachref=FALSE,donoronly=FALSE,normalize=FALSE){
   n_ref=sum(n_ref_each)
   
   nsnp=length(gd)
 
-  matchmat=matchmatrix(match,n_ref,nsnp)
+  matchmat=matchmatrix(match,n_ref,nsnp,theta)
   
   sameprob=cal_sameprob(nsnp,rho,gd)
   
@@ -249,13 +348,13 @@ cal_painting_each <- function(match,gd,n_ref_each,rho,
 }
 
 ## calculate the chunk length for each individual
-cal_chunklength <- function(match,gd,n_ref_each,rho){
+cal_chunklength <- function(match,gd,n_ref_each,rho,theta){
   
   nsnp=length(gd)
   
   n_ref=sum(n_ref_each)
   
-  matchmat=matchmatrix(match,n_ref,nsnp)
+  matchmat=matchmatrix(match,n_ref,nsnp,theta)
   
   sameprob=cal_sameprob(nsnp,rho,gd)
   
@@ -269,22 +368,24 @@ cal_chunklength <- function(match,gd,n_ref_each,rho){
   pl <- vector()
   for(j in 1:(nsnp-1)){
     gl[j]=(gd[j+1]-gd[j])
-    pl[j]=rho_ite*gl[j]
+    pl[j]=rho*gl[j]
   }
   l=vector()
   for(i in 1:n_ref){
-    left=vector()
+    #left=vector()
     right=vector()
     for(j in 1:(nsnp-1)){
-      left[j]=matchmat[i,j+1]*(forward_prob[i,j]*backward_prob[i,j+1]*
-                                 (exp(-pl[j])+(1-exp(-pl[j])/n_ref)))
+      #left[j]=matchmat[i,j+1]*(forward_prob[i,j]*backward_prob[i,j+1]*
+      #                           (exp(-pl[j])+(1-exp(-pl[j])/n_ref)))
+      #right[j]=0.5*(forward_prob[i,j]*backward_prob[i,j]+
+      #                forward_prob[i,j+1]*backward_prob[i,j+1]-
+      #                2*forward_prob[i,j]*backward_prob[i,j+1]*
+      #                matchmat[i,j+1]*(exp(-pl[j])+(1-exp(-pl[j])/n_ref)))
       right[j]=0.5*(forward_prob[i,j]*backward_prob[i,j]+
-                      forward_prob[i,j+1]*backward_prob[i,j+1]-
-                      2*forward_prob[i,j]*backward_prob[i,j+1]*
-                      matchmat[i,j+1]*(exp(-pl[j])+(1-exp(-pl[j])/n_ref)))
+                    forward_prob[i,j+1]*backward_prob[i,j+1])
     }
-    
-    l[i]=1/pD*sum(gl*(left+right))
+    l[i]=1/pD*sum(gl*right)
+    #l[i]=1/pD*sum(gl*(left+right))
   }
   cum_sum <- c(0,cumsum(n_ref_each))
   sum_l <- vector()
@@ -299,20 +400,44 @@ cal_chunklength <- function(match,gd,n_ref_each,rho){
 
 ## calculate painting for all target individuals
 cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
-                             rate=1e-8,normalize=FALSE,matchtype='donor',ite_time=20){
-  
+                             rate=1e-8,normalize=FALSE,matchtype='donor',ite_time=20,
+                             theta=NULL,theta_EM=FALSE,
+                             fix_theta=TRUE){
   gd=get_gd(map,rate=rate)
   
-  cat('Begin estimating rho \n')
+  n_ref=sum(n_ref_each)
   
-  rho_all = est_rho_all(n_ref_each,gd,method,matchtype=matchtype,
-                        fix_rho=fix_rho,ite_time=ite_time)
+  if(!theta_EM){
+    if(is.null(theta)) theta_all=0.5/sum(1/(1:n_ref))/(n_ref+1/sum(1/(1:n_ref)))
+    
+    if(!is.null(theta)) theta_all=theta
+    
+    cat('Begin estimating rho \n')
+    
+    rho_all = est_rho_all(n_ref_each,gd,method,matchtype=matchtype,
+                          fix_rho=fix_rho,ite_time=ite_time,theta=theta_all)
+    
+    if(fix_rho) cat('Effective population size rho is',rho_all,'\n')
+    cat('Mutation rate theta is',theta_all,'\n')
+    
+  }else{
+    cat('Begin estimating rho and theta \n')
+    rhoandtheta = est_rhoandtheta_all(n_ref_each,gd,matchtype='donor',
+                                      fix_rho=fix_rho,ite_time=ite_time,fix_theta=fix_theta)
+    rho_all=rhoandtheta[1:length(rhoandtheta)/2]
+    theta_all=rhoandtheta[-(1:length(rhoandtheta)/2)]
+    if(method=='Viterbi'){
+      rho_all = est_rho_all(n_ref_each,gd,method='Viterbi',matchtype=matchtype,
+                            fix_rho=fix_rho,ite_time=ite_time,theta=theta_all)
+    }
+    if(fix_rho) cat('Effective population size rho is',rho_all,'\n')
+    if(fix_theta) cat('Mutation rate theta is',theta_all,'\n')
+  }
+  
+  painting_all <- list()
   
   for(i in 1:N){
     cat('Calculating painting for target individual ',i,'\n')
-    matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
-    
-    match=data_process(matchdata,gd)
     
     if(fix_rho){
       rho=rho_all
@@ -320,17 +445,26 @@ cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
       rho=rho_all[i]
     }
     
-    painting=cal_painting_each(match,gd,n_ref_each,rho,normalize=normalize)
+    if(fix_theta){
+      theta=theta_all
+    }else{
+      theta=theta_all[i]
+    }
     
-    n_ref=length(n_ref_each)
+    matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
+    
+    match=data_process(matchdata,gd)
+    
+    painting=cal_painting_each(match,gd,n_ref_each,rho,theta=theta,normalize=normalize)
+    
     if(i==1){
       painting_all=painting
     }else{
-      for(j in 1:n_ref){
+      for(j in 1:length(n_ref_each)){
         painting_all[[j]]=rbind(painting_all[[j]],painting[[j]])
       }
       if(i==2){
-        for(j in 1:n_ref){
+        for(j in 1:length(n_ref_each)){
           colnames(painting_all[[j]])=map[,2]
         }
       }
@@ -341,20 +475,55 @@ cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
 
 
 cal_coancestry <- function(n_ref_each,map,method='Viterbi',fix_rho=TRUE,
-                           rate=1e-8,ite_time=20){
+                           rate=1e-8,ite_time=20,theta=NULL,theta_EM=FALSE,
+                           fix_theta=TRUE){
   
   gd=get_gd(map,rate=rate)
   
-  cat('Begin estimating rho \n')
+  n_ref=sum(n_ref_each)
   
-  rho_all = est_rho_all(n_ref_each,gd,method,matchtype='donor',
-                        fix_rho=fix_rho,ite_time=ite_time)
+  if(!theta_EM){
+    if(is.null(theta)) theta_all=0.5/sum(1/(1:n_ref))/(n_ref+1/sum(1/(1:n_ref)))
+    
+    if(!is.null(theta)) theta_all=theta
+    
+    cat('Begin estimating rho \n')
+    
+    rho_all = est_rho_all(n_ref_each,gd,method,matchtype='donor',
+                          fix_rho=fix_rho,ite_time=ite_time,theta=theta_all)
+    if(fix_rho) cat('Effective population size rho is',rho_all,'\n')
+    cat('Mutation rate theta is',theta_all,'\n')
+  }else{
+    cat('Begin estimating rho and theta \n')
+    rhoandtheta = est_rhoandtheta_all(n_ref_each,gd,matchtype='donor',
+                                      fix_rho=fix_rho,ite_time=ite_time,fix_theta=fix_theta)
+    rho_all=rhoandtheta[[1]]
+    theta_all=rhoandtheta[[2]]
+    if(method=='Viterbi'){
+      rho_all = est_rho_all(n_ref_each,gd,method='Viterbi',matchtype='donor',
+                            fix_rho=fix_rho,ite_time=ite_time,theta=theta_all)
+    }
+    if(fix_rho) cat('Effective population size rho is',rho_all,'\n')
+    if(fix_theta) cat('Mutation rate theta is',theta_all,'\n')
+  }
   
   coa_mat_ref <- matrix(0,nrow=sum(n_ref_each),ncol=length(n_ref_each))
   
   for(i in 1:sum(n_ref_each)){
     
     cat('Calculating chunk length for donor individual ',i,'\n')
+    
+    if(fix_rho){
+      rho=rho_all
+    }else{
+      rho=rho_all[i]
+    }
+    
+    if(fix_theta){
+      theta=theta_all
+    }else{
+      theta=theta_all[i]
+    }
     
     matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
     match=data_process(matchdata,gd)
@@ -368,35 +537,8 @@ cal_coancestry <- function(n_ref_each,map,method='Viterbi',fix_rho=TRUE,
     match <- match[!match$ref_ind %in% remove_index, ]
     match$ref_ind=as.integer(factor(match$ref_ind))
     
-    if(fix_rho){
-      rho=rho_all
-    }else{
-      rho=rho_all[i]
-    }
-    
-    #ref_cum_sum <- cumsum(n_ref_each-1)
-    #ref_cum_sum=c(0,ref_cum_sum)
-    #split_match <- split(match, findInterval(match$ref_ind, 
-    #                                         ref_cum_sum,left.open=TRUE,rightmost.closed=TRUE))
-    coa_mat_ref[i,]=cal_chunklength(match,gd,n_ref_each-1,rho=rho)
-    #for(k in 1:length(n_ref_each)){
-    #  match_use=split_match[[k]]
-    #  match_use$ref_ind=match_use$ref_ind-ref_cum_sum[k]
-    #  coa_mat_ref[i,k]=cal_chunklength(match_use,gd,n_ref_each[k]-1,
-    #                                    rho=rho)
-    #}
-    
+    coa_mat_ref[i,]=cal_chunklength(match,gd,n_ref_each-1,rho=rho,theta=theta)
   }
-  
-  #coa_mat <- matrix(0,nrow=length(n_ref_each),ncol=length(n_ref_each))
-  #start=1
-  
-  #for(k in 1:length(n_ref_each)){
-  #  for(q in 1:length(n_ref_each)){
-  #    coa_mat[k,q] = mean(coa_mat_ref[start:(start+n_ref_each[k]-1),q])
-  #  }
-  #  start=start+n_ref_each[k]
-  #}
   
   return(coa_mat_ref)
 }

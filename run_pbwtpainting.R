@@ -8,11 +8,12 @@ painting_all = cal_painting_all(N=1000,n_ref_each=c(40,40),map=read.table('p.map
 
 #compute coancestry_matrix
 coa_matrix = cal_coancestry(n_ref_each=c(40,40),map=read.table('p.map')[,3:4],
-                            method='Viterbi',fix_rho=TRUE,rate=1e-8)
+                            method='Viterbi',fix_rho=TRUE,rate=1e-8,theta_EM=FALSE)
 
 # comparison -- significant difference, iteration time by default is 20
+# setting theta_EM=TRUE greatly reduces the speed...
 coa_matrix2 = cal_coancestry(n_ref_each=c(40,40),map=read.table('p.map')[,3:4],
-                            method='EM',fix_rho=TRUE,rate=1e-8)
+                            method='EM',fix_rho=TRUE,rate=1e-8,ite_time=2,theta_EM=TRUE)
 
 # if we greatly increase iteration times for EM, the coancestry matrix becomes closer
 coa_matrix3 = cal_coancestry(n_ref_each=c(40,40),map=read.table('p.map')[,3:4],

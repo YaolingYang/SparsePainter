@@ -42,10 +42,13 @@ cat p_merged_maffiltered.vcf | sed 's!0/0!0|0!g' > p_merged_filtered.vcf
 vcf2cp.pl -m 2000 -J p_merged_filtered.vcf p_merged_filtered
 makeuniformrecfile.pl -c 0.000001 p_merged_filtered.phase p_merged_filtered.rec
 
-grep popNeinf p_merged_filtered.cp
+#To implement leave-one-out
+fs p_merged_filtered.cp -n -phasefiles p_merged_filtered.phase -recombfiles p_merged_filtered.rec -popidfile popnames.ids -donoridfile popnames.donor -s6indfrac 1 -s6minsnps 1 -s67args:"-M 0.00000001" -s6args:"-in -iM --emfilesonly -n 100" -s7args:-b -s7chunksperregion 1 -go
+
+#grep popNeinf p_merged_filtered.cp
 
 # assume N_e is 90.6536
-for i in `seq 1 500`; do
-fs cp -b -t popnames.ids -f popnames.donor $i $i  -r p_merged_filtered.rec -n 90.6536 -M 0.00000000001 -k 1 -g p_merged_filtered.phase -o p_merged_filtered/stage7/test_p_merged_filtered_stage7_tmp_mainrun.linked_file1_ind$i; done
+#for i in `seq 1 500`; do
+#fs cp -b -t popnames.ids -f popnames.donor $i $i  -r p_merged_filtered.rec -n 90.6536 -M 0.00000000001 -k 1 -g p_merged_filtered.phase -o p_merged_filtered/stage7/test_p_merged_filtered_stage7_tmp_mainrun.linked_file1_ind$i; done
 
 Rscript simulation.R

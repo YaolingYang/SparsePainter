@@ -98,22 +98,39 @@ est_rho_EM <- function(match,gd,n_ref_each,ite_time=20,theta){
 
 est_rho_all <- function(n_ref_each,gd,method='Viterbi',
                         matchtype='target',fix_rho=TRUE,ite_time=20,
-                        N=NULL,theta){
+                        N=NULL,theta,diploid=FALSE){
   rho_all=vector()
   if(matchtype=='donor'){
-    for(i in 1:sum(n_ref_each)){
-
+    sum_ind=sum(n_ref_each)
+    if(diploid) sum_ind=sum_ind/2
+    for(i in 1:sum_ind){
       matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
       match=data_process(matchdata,gd)
-      remove_index=i
-      for(k in 2:length(n_ref_each)){
-        set.seed(i*length(n_ref_each)+k)
-        remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+      if(!diploid){
+        remove_index=i
+        for(k in 2:length(n_ref_each)){
+          set.seed(i*length(n_ref_each)+k)
+          remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+        }
+        match <- match[!match$ref_ind %in% remove_index, ]
+        match$ref_ind=as.integer(factor(match$ref_ind))
+        if(method=='Viterbi') rho_all[i]=est_rho_Viterbi(match,gd)
+        if(method=='EM') rho_all[i]=est_rho_EM(match,gd,n_ref_each-1,ite_time,theta)
+      }else{
+        ## two genomes of an individual are contained
+        for(w in 1:2){
+          match_temp=match[which(match$mod_ind==w),]
+          remove_index=2*i-2+w
+          for(k in 2:length(n_ref_each)){
+            set.seed((2*i-2+w)*length(n_ref_each)+k)
+            remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+          }
+          match_temp <- match_temp[!match_temp$ref_ind %in% remove_index, ]
+          match_temp$ref_ind=as.integer(factor(match_temp$ref_ind))
+          if(method=='Viterbi') rho_all[2*i-2+w]=est_rho_Viterbi(match_temp,gd)
+          if(method=='EM') rho_all[2*i-2+w]=est_rho_EM(match_temp,gd,n_ref_each-1,ite_time,theta)
+        }
       }
-      match <- match[!match$ref_ind %in% remove_index, ]
-      match$ref_ind=as.integer(factor(match$ref_ind))
-      if(method=='Viterbi') rho_all[i]=est_rho_Viterbi(match,gd)
-      if(method=='EM') rho_all[i]=est_rho_EM(match,gd,n_ref_each-1,ite_time,theta)
     }
   }
   
@@ -121,9 +138,17 @@ est_rho_all <- function(n_ref_each,gd,method='Viterbi',
     for(i in 1:N){
       matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
       match=data_process(matchdata,gd)
-
-      if(method=='Viterbi') rho_all[i]=est_rho_Viterbi(match,gd)
-      if(method=='EM') rho_all[i]=est_rho_EM(match,gd,n_ref_each,ite_time,theta)
+      
+      if(!diploid){
+        if(method=='Viterbi') rho_all[i]=est_rho_Viterbi(match,gd)
+        if(method=='EM') rho_all[i]=est_rho_EM(match,gd,n_ref_each,ite_time,theta)
+      }else{
+        for(w in 1:2){
+          match_temp=match[which(match$mod_ind==w),]
+          if(method=='Viterbi') rho_all[2*i-2+w]=est_rho_Viterbi(match_temp,gd)
+          if(method=='EM') rho_all[2*i-2+w]=est_rho_EM(match_temp,gd,n_ref_each-1,ite_time,theta)
+        }
+      }
     }
   }
   
@@ -186,24 +211,45 @@ est_rhoandtheta_EM <- function(match,gd,n_ref_each,ite_time=20){
 
 est_rhoandtheta_all <- function(n_ref_each,gd,
                                 matchtype='target',fix_rho=TRUE,ite_time=20,
-                                N=NULL,fix_theta=TRUE){
+                                N=NULL,fix_theta=TRUE,diploid=FALSE){
   rho_all=vector()
   theta_all=vector()
   if(matchtype=='donor'){
-    for(i in 1:sum(n_ref_each)){
+    sum_ind=sum(n_ref_each)
+    if(diploid) sum_ind=sum_ind/2
+    for(i in 1:sum_ind){
       
       matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
       match=data_process(matchdata,gd)
-      remove_index=i
-      for(k in 2:length(n_ref_each)){
-        set.seed(i*length(n_ref_each)+k)
-        remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+      ##
+      if(!diploid){
+        remove_index=i
+        for(k in 2:length(n_ref_each)){
+          set.seed(i*length(n_ref_each)+k)
+          remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+        }
+        match <- match[!match$ref_ind %in% remove_index, ]
+        match$ref_ind=as.integer(factor(match$ref_ind))
+        temp=est_rhoandtheta_EM(match,gd,n_ref_each-1,ite_time)
+        rho_all[i]=temp[1]
+        theta_all[i]=temp[2]
+      }else{
+        ## two genomes of an individual are contained
+        for(w in 1:2){
+          match_temp=match[which(match$mod_ind==w),]
+          remove_index=2*i-2+w
+          for(k in 2:length(n_ref_each)){
+            set.seed((2*i-2+w)*length(n_ref_each)+k)
+            remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+          }
+          match_temp <- match_temp[!match_temp$ref_ind %in% remove_index, ]
+          match_temp$ref_ind=as.integer(factor(match_temp$ref_ind))
+          temp=est_rhoandtheta_EM(match_temp,gd,n_ref_each-1,ite_time)
+          rho_all[2*i-2+w]=temp[1]
+          theta_all[2*i-2+w]=temp[2]
+        }
       }
-      match <- match[!match$ref_ind %in% remove_index, ]
-      match$ref_ind=as.integer(factor(match$ref_ind))
-      temp=est_rhoandtheta_EM(match,gd,n_ref_each-1,ite_time)
-      rho_all[i]=temp[1]
-      theta_all[i]=temp[2]
+      ##
     }
   }
   
@@ -211,9 +257,18 @@ est_rhoandtheta_all <- function(n_ref_each,gd,
     for(i in 1:N){
       matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
       match=data_process(matchdata,gd)
-      temp=est_rhoandtheta_EM(match,gd,n_ref_each,ite_time)
-      rho_all[i]=temp[1]
-      theta_all[i]=temp[2]
+      if(!diploid){
+        temp=est_rhoandtheta_EM(match,gd,n_ref_each,ite_time)
+        rho_all[i]=temp[1]
+        theta_all[i]=temp[2]
+      }else{
+        for(w in 1:2){
+          match_temp=match[which(match$mod_ind==w),]
+          temp=est_rhoandtheta_EM(match_temp,gd,n_ref_each,ite_time)
+          rho_all[2*i-2+w]=temp[1]
+          theta_all[2*i-2+w]=temp[2]
+        }
+      }
     }
   }
   
@@ -363,6 +418,7 @@ cal_chunklength <- function(match,gd,n_ref_each,rho,theta){
   backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
   
   pD <- sum(forward_prob[,nsnp])
+  #log(pD)=-log(sum_f1)-log(sum_f2)-.....-log(sum_fk-1)
   
   gl <- vector()
   pl <- vector()
@@ -399,10 +455,16 @@ cal_chunklength <- function(match,gd,n_ref_each,rho,theta){
 
 
 ## calculate painting for all target individuals
-cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
+cal_painting_all <- function(N,n_refind_each,map,method='Viterbi',fix_rho=TRUE,
                              rate=1e-8,normalize=FALSE,matchtype='donor',ite_time=20,
-                             theta=NULL,theta_EM=FALSE,
-                             fix_theta=TRUE){
+                             theta=NULL,theta_EM=FALSE,fix_theta=TRUE,
+                             diploid=FALSE){
+  if(diploid){
+    n_ref_each=n_refind_each*2
+  }else{
+    n_ref_each=n_refind_each
+  }
+
   gd=get_gd(map,rate=rate)
   
   n_ref=sum(n_ref_each)
@@ -415,7 +477,8 @@ cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
     cat('Begin estimating rho \n')
     
     rho_all = est_rho_all(n_ref_each,gd,method,matchtype=matchtype,
-                          fix_rho=fix_rho,ite_time=ite_time,theta=theta_all)
+                          fix_rho=fix_rho,ite_time=ite_time,theta=theta_all,
+                          diploid=diploid)
     
     if(fix_rho) cat('Effective population size rho is',rho_all,'\n')
     cat('Mutation rate theta is',theta_all,'\n')
@@ -423,12 +486,14 @@ cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
   }else{
     cat('Begin estimating rho and theta \n')
     rhoandtheta = est_rhoandtheta_all(n_ref_each,gd,matchtype='donor',
-                                      fix_rho=fix_rho,ite_time=ite_time,fix_theta=fix_theta)
+                                      fix_rho=fix_rho,ite_time=ite_time,
+                                      fix_theta=fix_theta,diploid=diploid)
     rho_all=rhoandtheta[1:length(rhoandtheta)/2]
     theta_all=rhoandtheta[-(1:length(rhoandtheta)/2)]
     if(method=='Viterbi'){
       rho_all = est_rho_all(n_ref_each,gd,method='Viterbi',matchtype=matchtype,
-                            fix_rho=fix_rho,ite_time=ite_time,theta=theta_all)
+                            fix_rho=fix_rho,ite_time=ite_time,
+                            theta=theta_all,diploid=diploid)
     }
     if(fix_rho) cat('Effective population size rho is',rho_all,'\n')
     if(fix_theta) cat('Mutation rate theta is',theta_all,'\n')
@@ -439,44 +504,89 @@ cal_painting_all <- function(N,n_ref_each,map,method='Viterbi',fix_rho=TRUE,
   for(i in 1:N){
     cat('Calculating painting for target individual ',i,'\n')
     
-    if(fix_rho){
-      rho=rho_all
-    }else{
-      rho=rho_all[i]
-    }
-    
-    if(fix_theta){
-      theta=theta_all
-    }else{
-      theta=theta_all[i]
-    }
-    
     matchdata=read.table(paste0('target_match',i-1,'.txt'))[,c(1,3,5,6)]
     
     match=data_process(matchdata,gd)
     
-    painting=cal_painting_each(match,gd,n_ref_each,rho,theta=theta,normalize=normalize)
-    
-    if(i==1){
-      painting_all=painting
-    }else{
-      for(j in 1:length(n_ref_each)){
-        painting_all[[j]]=rbind(painting_all[[j]],painting[[j]])
+    if(!diploid){
+      if(fix_rho){
+        rho=rho_all
+      }else{
+        rho=rho_all[i]
       }
-      if(i==2){
+      
+      if(fix_theta){
+        theta=theta_all
+      }else{
+        theta=theta_all[i]
+      }
+      
+      painting=cal_painting_each(match,gd,n_ref_each,rho,theta=theta,normalize=normalize)
+      
+      if(i==1){
+        painting_all=painting
+      }else{
         for(j in 1:length(n_ref_each)){
-          colnames(painting_all[[j]])=map[,2]
+          painting_all[[j]]=rbind(painting_all[[j]],painting[[j]])
+        }
+      }
+    }else{
+      
+      for(w in 1:2){
+        if(fix_rho){
+          rho=rho_all
+        }else{
+          rho=rho_all[2*i-2+w]
+        }
+        
+        if(fix_theta){
+          theta=theta_all
+        }else{
+          theta=theta_all[2*i-2+w]
+        }
+        
+        match_temp=match[which(match$mod_ind==w),]
+        painting=cal_painting_each(match_temp,gd,n_ref_each,rho,theta=theta,normalize=normalize)
+        if(i==1 & w==1){
+          painting_all=painting
+        }else{
+          for(j in 1:length(n_ref_each)){
+            painting_all[[j]]=rbind(painting_all[[j]],painting[[j]])
+          }
         }
       }
     }
+  
+  }
+  for(j in 1:length(n_ref_each)){
+    colnames(painting_all[[j]])=map[,2]
+    row_name <- character()
+    if(!diploid){
+      for(i in 1:N){
+        row_name[i]=paste0('ind',i)
+      }
+    }else{
+      for(i in 1:N){
+        for(w in 1:2){
+          row_name[2*i-2+w]=paste0('ind',i,'_',w)
+        }
+      }
+    }
+    rownames(painting_all[[j]])=row_name
   }
   return(painting_all)
 }
 
 
-cal_coancestry <- function(n_ref_each,map,method='Viterbi',fix_rho=TRUE,
+cal_coancestry <- function(n_refind_each,map,method='Viterbi',fix_rho=TRUE,
                            rate=1e-8,ite_time=20,theta=NULL,theta_EM=FALSE,
-                           fix_theta=TRUE){
+                           fix_theta=TRUE,diploid=FALSE){
+  
+  if(diploid){
+    n_ref_each=n_refind_each*2
+  }else{
+    n_ref_each=n_refind_each
+  }
   
   gd=get_gd(map,rate=rate)
   
@@ -490,18 +600,21 @@ cal_coancestry <- function(n_ref_each,map,method='Viterbi',fix_rho=TRUE,
     cat('Begin estimating rho \n')
     
     rho_all = est_rho_all(n_ref_each,gd,method,matchtype='donor',
-                          fix_rho=fix_rho,ite_time=ite_time,theta=theta_all)
+                          fix_rho=fix_rho,ite_time=ite_time,theta=theta_all,
+                          diploid=diploid)
     if(fix_rho) cat('Effective population size rho is',rho_all,'\n')
     cat('Mutation rate theta is',theta_all,'\n')
   }else{
     cat('Begin estimating rho and theta \n')
     rhoandtheta = est_rhoandtheta_all(n_ref_each,gd,matchtype='donor',
-                                      fix_rho=fix_rho,ite_time=ite_time,fix_theta=fix_theta)
+                                      fix_rho=fix_rho,ite_time=ite_time,
+                                      fix_theta=fix_theta,diploid=diploid)
     rho_all=rhoandtheta[[1]]
     theta_all=rhoandtheta[[2]]
     if(method=='Viterbi'){
       rho_all = est_rho_all(n_ref_each,gd,method='Viterbi',matchtype='donor',
-                            fix_rho=fix_rho,ite_time=ite_time,theta=theta_all)
+                            fix_rho=fix_rho,ite_time=ite_time,theta=theta_all,
+                            diploid=diploid)
     }
     if(fix_rho) cat('Effective population size rho is',rho_all,'\n')
     if(fix_theta) cat('Mutation rate theta is',theta_all,'\n')
@@ -509,36 +622,93 @@ cal_coancestry <- function(n_ref_each,map,method='Viterbi',fix_rho=TRUE,
   
   coa_mat_ref <- matrix(0,nrow=sum(n_ref_each),ncol=length(n_ref_each))
   
-  for(i in 1:sum(n_ref_each)){
+  sum_ind <- sum(n_ref_each)
+  if(diploid) sum_ind=sum_ind/2
+  
+  for(i in 1:sum(sum_ind)){
     
     cat('Calculating chunk length for donor individual ',i,'\n')
     
-    if(fix_rho){
-      rho=rho_all
+    if(!diploid){
+      if(fix_rho){
+        rho=rho_all
+      }else{
+        rho=rho_all[i]
+      }
+      
+      if(fix_theta){
+        theta=theta_all
+      }else{
+        theta=theta_all[i]
+      }
+      
+      matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
+      match=data_process(matchdata,gd)
+      remove_index=i
+      
+      for(k in 2:length(n_ref_each)){
+        set.seed(i*length(n_ref_each)+k)
+        remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+      }
+      
+      match <- match[!match$ref_ind %in% remove_index, ]
+      match$ref_ind=as.integer(factor(match$ref_ind))
+      
+      coa_mat_ref[i,]=cal_chunklength(match,gd,n_ref_each-1,rho=rho,theta=theta)
     }else{
-      rho=rho_all[i]
+      ### diploid
+      matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
+      match=data_process(matchdata,gd)
+      for(w in 1:2){
+        if(fix_rho){
+          rho=rho_all
+        }else{
+          rho=rho_all[2*i-2+w]
+        }
+        
+        if(fix_theta){
+          theta=theta_all
+        }else{
+          theta=theta_all[2*i-2+w]
+        }
+        
+        ##
+        match_temp=match[which(match$mod_ind==w),]
+        remove_index=2*i-2+w
+        for(k in 2:length(n_ref_each)){
+          set.seed((2*i-2+w)*length(n_ref_each)+k)
+          remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
+        }
+        match_temp <- match_temp[!match_temp$ref_ind %in% remove_index, ]
+        match_temp$ref_ind=as.integer(factor(match_temp$ref_ind))
+        
+        coa_mat_ref[2*i-2+w,]=cal_chunklength(match_temp,gd,n_ref_each-1,rho=rho,theta=theta)
+      }
+      
     }
     
-    if(fix_theta){
-      theta=theta_all
-    }else{
-      theta=theta_all[i]
-    }
-    
-    matchdata=read.table(paste0('donor_match',i-1,'.txt'))[,c(1,3,5,6)]
-    match=data_process(matchdata,gd)
-    remove_index=i
-    
-    for(k in 2:length(n_ref_each)){
-      set.seed(i*length(n_ref_each)+k)
-      remove_index=c(remove_index,sum(n_ref_each[1:(k-1)])+sample(1:n_ref_each[k],1))
-    }
-    
-    match <- match[!match$ref_ind %in% remove_index, ]
-    match$ref_ind=as.integer(factor(match$ref_ind))
-    
-    coa_mat_ref[i,]=cal_chunklength(match,gd,n_ref_each-1,rho=rho,theta=theta)
   }
+  
+  col_name <- character()
+  for(j in 1:length(n_ref_each)){
+    col_name[j]=paste0('pop',j)
+  }
+  
+  row_name=character()
+  if(!diploid){
+    for(i in 1:N){
+      row_name[i]=paste0('ind',i)
+    }
+  }else{
+    for(i in 1:sum_ind){
+      for(w in 1:2){
+        row_name[2*i-2+w]=paste0('ref_ind',i,'_',w)
+      }
+    }
+  }
+  
+  rownames(coa_mat_ref)=row_name
+  colnames(coa_mat_ref)=col_name
   
   return(coa_mat_ref)
 }

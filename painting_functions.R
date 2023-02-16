@@ -346,6 +346,10 @@ cal_backward <- function(matchmat,nsnp,n_ref,sameprob,normalize=FALSE){
 
 # calculate the marginal probability for each reference
 cal_marginal <- function(forward_prob,backward_prob){
+  for(j in ncol(forward_prob)){
+    forward_prob[,j] = forward_prob[,j]/sum(forward_prob[,j])
+    backward_prob[,j] = backward_prob[,j]/sum(backward_prob[,j])
+  }
   marginal_prob <- forward_prob*backward_prob
   for(j in 1:ncol(marginal_prob)){
     marginal_prob[,j] = marginal_prob[,j]/sum(marginal_prob[,j])

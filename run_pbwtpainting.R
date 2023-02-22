@@ -1,3 +1,4 @@
+
 source("painting_functions.R")
 library(LDAandLDAS)
 
@@ -8,7 +9,7 @@ library(LDAandLDAS)
 
 #compute painting
 painting_all = cal_painting_all(N=50,n_refind_each=c(20,20),map=read.table('p.map')[,3:4],
-                              method='Viterbi',fix_rho=TRUE,rate=1e-8,normalize=FALSE,
+                              method='Viterbi',fix_rho=TRUE,rate=1e-8,
                               matchtype='donor',ite_time=20,
                               theta=NULL,theta_EM=FALSE,fix_theta=TRUE,diploid=TRUE)
 
@@ -21,7 +22,7 @@ coa_matrix = cal_coancestry(n_refind_each=c(20,20),map=read.table('p.map')[,3:4]
 # setting theta_EM=TRUE greatly reduces the speed...
 coa_matrix2 = cal_coancestry(n_refind_each=c(20,20),map=read.table('p.map')[,3:4],
                              method='EM',fix_rho=TRUE,rate=1e-8,
-                             ite_time=2,theta=NULL,theta_EM=TRUE,fix_theta=TRUE,
+                             ite_time=20,theta=NULL,theta_EM=TRUE,fix_theta=TRUE,
                              diploid=TRUE)
 
 # if we greatly increase iteration times for EM, the coancestry matrix becomes closer

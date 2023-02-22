@@ -71,23 +71,29 @@ est_rho_EM <- function(match,gd,n_ref_each,ite_time=20,theta){
     
     sameprob=cal_sameprob(nsnp,rho_ite,gd)
     
-    forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+    forward = cal_forward(matchmat,nsnp,n_ref,sameprob)
     
-    backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+    forward_prob = forward[[1]]
+    log_multiF = forward[[2]]
+    
+    backward = cal_backward(matchmat,nsnp,n_ref,sameprob)
+    
+    backward_prob = backward[[1]]
+    log_multiB = backward[[2]]
     
     gl <- vector()
-    pl <- vector()
-    f <- vector()
-    pD <- sum(forward_prob[,nsnp]) 
+    u <- vector()
     for(j in 1:(nsnp-1)){
-      gl[j]=(gd[j+1]-gd[j])
-      pl[j]=rho_ite*gl[j]
       
-      f[j]=1/pD*sum(forward_prob[,j+1]*backward_prob[,j+1] - 
-                     forward_prob[,j]*backward_prob[,j+1]*matchmat[,j+1]*exp(-pl[j]))
+      gl[j]=(gd[j+1]-gd[j])
+      
+      al <- exp(log_multiF[j+1]+log_multiB[j+1]-log_multiF[nsnp])
+      ar <- exp(log_multiF[j]+log_multiB[j+1]-log_multiF[nsnp])
+      u[j] <- sum(al*forward_prob[,j+1]*backward_prob[,j+1]-
+                    ar*forward_prob[,j]*backward_prob[,j+1]*matchmat[,j+1]*sameprob[j])
     }
     
-    rho_ite <- sum(f*pl/(1-exp(-pl)))/sum(gl)
+    rho_ite <- sum(u*rho_ite*gl/(1-sameprob))/sum(gl)
     times=times+1
   }
   
@@ -181,27 +187,38 @@ est_rhoandtheta_EM <- function(match,gd,n_ref_each,ite_time=20){
     
     sameprob=cal_sameprob(nsnp,rho_ite,gd)
     
-    forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+    forward = cal_forward(matchmat,nsnp,n_ref,sameprob)
     
-    backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+    forward_prob = forward[[1]]
+    log_multiF = forward[[2]]
+    
+    backward = cal_backward(matchmat,nsnp,n_ref,sameprob)
+    
+    backward_prob = backward[[1]]
+    log_multiB = backward[[2]]
+    
     
     gl <- vector()
-    pl <- vector()
-    f <- vector()
+    u <- vector()
     caltheta <- vector()
-    pD <- sum(forward_prob[,nsnp]) 
     for(j in 1:(nsnp-1)){
       gl[j]=(gd[j+1]-gd[j])
-      pl[j]=rho_ite*gl[j]
       
-      f[j]=1/pD*sum(forward_prob[,j+1]*backward_prob[,j+1] - 
-                      forward_prob[,j]*backward_prob[,j+1]*matchmat[,j+1]*exp(-pl[j]))
-      caltheta[j]=1/pD*sum(forward_prob[,j]*backward_prob[,j]*unmatchmat[,j])
+      al <- exp(log_multiF[j+1]+log_multiB[j+1]-log_multiF[nsnp])
+      ar <- exp(log_multiF[j]+log_multiB[j+1]-log_multiF[nsnp])
+      u[j] <- sum(al*forward_prob[,j+1]*backward_prob[,j+1]-
+                    ar*forward_prob[,j]*backward_prob[,j+1]*matchmat[,j+1]*sameprob[j])
+      
+      s <- exp(log_multiF[j]+log_multiB[j]-log_multiF[nsnp])
+      
+      caltheta[j]=s*sum(forward_prob[,j]*backward_prob[,j]*unmatchmat[,j])
     }
-    caltheta <- c(caltheta,1/pD*sum(forward_prob[,nsnp]*backward_prob[,nsnp]*unmatchmat[,nsnp]))
+    ## j=nsnp
+    caltheta[nsnp] <- exp(log_multiB[nsnp])*
+      sum(forward_prob[,nsnp]*backward_prob[,nsnp]*unmatchmat[,nsnp])
     
-    rho_ite <- sum(f*pl/(1-exp(-pl)))/sum(gl)
-    theta_ite <- sum(caltheta)/nsnp
+    rho_ite <- sum(u*rho_ite*gl/(1-sameprob))/sum(gl)
+    theta_ite <- mean(caltheta)
     times=times+1
   }
   
@@ -302,9 +319,14 @@ cal_sameprob <- function(nsnp,rho,gd){
 }
 
 # calculate the forward probability for target individual i
-cal_forward <- function(matchmat,nsnp,n_ref,sameprob,normalize=FALSE){
+cal_forward <- function(matchmat,nsnp,n_ref,sameprob){
   otherprob = (1-sameprob)/n_ref
   forward_prob <- matrix(0,nrow=n_ref,ncol=nsnp)
+  ### log(1)=0
+  log_multiF <- 0
+  ### if no matches, the algorithm cannot continue;
+  ### so we assume it's transversion or we don't have long matches including this site
+  ### we turn all of them into matches to continue
   if(sum(matchmat[,1])!=0){
     forward_prob[,1] = as.numeric(matchmat[,1])/sum(matchmat[,1])
   }else{
@@ -315,41 +337,41 @@ cal_forward <- function(matchmat,nsnp,n_ref,sameprob,normalize=FALSE){
     if(sum(matchmat[,j])==0){
       matchmat[,j]=1
     }
-    if(normalize){
-      forward_prob[,j] = matchmat[,j] * (sameprob[j-1] * forward_prob[,j-1] + otherprob[j-1])
-      forward_prob[,j] = forward_prob[,j]/sum(forward_prob[,j])
-    }else{
-      forward_prob[,j] = matchmat[,j] * (sameprob[j-1] * forward_prob[,j-1] + 
-                                         otherprob[j-1] * sum(forward_prob[,j-1]))
-    }
+    forward_prob[,j] = matchmat[,j] * (sameprob[j-1] * forward_prob[,j-1] + otherprob[j-1])
+    F_sum <- sum(forward_prob[,j])
+    log_multiF <- c(log_multiF,log(F_sum)+log_multiF[j-1])
+    forward_prob[,j] = forward_prob[,j]/F_sum
+    
   }
-  return(forward_prob)
+  return(list(forward_prob,log_multiF))
 }
 
+
 # calculate the backward probability for target individual i
-cal_backward <- function(matchmat,nsnp,n_ref,sameprob,normalize=FALSE){
+cal_backward <- function(matchmat,nsnp,n_ref,sameprob){
   otherprob=(1-sameprob)/n_ref
   backward_prob <- matrix(0,nrow=n_ref,ncol=nsnp)
-  backward_prob[,nsnp]=1
+  ## b should be all 1s at the last SNP
+  ## we normalize this, and the sum is recorded in log
+  log_multiB <- log(n_ref)
+  backward_prob[,nsnp]=1/n_ref
   for(j in (nsnp-1):1){
     if(sum(matchmat[,j+1])==0){
       matchmat[,j+1]=1
     }
     Bjp1=matchmat[,j+1] * backward_prob[,j+1]
     backward_prob[,j] = otherprob[j] * sum(Bjp1) + sameprob[j] * Bjp1
-    if(normalize){
-      backward_prob[,j] = backward_prob[,j]/sum(backward_prob[,j])
-    }
+    
+    B_sum <- sum(backward_prob[,j])
+    log_multiB <- c(log(B_sum)+log_multiB[1],log_multiB)
+    backward_prob[,j] = backward_prob[,j]/B_sum
+    
   } 
-  return(backward_prob)
+  return(list(backward_prob,log_multiB))
 }
 
 # calculate the marginal probability for each reference
 cal_marginal <- function(forward_prob,backward_prob){
-  for(j in ncol(forward_prob)){
-    forward_prob[,j] = forward_prob[,j]/sum(forward_prob[,j])
-    backward_prob[,j] = backward_prob[,j]/sum(backward_prob[,j])
-  }
   marginal_prob <- forward_prob*backward_prob
   for(j in 1:ncol(marginal_prob)){
     marginal_prob[,j] = marginal_prob[,j]/sum(marginal_prob[,j])
@@ -373,18 +395,18 @@ cal_painting <- function(marginal_prob,n_ref_each){
 
 ## calculate painting for each target individual
 cal_painting_each <- function(match,gd,n_ref_each,rho,theta,
-                              returneachref=FALSE,donoronly=FALSE,normalize=FALSE){
+                              returneachref=FALSE,donoronly=FALSE){
   n_ref=sum(n_ref_each)
   
   nsnp=length(gd)
-
+  
   matchmat=matchmatrix(match,n_ref,nsnp,theta)
   
   sameprob=cal_sameprob(nsnp,rho,gd)
   
-  forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob,normalize)
+  forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob)[[1]]
   
-  backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob,normalize)
+  backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob)[[1]]
   
   marginal_prob = cal_marginal(forward_prob,backward_prob)
   
@@ -417,36 +439,33 @@ cal_chunklength <- function(match,gd,n_ref_each,rho,theta){
   
   sameprob=cal_sameprob(nsnp,rho,gd)
   
-  forward_prob = cal_forward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+  forward = cal_forward(matchmat,nsnp,n_ref,sameprob)
   
-  backward_prob = cal_backward(matchmat,nsnp,n_ref,sameprob,normalize=FALSE)
+  forward_prob = forward[[1]]
+  log_multiF = forward[[2]]
   
-  pD <- sum(forward_prob[,nsnp])
-  #log(pD)=-log(sum_f1)-log(sum_f2)-.....-log(sum_fk-1)
+  backward = cal_backward(matchmat,nsnp,n_ref,sameprob)
+  
+  backward_prob = backward[[1]]
+  log_multiB = backward[[2]]
   
   gl <- vector()
-  pl <- vector()
   for(j in 1:(nsnp-1)){
     gl[j]=(gd[j+1]-gd[j])
-    pl[j]=rho*gl[j]
   }
+  
   l=vector()
   for(i in 1:n_ref){
-    #left=vector()
-    right=vector()
+    l_each=vector()
     for(j in 1:(nsnp-1)){
-      #left[j]=matchmat[i,j+1]*(forward_prob[i,j]*backward_prob[i,j+1]*
-      #                           (exp(-pl[j])+(1-exp(-pl[j])/n_ref)))
-      #right[j]=0.5*(forward_prob[i,j]*backward_prob[i,j]+
-      #                forward_prob[i,j+1]*backward_prob[i,j+1]-
-      #                2*forward_prob[i,j]*backward_prob[i,j+1]*
-      #                matchmat[i,j+1]*(exp(-pl[j])+(1-exp(-pl[j])/n_ref)))
-      right[j]=0.5*(forward_prob[i,j]*backward_prob[i,j]+
-                    forward_prob[i,j+1]*backward_prob[i,j+1])
+      wl=exp(log_multiF[j]+log_multiB[j]-log_multiF[nsnp])
+      wr=exp(log_multiF[j+1]+log_multiB[j+1]-log_multiF[nsnp])
+      l_each[j]=0.5*(wl*forward_prob[i,j]*backward_prob[i,j]+
+                       wr*forward_prob[i,j+1]*backward_prob[i,j+1])*gl[j]
     }
-    l[i]=1/pD*sum(gl*right)
-    #l[i]=1/pD*sum(gl*(left+right))
+    l[i]=sum(l_each)
   }
+  ## sum up the total length of each ancestry
   cum_sum <- c(0,cumsum(n_ref_each))
   sum_l <- vector()
   for(k in 1:length(n_ref_each)){
@@ -460,7 +479,7 @@ cal_chunklength <- function(match,gd,n_ref_each,rho,theta){
 
 ## calculate painting for all target individuals
 cal_painting_all <- function(N,n_refind_each,map,method='Viterbi',fix_rho=TRUE,
-                             rate=1e-8,normalize=FALSE,matchtype='donor',ite_time=20,
+                             rate=1e-8,matchtype='donor',ite_time=20,
                              theta=NULL,theta_EM=FALSE,fix_theta=TRUE,
                              diploid=FALSE){
   if(diploid){
@@ -525,7 +544,7 @@ cal_painting_all <- function(N,n_refind_each,map,method='Viterbi',fix_rho=TRUE,
         theta=theta_all[i]
       }
       
-      painting=cal_painting_each(match,gd,n_ref_each,rho,theta=theta,normalize=normalize)
+      painting=cal_painting_each(match,gd,n_ref_each,rho,theta=theta)
       
       if(i==1){
         painting_all=painting
@@ -550,7 +569,7 @@ cal_painting_all <- function(N,n_refind_each,map,method='Viterbi',fix_rho=TRUE,
         }
         
         match_temp=match[which(match$mod_ind==w),]
-        painting=cal_painting_each(match_temp,gd,n_ref_each,rho,theta=theta,normalize=normalize)
+        painting=cal_painting_each(match_temp,gd,n_ref_each,rho,theta=theta)
         if(i==1 & w==1){
           painting_all=painting
         }else{

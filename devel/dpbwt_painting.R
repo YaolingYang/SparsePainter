@@ -220,6 +220,7 @@ hVecScale<-function(v,x){
     val=hVecVal(v,idx)
     v$default=v$default*x
     hVecSet(v,idx,val*x)
+    v
 }
 matchmat2hMatrix<-function(m,default=0){
     ## Convert a binary matrix into a hash matrix
@@ -267,14 +268,10 @@ backwardProb4<-function(m,sameprob,otherprob){
     backward_prob4[[L]]$default=1/attr(m,"matdim")[1]
     for(j in (L-1):1){
         twj=hVecIdx(m[[j+1]])
-        nm=length(twj)
         Bjp1=hVecVal(backward_prob4[[j+1]],twj)
         sumBjp1=sum(Bjp1)
-        missingelement=otherprob*sumBjp1
-        missingprob= (attr(m,"matdim")[1]-nm)* missingelement
-        val = missingelement + sameprob * Bjp1
-        presentprob=sum(val)
-        hVecSet(backward_prob4[[j]],twj,val/(presentprob+missingprob))
+        val = otherprob*sumBjp1 + sameprob * Bjp1
+        hVecSet(backward_prob4[[j]],twj,val/sumBjp1)
         backward_prob4[[j]]$default=otherprob
     }
     backward_prob4
@@ -301,26 +298,28 @@ forwardBackward4<-function(m,sameprob,otherprob){
 
 ## Parameters
 set.seed(3)
-L=10
+L=1500
 beta=20
-N=50
+N=20000
 n_ref=2*N
-rho=1/500 # Recombination rate
-min_length=5
+rho=1/50 # Recombination rate
+min_length=20
 
 sameprob=exp(-rho)
 otherprob=(1-sameprob)/n_ref
 
 ## Precompute
 matchmatlist<-simData(N,L,beta,rho)
+
 matchmat=matchmatlist$matchmat
 matchlenmat=matrix_to_match_length(matchmat)
 minmatchlen=min(apply(matchlenmat,2,max))
-matchmat=matchlenmat>min_length
+matchmat=matchlenmat>=min_length
 m <- matchmat2hMatrix(matchmat)
+
 ## Timing comparison:
-trans = matrix(otherprob,nrow=n_ref,ncol=n_ref)
-system.time(marginal_prob1<-forwardBackward1(matchmat,trans))
+# trans = matrix(otherprob,nrow=n_ref,ncol=n_ref)
+# system.time(marginal_prob1<-forwardBackward1(matchmat,trans))
 system.time(marginal_prob2<-forwardBackward2(matchmat,sameprob,otherprob))
 system.time(marginal_prob3<-forwardBackward3(matchmat,sameprob,otherprob))
 system.time(marginal_prob4<-forwardBackward4(m,sameprob,otherprob))

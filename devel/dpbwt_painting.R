@@ -1,31 +1,36 @@
+library("Rcpp")
+sourceCpp(file="test_Rcpp_hashmap.cpp")
 
-simData<-function(N,L,beta,rho){
-    f=runif(L,0.1,0.5)
-    ## f = alpha/(alpha + beta)
-    ## alpha f + beta f = alpha
-    ## alpha = beta f/(1-f)
-    popf1=rbeta(L,f/(1-f)*beta,beta)
-    popf2=rbeta(L,f/(1-f)*beta,beta)
-    pop1=sapply(popf1,rbinom,n=N,size=1)
-    pop2=sapply(popf2,rbinom,n=N,size=1)
-    pop=rbind(pop1,pop2)
-    breaks=cumsum(rpois(2*L*rho,1/rho))
-    breaks=c(0,breaks[breaks<L],L) # Breakpoints for the target
-    nbp=length(breaks)-1
-    pathway=sample(1:dim(pop)[1],nbp,TRUE)
-    
-    target=rep(NA,L)
-    for(i in 1:nbp){
-        target[breaks[i]:breaks[i+1]]=pop[pathway[i],breaks[i]:breaks[i+1]]
-    }
-    matchmat=t(t(pop)==target)
-    list(matchmat=matchmat,
-         pathway=pathway)
+set.seed(3)
+L=1000
+f=runif(L,0.1,0.5)
+beta=20
+## f = alpha/(alpha + beta)
+## alpha f + beta f = alpha
+## alpha = beta f/(1-f)
+N=5000
+n_ref=2*N
+rho=1/500 # Recombination rate
+min_length=10
+
+popf1=rbeta(L,f/(1-f)*beta,beta)
+popf2=rbeta(L,f/(1-f)*beta,beta)
+pop1=sapply(popf1,rbinom,n=N,size=1)
+pop2=sapply(popf2,rbinom,n=N,size=1)
+pop=rbind(pop1,pop2)
+breaks=cumsum(rpois(2*L*rho,1/rho))
+breaks=c(0,breaks[breaks<L],L) # Breakpoints for the target
+nbp=length(breaks)-1
+pathway=sample(1:dim(pop)[1],nbp,TRUE)
+
+target=rep(NA,L)
+for(i in 1:nbp){
+    target[breaks[i]:breaks[i+1]]=pop[pathway[i],breaks[i]:breaks[i+1]]
 }
 
 
-cal_O_matrix <- function(matchmat,j){
-  O=matrix(0,nrow=dim(matchmat)[1],ncol=dim(matchmat)[1])
+cal_O_matrix <- function(pop,j){
+  O=matrix(0,nrow=dim(pop)[1],ncol=dim(pop)[1])
   diag(O)[matchmat[,j]]=1
   return(O)
 }
@@ -45,6 +50,72 @@ matrix_to_match_length<-function(m){
     t(apply(m,1,vec_to_match_length))
 }
 
+
+matchmat=t(t(pop)==target)
+matchlenmat=matrix_to_match_length(matchmat)
+matchmat=matchlenmat>min_length
+matchsums=apply(matchmat,2,sum)
+sapply(1:20,function(x)sum(matchlenmat>=x))/prod(dim(matchlenmat))
+
+
+sameprob=exp(-rho)
+otherprob=(1-sameprob)/n_ref
+
+
+#image(1:dim(matchmat)[1],1:dim(matchmat)[2],matchlenmat,xlab="Individual",ylab="SNP",main="Match matrix")#,col=c("white","blue"))
+#ylocs=as.numeric(rbind(breaks[1:nbp],breaks[1+(1:nbp)]))
+#xlocs=as.numeric(rep(pathway,each=2))
+#lines(xlocs,ylocs-0.5,lwd=2)
+
+##################3
+#trans = matrix(otherprob,nrow=n_ref,ncol=n_ref)
+#diag(trans) = diag(trans) + sameprob
+############## FULL ALGORITHM
+## forward algorithm
+#forward_prob <- matrix(0,nrow=n_ref,ncol=L)
+#forward_prob[,1]=diag(cal_O_matrix(pop,1))
+#forward_prob[,1]=forward_prob[,1]/sum(forward_prob[,1])
+#for(j in 2:L){
+#    forward_prob[,j]=cal_O_matrix(pop,j) %*% trans %*% forward_prob[,j-1]
+#    forward_prob[,j]=forward_prob[,j] /sum(forward_prob[,j])
+#}
+  
+### backward algorithm
+#backward_prob <- matrix(0,nrow=n_ref,ncol=L)
+#backward_prob[,L]=1
+#for(j in (L-1):1){
+#    backward_prob[,j]=trans %*% cal_O_matrix(pop,j+1) %*%backward_prob[,j+1]
+#    backward_prob[,j]=backward_prob[,j] /sum(backward_prob[,j])
+#} 
+
+
+## ### backward algorithm (broken)
+## backward_prob <- matrix(0,nrow=n_ref,ncol=L)
+## backward_prob[,L]=1/n_ref
+## for(j in (L-1):1){
+##     backward_prob[,j]= cal_O_matrix(pop,j) %*% trans %*%backward_prob[,j+1]
+##     backward_prob[,j]=backward_prob[,j]/sum(backward_prob[,j])
+## }
+
+### marginal probability
+#marginal_prob <- forward_prob*backward_prob
+#for(j in 1:L){
+#    marginal_prob[,j]=marginal_prob[,j] /sum(marginal_prob[,j])
+#}
+
+## Plot of matches and probabilities
+#par(mfrow=c(1,2))
+#image(1:dim(matchmat)[1],1:dim(matchmat)[2],matchlenmat,xlab="Individual",ylab="SNP",main="Match matrix")
+#ylocs=as.numeric(rbind(breaks[1:nbp],breaks[1+(1:nbp)]))
+#xlocs=as.numeric(rep(pathway,each=2))
+#lines(xlocs,ylocs-0.5,lwd=2,col="blue")
+
+#image(1:dim(matchmat)[1],1:dim(matchmat)[2],marginal_prob,xlab="Individual",ylab="SNP",main="Posterior matrix")
+#ylocs=as.numeric(rbind(breaks[1:nbp],breaks[1+(1:nbp)]))
+#xlocs=as.numeric(rep(pathway,each=2))
+#lines(xlocs,ylocs-0.5,lwd=2,col="blue")
+
+
 marginalProb<-function(f,b){
 ### marginal probability
     marginal_prob <- f*b
@@ -53,39 +124,6 @@ marginalProb<-function(f,b){
     }
     marginal_prob
 }
-###########
-############## FULL ALGORITHM
-## forward algorithm
-forwardProb1<-function(matchmat,trans){
-    n_ref=dim(matchmat)[1]
-    L=dim(matchmat)[2]
-    forward_prob <- matrix(0,nrow=n_ref,ncol=L)
-    forward_prob[,1]=diag(cal_O_matrix(matchmat,1))
-    forward_prob[,1]=forward_prob[,1]/sum(forward_prob[,1])
-    for(j in 2:L){
-        forward_prob[,j]=cal_O_matrix(matchmat,j) %*% trans %*% forward_prob[,j-1]
-        forward_prob[,j]=forward_prob[,j] /sum(forward_prob[,j])
-    }
-    forward_prob
-}
-backwardProb1<-function(matchmat,trans){
-### backward algorithm
-    n_ref=dim(matchmat)[1]
-    L=dim(matchmat)[2]
-    backward_prob <- matrix(0,nrow=n_ref,ncol=L)
-    backward_prob[,L]=1
-    for(j in (L-1):1){
-        backward_prob[,j]=trans %*% cal_O_matrix(matchmat,j+1) %*%backward_prob[,j+1]
-        backward_prob[,j]=backward_prob[,j] /sum(backward_prob[,j])
-    }
-    backward_prob
-}
-forwardBackward1<-function(matchmat,trans){
-    f<-forwardProb1(matchmat,trans)
-    b<-backwardProb1(matchmat,trans)
-    marginalProb(f,b)
-}
-
 ########## TEST ALGORITHM 2
 ## Only compute probabilities passing from valid to valid sets
 ## forward algorithm 2
@@ -140,13 +178,15 @@ backwardProb3<-function(matchmat,sameprob,otherprob){
     backward_prob3[,L]=1/sum(backward_prob3[,L])
     for(j in (L-1):1){
         tw=which(matchmat[,j+1])
-        nm=length(tw)
+        #nm=length(tw)
         Bjp1=backward_prob3[tw,j+1]
         sumBjp1=sum(Bjp1)
-        missingprob= (dim(backward_prob3)[1]-nm)*otherprob*sumBjp1
+        #missingprob= (dim(backward_prob3)[1]-nm)*otherprob*sumBjp1
         val=otherprob * sumBjp1 + sameprob * Bjp1
-        presentprob=sum(val)
-        backward_prob3[tw,j] = val /(presentprob+missingprob)
+        #presentprob=sum(val)
+        ### presentprob+missingprob == sumBjp1
+        #backward_prob3[tw,j] = val /(presentprob+missingprob)
+        backward_prob3[tw,j] = val /sumBjp1
     }
     backward_prob3
 }
@@ -165,13 +205,13 @@ hVec<-function(default=0){
     v
 }
 hVecIdx<-function(v){
-    ## Extract the indexes stored of the hash vector v
+    ## Extract the indexes (keys) stored of the hash vector v
     as.numeric(names(v$h))
 }
 hVecIn<-function(v,idx){
     ## Return a binary vector of whether the indices idx are stored in v
-    idxk=make.keys(idx)
-    has.key(idxk,v$h)
+    idxk=make.keys(idx) # convert values to characters
+    has.key(idxk,v$h) # whether the key idxk exists in hash table v$h
 }
 hVecVal<-function(v,idx){
     ## Get the value of the indices idx of v
@@ -181,13 +221,13 @@ hVecVal<-function(v,idx){
     ret=rep(v$default,length(idxk))
     if(length(hk)>0) ret[hk]<-as.numeric(values(v$h,idxk[hk]))
     ret
+    ## when the value of indices doesn't exist, use default
 }
 hVecSet<-function(v,idx,val){
     ## Set the indices idx of v to the vector val
-    ## NB: hashes are pointers and so pass by reference; we don't need to return changes
     idxk=make.keys(idx)
     v$h[idxk]=val
-    invisible(NULL)
+    v
 }
 hVecCirc<-function(v1,v2){
     ## v1 \circ v2
@@ -198,7 +238,7 @@ hVecCirc<-function(v1,v2){
     v1val=hVecVal(v1,idx)
     v2val=hVecVal(v2,idx)
     hVecSet(ret,idx,v1val*v2val)
-    ret
+    #ret
 }
 hVecDense<-function(x,nrow){
     ## Convert a hash vector x into a dense vector of length nrow (the maximum array index)
@@ -220,17 +260,15 @@ hVecScale<-function(v,x){
     val=hVecVal(v,idx)
     v$default=v$default*x
     hVecSet(v,idx,val*x)
-    v
 }
 matchmat2hMatrix<-function(m,default=0){
     ## Convert a binary matrix into a hash matrix
     r=apply(m,2,function(x){
-        idx= which(x)
+        idx= which(x) ## positions of matches
         r=hVec(default)
         hVecSet(r,idx,1)
-        r
     },simplify=FALSE)
-    attr(r,"matdim")=dim(m)
+    attr(r,"matdim")=dim(m) # convert to a matrix with the same dimension as m
     class(r)="hMatrix"
     r
 }
@@ -252,12 +290,12 @@ forwardProb4<-function(m,sameprob,otherprob){
 ## forward algorithm 4
     forward_prob4 <- hMatrix(attr(m,"matdim"))
     twj=hVecIdx(m[[1]])
-    hVecSet(forward_prob4[[1]],twj,1/hVecSum(m[[1]],twj))
+    forward_prob4[[1]]=hVecSet(forward_prob4[[1]],twj,1/hVecSum(m[[1]],twj))
     for(j in 2:L){
         twj=hVecIdx(m[[j]])
         val=sameprob * hVecVal(forward_prob4[[j-1]],twj) + otherprob
         cs=sum(val)
-        hVecSet(forward_prob4[[j]],twj, val/cs)
+        forward_prob4[[j]] = hVecSet(forward_prob4[[j]],twj, val/cs)
     }
     forward_prob4
 }
@@ -268,10 +306,17 @@ backwardProb4<-function(m,sameprob,otherprob){
     backward_prob4[[L]]$default=1/attr(m,"matdim")[1]
     for(j in (L-1):1){
         twj=hVecIdx(m[[j+1]])
+        #nm=length(twj)
         Bjp1=hVecVal(backward_prob4[[j+1]],twj)
         sumBjp1=sum(Bjp1)
+        #missingelement=otherprob*sumBjp1
+        #missingprob= (attr(m,"matdim")[1]-nm)* missingelement
+        #val = missingelement + sameprob * Bjp1
+        #presentprob=sum(val)
+        #missingprob+presentprob==sumBjp1
+        #hVecSet(backward_prob4[[j]],twj,val/(presentprob+missingprob))
         val = otherprob*sumBjp1 + sameprob * Bjp1
-        hVecSet(backward_prob4[[j]],twj,val/sumBjp1)
+        backward_prob4[[j]]=hVecSet(backward_prob4[[j]],twj,val/sumBjp1)
         backward_prob4[[j]]$default=otherprob
     }
     backward_prob4
@@ -287,68 +332,22 @@ marginalProb4<-function(f,b){
     }
     marginal_prob4
 }
-forwardBackward4<-function(m,sameprob,otherprob){
+forwardBackward4<-function(matchmat,sameprob,otherprob){
+    m <- matchmat2hMatrix(matchmat)
     forward_prob4<-forwardProb4(m,sameprob,otherprob)
     backward_prob4<-backwardProb4(m,sameprob,otherprob)
     marginal_prob4<-marginalProb4(forward_prob4,backward_prob4)
-    marginal_prob4
+    hMatrix2matrix(marginal_prob4)
 }
-###############################
-## Start of simulation
 
-## Parameters
-set.seed(3)
-L=1500
-beta=20
-N=20000
-n_ref=2*N
-rho=1/50 # Recombination rate
-min_length=20
 
-sameprob=exp(-rho)
-otherprob=(1-sameprob)/n_ref
-
-## Precompute
-matchmatlist<-simData(N,L,beta,rho)
-
-matchmat=matchmatlist$matchmat
-matchlenmat=matrix_to_match_length(matchmat)
-minmatchlen=min(apply(matchlenmat,2,max))
-matchmat=matchlenmat>=min_length
-m <- matchmat2hMatrix(matchmat)
-
+#minmatchlen=min(apply(matchlenmat,2,max))
+#m <- matchmat2hMatrix(matchmat)
 ## Timing comparison:
-# trans = matrix(otherprob,nrow=n_ref,ncol=n_ref)
-# system.time(marginal_prob1<-forwardBackward1(matchmat,trans))
 system.time(marginal_prob2<-forwardBackward2(matchmat,sameprob,otherprob))
 system.time(marginal_prob3<-forwardBackward3(matchmat,sameprob,otherprob))
-system.time(marginal_prob4<-forwardBackward4(m,sameprob,otherprob))
-marginal_prob4test=hMatrix2matrix(marginal_prob4)
-
-###### How match length relates to sparsity
-## sapply(1:20,function(x)sum(matchlenmat>=x))/prod(dim(matchlenmat))
-
-
-image(1:dim(matchmat)[1],1:dim(matchmat)[2],matchlenmat,xlab="Individual",ylab="SNP",main="Match matrix")#,col=c("white","blue"))
-ylocs=as.numeric(rbind(breaks[1:nbp],breaks[1+(1:nbp)]))
-xlocs=as.numeric(rep(pathway,each=2))
-lines(xlocs,ylocs-0.5,lwd=2)
-
-##################
-diag(trans) = diag(trans) + sameprob
-
-## Plot of matches and probabilities
-par(mfrow=c(1,2))
-image(1:dim(matchmat)[1],1:dim(matchmat)[2],matchlenmat,xlab="Individual",ylab="SNP",main="Match matrix")
-ylocs=as.numeric(rbind(breaks[1:nbp],breaks[1+(1:nbp)]))
-xlocs=as.numeric(rep(pathway,each=2))
-lines(xlocs,ylocs-0.5,lwd=2,col="blue")
-
-image(1:dim(matchmat)[1],1:dim(matchmat)[2],marginal_prob,xlab="Individual",ylab="SNP",main="Posterior matrix")
-ylocs=as.numeric(rbind(breaks[1:nbp],breaks[1+(1:nbp)]))
-xlocs=as.numeric(rep(pathway,each=2))
-lines(xlocs,ylocs-0.5,lwd=2,col="blue")
-
+system.time(marginal_prob4<-forwardBackward4(matchmat,sameprob,otherprob))
+system.time(marginal_prob<-forwardBackward(matchmat,sameprob,otherprob))
 
 
 

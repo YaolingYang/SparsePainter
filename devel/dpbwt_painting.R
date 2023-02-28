@@ -1,5 +1,7 @@
 library("Rcpp")
-sourceCpp(file="test_Rcpp_hashmap.cpp")
+sourceCpp(file="hashmap_Rcpp.cpp")
+
+sourceCpp(file="hashmap_Rcppsugar.cpp")
 
 set.seed(3)
 L=1000
@@ -8,10 +10,10 @@ beta=20
 ## f = alpha/(alpha + beta)
 ## alpha f + beta f = alpha
 ## alpha = beta f/(1-f)
-N=50000
+N=20000
 n_ref=2*N
 rho=1/500 # Recombination rate
-min_length=10
+min_length=13
 
 popf1=rbeta(L,f/(1-f)*beta,beta)
 popf2=rbeta(L,f/(1-f)*beta,beta)
@@ -351,7 +353,8 @@ for(i in 1:nrow(matchmat)){
 system.time(marginal_prob2<-forwardBackward2(matchmat,sameprob,otherprob))
 system.time(marginal_prob3<-forwardBackward3(matchmat,sameprob,otherprob))
 system.time(marginal_prob4<-forwardBackward4(matchmat,sameprob,otherprob))
-system.time(marginal_prob<-forwardBackward(matchmatlist,sameprob,otherprob))
+system.time(marginal_prob5<-forwardBackward5(matchmatlist,rep(sameprob,L),rep(otherprob,L)))
+system.time(marginal_prob<-forwardBackward(matchmat,rep(sameprob,L),rep(otherprob,L)))
 
 
 

@@ -8,7 +8,7 @@ beta=20
 ## f = alpha/(alpha + beta)
 ## alpha f + beta f = alpha
 ## alpha = beta f/(1-f)
-N=5000
+N=50000
 n_ref=2*N
 rho=1/500 # Recombination rate
 min_length=10
@@ -340,6 +340,10 @@ forwardBackward4<-function(matchmat,sameprob,otherprob){
     hMatrix2matrix(marginal_prob4)
 }
 
+matchmatlist <- list()
+for(i in 1:nrow(matchmat)){
+  matchmatlist[[i]]=matchmat[i,]
+}
 
 #minmatchlen=min(apply(matchlenmat,2,max))
 #m <- matchmat2hMatrix(matchmat)
@@ -347,7 +351,7 @@ forwardBackward4<-function(matchmat,sameprob,otherprob){
 system.time(marginal_prob2<-forwardBackward2(matchmat,sameprob,otherprob))
 system.time(marginal_prob3<-forwardBackward3(matchmat,sameprob,otherprob))
 system.time(marginal_prob4<-forwardBackward4(matchmat,sameprob,otherprob))
-system.time(marginal_prob<-forwardBackward(matchmat,sameprob,otherprob))
+system.time(marginal_prob<-forwardBackward(matchmatlist,sameprob,otherprob))
 
 
 

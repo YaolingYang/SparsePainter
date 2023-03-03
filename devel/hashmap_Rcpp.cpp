@@ -652,7 +652,8 @@ vector<hMat> paintingall(vector<double>& gd,const vector<int>& refindex,
   const int nsnp=gd.size();
   const int nref=refindex.size();
   hAnc refidx(refindex);
-  vector<hMat> painting_all(nind, hMat(nref, nsnp));
+  const int npop=refidx.pos.size();
+  vector<hMat> painting_all(nind, hMat(npop, nsnp));
   double rho_use;
   if(fixrho){
     cout<<"estimating fixed rho"<<endl;
@@ -690,7 +691,10 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   const int nsnp=gd.size();
   const int nref=refindex.size();
   hAnc refidx(refindex);
-  vector<vector<vector<double>>> painting_all(nind, vector<vector<double>>(nref, vector<double>(nsnp)));
+  const int npop=refidx.pos.size();
+  cout<<"teststop"<<endl;
+  vector<vector<vector<double>>> painting_all(nind, vector<vector<double>>(npop, vector<double>(nsnp)));
+  cout<<"teststop2"<<endl;
   double rho_use;
   if(fixrho){
     cout<<"estimating fixed rho"<<endl;
@@ -717,7 +721,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
       rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gd[nsnp-1]-gd[0]);
       hMat pind=indpainting(mat,gd,rho_use,refidx,refindex);
       vector<vector<double>> pind_dense=hMatrix2matrix(pind);
-      for(int j=0;j<refidx.pos.size();++j){
+      for(int j=0;j<npop;++j){
         for(int k=0;k<nsnp;++k){
           painting_all[ii][j][k]=pind_dense[j][k];
         }

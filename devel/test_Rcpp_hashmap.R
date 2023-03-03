@@ -7,9 +7,9 @@ map=read.table('p.map')[,3:4]
 gd=map[,2]/100000000
 refindex=rep(c(0,1),each=10000)
 
-painting=paintingalldense(gd,refindex,50,fixrho=FALSE)
-painting=paintingalldense(gd,refindex,50,prop=0.0005)
+painting=paintingalldense(gd,refindex,50,prop=0.005)
 painting=paintingalldense(gd,refindex,50,ite_time=10,method="EM",prop=0.0005)
+painting=paintingalldense(gd,refindex,50,fixrho=FALSE)
 
 aa=hashmaptest()
 bb=hashmaptest2()

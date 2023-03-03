@@ -508,7 +508,6 @@ double est_rho_EM(hMat& mat, vector<double>& gd,
     rho_ite=vec_sum(rho_each)/vec_sum(gl);
     cout<<"rho is estimated as "<<rho_ite<<endl;
   }
-  //cout<<"rho is estimated as"<<rho_ite<<endl;
   return(rho_ite);
 }
 
@@ -588,7 +587,6 @@ double est_rho_average(const hAnc& refidx, const int nref, const int nsnp,
         //removeidx contains the indices to be removed for leave-one-out
       }
       removeRowsWithValue(matchdata,removeidx);
-      cout<<matchdata.size()<<endl;
       
       
       if(method=="Viterbi"){
@@ -692,9 +690,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   const int nref=refindex.size();
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
-  cout<<"teststop"<<endl;
   vector<vector<vector<double>>> painting_all(nind, vector<vector<double>>(npop, vector<double>(nsnp)));
-  cout<<"teststop2"<<endl;
   double rho_use;
   if(fixrho){
     cout<<"estimating fixed rho"<<endl;
@@ -707,7 +703,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
     if(fixrho){
       hMat pind=indpainting(mat,gd,rho_use,refidx,refindex);
       vector<vector<double>> pind_dense=hMatrix2matrix(pind);
-      for(int j=0;j<nref;++j){
+      for(int j=0;j<npop;++j){
         for(int k=0;k<nsnp;++k){
           painting_all[ii][j][k]=pind_dense[j][k];
         }
@@ -733,46 +729,44 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
 
 
 // [[Rcpp::export]]
-double hashmaptest(){
-  vector<vector<int>> targetmatchdata=read_data("target",0);
-  cout<<targetmatchdata.size()<<endl;
-  
-  const int length = 1469;
-  const double start = 0.0;
-  const double end = 0.1468;
-  const double increment = (end - start) / (length - 1);
-  
-  std::vector<double> gd(length);
-  
-  for (int i = 0; i < length; i++) {
-    gd[i] = start + i * increment;
-  }
-  int nref=20000;
-  int nsnp=1469;
-  cout<<targetmatchdata.size()<<endl;
-  vector<int> removeidx;
-  for(int j=0;j<2;++j){
-    if(j==0){
-      removeidx.push_back(5);
-    }else{
-      removeidx.push_back(10005);
+int hashmaptest(){
+  for(int i=0; i<=100; ++i){
+    vector<vector<int>> targetmatchdata=read_data("target",i);
+    cout<<targetmatchdata.size()<<endl;
+    
+    const int length = 1469;
+    const double start = 0.0;
+    const double end = 0.1468;
+    const double increment = (end - start) / (length - 1);
+    
+    std::vector<double> gd(length);
+    
+    for (int i = 0; i < length; i++) {
+      gd[i] = start + i * increment;
     }
-    //removeidx contains the indices to be removed for leave-one-out
+    int nref=20000;
+    int nsnp=1469;
+    cout<<targetmatchdata.size()<<endl;
+    vector<int> removeidx;
+    for(int j=0;j<2;++j){
+      if(j==0){
+        removeidx.push_back(5);
+      }else{
+        removeidx.push_back(10005);
+      }
+      //removeidx contains the indices to be removed for leave-one-out
+    }
+    
+    removeRowsWithValue(targetmatchdata,removeidx);
+    cout<<targetmatchdata.size()<<endl;
+    //cout<<targetmatchdata.size()<<endl;
+    hMat mat=matchfiletohMat(targetmatchdata,nref-2,nsnp);
+    double a=est_rho_EM(mat,gd,10);
+    cout<<a<<endl;
   }
-
-  removeRowsWithValue(targetmatchdata,removeidx);
-  cout<<targetmatchdata.size()<<endl;
-  //cout<<targetmatchdata.size()<<endl;
-  hMat mat=matchfiletohMat(targetmatchdata,nref-2,nsnp);
-  double a=est_rho_EM(mat,gd,10);
-  return(a);
+  return(0);
 }
 
-// [[Rcpp::export]]
-vector<vector<int>> hashmaptest2(){
-  vector<vector<int>> targetmatchdata=read_data("target",0);
-  return(targetmatchdata);
-}
 
 
 

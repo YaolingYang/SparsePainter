@@ -511,6 +511,7 @@ double est_rho_EM(hMat& mat, vector<double>& gd,
     rho_ite=vec_sum(rho_each)/totalgd;
   }
   if(isnan(rho_ite)) rho_ite=1/totalgd;
+  cout << "rho is estimated as " << rho_ite << endl;
   return(rho_ite);
 }
 

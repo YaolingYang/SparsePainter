@@ -477,6 +477,10 @@ double est_rho_EM(hMat& mat, vector<double>& gd,
   double rho_ite=400000/nref;
   vector<double> gl(nsnp-1);
   vector<double> rho_each((nsnp-1));
+  for(int j=0;j<nsnp-1;++j){
+    gl[j]=gd[j+1]-gd[j];
+  }
+  double totalgd=gd[nsnp-1]-gd[0];
   for(int t=0;t<ite_time;++t){
     sameprob=cal_sameprob(nsnp,rho_ite,gd);
     otherprob=cal_otherprob(nref,sameprob);
@@ -490,7 +494,6 @@ double est_rho_EM(hMat& mat, vector<double>& gd,
     vector<double> logmultB=get<1>(b);
     vector<double> u((nsnp-1),0);
     for(int j=0;j<nsnp-1;++j){
-      gl[j]=gd[j+1]-gd[j];
       double al = exp(logmultF[j+1]+logmultB[j+1]-logmultF[nsnp-1]);
       double ar = exp(logmultF[j]+logmultB[j+1]-logmultF[nsnp-1]);
       vector<int> twj=mat.m[j+1].k;
@@ -505,9 +508,9 @@ double est_rho_EM(hMat& mat, vector<double>& gd,
     for(int j=0;j<nsnp-1;++j){
       rho_each[j]=u[j]*rho_ite*gl[j]/(1-sameprob[j]);
     }
-    rho_ite=vec_sum(rho_each)/vec_sum(gl);
-    cout<<"rho is estimated as "<<rho_ite<<endl;
+    rho_ite=vec_sum(rho_each)/totalgd;
   }
+  if(isnan(rho_ite)) rho_ite=1/totalgd;
   return(rho_ite);
 }
 
@@ -531,7 +534,7 @@ double est_rho_Viterbi(const vector<int>& startpos, const vector<int>& endpos,
   int maxkidx = 0;
   while (j < nsnp-1) {
     if(j>0){
-      maxend = maxEndMap[j];
+      maxend = maxEndMap[j-1];
       maxkidx = j;
     }
     int maxendnew=maxend;
@@ -551,7 +554,10 @@ double est_rho_Viterbi(const vector<int>& startpos, const vector<int>& endpos,
     j = maxkidx+1;
     if(maxend==nsnp-1 || maxend==nsnp-2) j=nsnp-1;
   }
-  
+  if(nrec==0){
+    cout<<"There is a perfect match but our model assumes at least one match"<<endl;
+    nrec=1;
+  } 
   double rho_est = nrec / static_cast<double>(gdtotal);
   cout << "rho is estimated as " << rho_est << endl;
   return rho_est;
@@ -592,8 +598,8 @@ double est_rho_average(const hAnc& refidx, const int nref, const int nsnp,
       if(method=="Viterbi"){
         vector<int> startpos, endpos;
         for (const auto& row : matchdata) {
-          startpos.push_back(row[0]);
-          endpos.push_back(row[1]);
+          startpos.push_back(row[1]);
+          endpos.push_back(row[2]);
         }
         rho_est.push_back(est_rho_Viterbi(startpos,endpos,nsnp,gd[nsnp-1]-gd[0]));
       }else{
@@ -666,8 +672,8 @@ vector<hMat> paintingall(vector<double>& gd,const vector<int>& refindex,
     }else{
       vector<int> startpos, endpos;
       for (const auto& row : targetmatchdata) {
-        startpos.push_back(row[0]);
-        endpos.push_back(row[1]);
+        startpos.push_back(row[1]);
+        endpos.push_back(row[2]);
       }
       rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gd[nsnp-1]-gd[0]);
       painting_all[ii]=indpainting(mat,gd,rho_use,refidx,refindex);
@@ -766,6 +772,8 @@ int hashmaptest(){
   }
   return(0);
 }
+
+
 
 
 

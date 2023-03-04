@@ -7,8 +7,8 @@ map=read.table('p.map')[,3:4]
 gd=map[,2]/100000000
 refindex=rep(c(0,1),each=10000)
 
-painting=paintingalldense(gd,refindex,50,prop=0.005)
-painting=paintingalldense(gd,refindex,50,ite_time=10,method="EM",prop=0.0005)
+painting=paintingalldense(gd,refindex,50,prop=0.1)
+painting=paintingalldense(gd,refindex,50,ite_time=10,method="EM",prop=0.001)
 painting=paintingalldense(gd,refindex,50,fixrho=FALSE)
 
 aa=hashmaptest()
@@ -18,3 +18,4 @@ q=t(data.frame(bb))
 
 est_rho_Viterbi (c(0,0,1,1,2,2,3,3), c(1,3,5,5,6,5,7,7),8, 0.01)
 
+est_rho_Viterbi (start, end,1469, gd[1469]-gd[1])

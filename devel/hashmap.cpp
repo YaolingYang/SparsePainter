@@ -666,7 +666,7 @@ vector<vector<double>> hMatrix2matrix(hMat& mat){
 vector<int> randomsample(const vector<int>& popidx, 
                          const int number) {
   // sample number from popidx
-  if(number>popidx.size()) cout<<"number cannot be greater than the size of popidx"<<endl;
+  if(number>popidx.size()) cout<<"Number cannot be greater than the size of popidx"<<endl;
   // Initialize the random number generator
   random_device rd;
   mt19937 gen(rd());
@@ -867,7 +867,6 @@ double est_rho_EM(hMat& mat,
     rho_ite=vec_sum(rho_each)/totalgd;
   }
   if(isnan(rho_ite)) rho_ite=1/totalgd;
-  cout << "Estimated rho is " << rho_ite << endl;
   return(rho_ite);
 }
 
@@ -918,7 +917,6 @@ double est_rho_Viterbi(const vector<int>& startpos,
     nrec=1;
   } 
   double rho_est = nrec / static_cast<double>(gdtotal);
-  cout << "Estimated rho is " << rho_est << endl;
   return rho_est;
 }
 
@@ -943,8 +941,6 @@ double est_rho_average(const hAnc& refidx,
   int count=0;
   
   for(int i=0;i<npop;++i){
-    count=count+1;
-    cout<<"Estimating rho for sample "<<count<<endl;
     //randomly sample a percentage of indfrac reference samples
     vector<int> popidx=refidx.findrows(i);
     
@@ -974,7 +970,10 @@ double est_rho_average(const hAnc& refidx,
           startpos.push_back(row[1]);
           endpos.push_back(row[2]);
         }
-        rho_est.push_back(est_rho_Viterbi(startpos,endpos,nsnp,gd[nsnp-1]-gd[0]));
+        double rho_estimated=est_rho_Viterbi(startpos,endpos,nsnp,gd[nsnp-1]-gd[0]);
+        count=count+1;
+        cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
+        rho_est.push_back(rho_estimated);
       }else{
         hMat mat=matchfiletohMat(matchdata,nref-npop,nsnp);
         int nsnp_use=nsnp;
@@ -999,9 +998,17 @@ double est_rho_average(const hAnc& refidx,
             vector<int> non0idx=mat.m[snp_use[j]].k;
             mat_use.m[j].setall(non0idx,vector<double>(non0idx.size(),1.0));
           }
-          rho_est.push_back(est_rho_EM(mat_use,gd_use,ite_time)); 
+          
+          double rho_estimated=est_rho_EM(mat_use,gd_use,ite_time);
+          count=count+1;
+          cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
+          rho_est.push_back(rho_estimated);
         }else{
-          rho_est.push_back(est_rho_EM(mat,gd,ite_time)); 
+          
+          double rho_estimated=est_rho_EM(mat,gd,ite_time);
+          count=count+1;
+          cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
+          rho_est.push_back(rho_estimated);
         }
       }
     }
@@ -1120,7 +1127,7 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
   const int npop=refidx.pos.size();
   vector<vector<double>> chunklength(nref, vector<double>(npop));
   double rho;
-  cout<<"do dPBWT for donor haplotypes"<<endl;
+  cout<<"Do dPBWT for donor haplotypes"<<endl;
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L,"donor");
   vector<int> queryidall_ref=get<0>(dpbwtall_ref);
   vector<int> donorid_ref=get<1>(dpbwtall_ref);
@@ -1128,13 +1135,13 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
   vector<int> endpos_ref=get<3>(dpbwtall_ref);
   cout<<"dPBWT works successfully"<<endl;
 
-  cout<<"estimating fixed rho"<<endl;
+  cout<<"Begin estimating fixed rho"<<endl;
   rho=est_rho_average(refidx,nref,nsnp,gd,queryidall_ref,
                       donorid_ref,startpos_ref,endpos_ref,indfrac,
                       ite_time,method,minsnpEM,EMsnpfrac);
   
   for(int i=0;i<nref;++i){
-    cout<<"calculating chunk length for donor sample "<<i<<endl;
+    cout<<"Calculating chunk length for donor sample "<<i+1<<endl;
     //leave-one-out
     vector<vector<int>> matchdata=get_matchdata(queryidall_ref,
                                                 donorid_ref,
@@ -1190,7 +1197,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
     vector<int> endpos_ref=get<3>(dpbwtall_ref);
     cout<<"dPBWT works successfully"<<endl;
     
-    cout<<"estimating fixed rho"<<endl;
+    cout<<"Begin estimating fixed rho"<<endl;
     rho_use=est_rho_average(refidx,nref,nsnp,gd,queryidall_ref,donorid_ref,
                             startpos_ref,endpos_ref,indfrac,ite_time,
                             method,minsnpEM,EMsnpfrac);
@@ -1204,7 +1211,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   }
   
   
-  cout<<"do dPBWT for target haplotypes"<<endl;
+  cout<<"Do dPBWT for target haplotypes"<<endl;
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target=do_dpbwt(L,"target");
   vector<int> queryidall_target=get<0>(dpbwtall_target);
   vector<int> donorid_target=get<1>(dpbwtall_target);
@@ -1212,7 +1219,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   vector<int> endpos_target=get<3>(dpbwtall_target);
   cout<<"dPBWT works successfully"<<endl;
   for(int ii=0;ii<nind;++ii){
-    cout<<"calculating painting for individual "<<ii<<endl;
+    cout<<"Calculating painting for individual "<<ii+1<<endl;
     vector<vector<int>> targetmatchdata=get_matchdata(queryidall_target,
                                                       donorid_target,
                                                       startpos_target,
@@ -1234,6 +1241,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
         endpos.push_back(row[2]);
       }
       rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gd[nsnp-1]-gd[0]);
+      cout<<"Estimated rho is "<<rho_use<<endl;
       hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
       vector<vector<double>> pind_dense=hMatrix2matrix(pind);
       for(int j=0;j<npop;++j){
@@ -1255,7 +1263,7 @@ vector<double> checksparsitytarget(const int nind,
                                    const int nsnp, 
                                    int L){
   vector<double> sparsity(nind,0);
-  cout<<"do dPBWT for target haplotypes"<<endl;
+  cout<<"Do dPBWT for target haplotypes"<<endl;
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target=do_dpbwt(L,"target");
   vector<int> queryidall_target=get<0>(dpbwtall_target);
   vector<int> donorid_target=get<1>(dpbwtall_target);
@@ -1282,7 +1290,7 @@ vector<double> checksparsitydonor(const int nref,
                                   const int nsnp,
                                   int L){
   vector<double> sparsity(nref,0);
-  cout<<"do dPBWT for donor haplotypes"<<endl;
+  cout<<"Do dPBWT for donor haplotypes"<<endl;
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L,"donor");
   vector<int> queryidall_ref=get<0>(dpbwtall_ref);
   vector<int> donorid_ref=get<1>(dpbwtall_ref);

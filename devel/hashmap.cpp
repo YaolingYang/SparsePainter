@@ -285,7 +285,7 @@ void ReadVCF(string inFile,
 }
 
 
-tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int L, 
+tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L, 
                                                                       int *numMatches,
                                                                       bool **panel, 
                                                                       dpbwt & x){
@@ -498,7 +498,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int L,
   return(results);
 }
 
-tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int L=500, 
+tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L, 
                                                                 string query="target"){
   string qin = "p_" + query + ".vcf";
   string in = "p_donor.vcf";
@@ -786,7 +786,7 @@ hMat marginalProb(hMat& f, hMat& b){
   return(marginal_prob);
 }
 
-hMat forwardBackward(const hMat mat,
+hMat forwardBackward(const hMat& mat,
                      const vector<double>& sameprob,
                      const vector<double>& otherprob){
   //compute marginal probability
@@ -944,6 +944,7 @@ double est_rho_average(const hAnc& refidx,
   int npop=refidx.pos.size();
   vector<double> rho_est;
   int count=0;
+  double gdall=gd[nsnp-1]-gd[0];
   
   for(int i=0;i<npop;++i){
     //randomly sample a percentage of indfrac reference samples
@@ -975,7 +976,7 @@ double est_rho_average(const hAnc& refidx,
           startpos.push_back(row[1]);
           endpos.push_back(row[2]);
         }
-        double rho_estimated=est_rho_Viterbi(startpos,endpos,nsnp,gd[nsnp-1]-gd[0]);
+        double rho_estimated=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
         count=count+1;
         cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
         rho_est.push_back(rho_estimated);
@@ -1193,6 +1194,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   const int npop=refidx.pos.size();
   vector<vector<vector<double>>> painting_all(nind, vector<vector<double>>(npop, vector<double>(nsnp)));
   double rho_use;
+  double gdall=gd[nsnp-1]-gd[0];
   if(fixrho){
     cout<<"do dPBWT for donor haplotypes"<<endl;
     tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L,"donor");
@@ -1245,7 +1247,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
         startpos.push_back(row[1]);
         endpos.push_back(row[2]);
       }
-      rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gd[nsnp-1]-gd[0]);
+      rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
       cout<<"Estimated rho is "<<rho_use<<endl;
       hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
       vector<vector<double>> pind_dense=hMatrix2matrix(pind);

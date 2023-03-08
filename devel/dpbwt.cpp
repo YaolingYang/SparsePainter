@@ -8,6 +8,7 @@
 
 using namespace std;
 
+int L=1000;
 int M = 0;
 int qM = 0;
 int N = 0;
@@ -123,7 +124,7 @@ void ReadVCF(string inFile, string qinFile, bool ** & panel){
 }
 
 
-tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int L, 
+tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L, 
                                                                       int *numMatches,
                                                                       bool **panel, 
                                                                       dpbwt & x){
@@ -336,7 +337,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int L,
   return(results);
 }
 
-tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int L=500, 
+tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L, 
                                                                 string query="target"){
   string qin = "p_" + query + ".vcf";
   string in = "p_donor.vcf";

@@ -498,7 +498,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int L,
   return(results);
 }
 
-tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int L=1000, 
+tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int L=500, 
                                                                 string query="target"){
   string qin = "p_" + query + ".vcf";
   string in = "p_donor.vcf";
@@ -507,6 +507,11 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int L=1000,
   dpbwt x;
   int *numMatches;
   ReadVCF(in, qin, panel);
+  
+  while(L>N){
+    L=ceil(L/2);
+    cout<<"L cannot be greater than N, reducing L to "<<L<<endl;
+  }
   
   numMatches = new int[qM];
   
@@ -1119,7 +1124,7 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
                                       const double indfrac=0.1,
                                       const int minsnpEM=10000, 
                                       const double EMsnpfrac=0.1,
-                                      int L=1000){
+                                      int L=500){
   //compute coancestry matrix for all reference individuals
   const int nsnp=gd.size();
   const int nref=refindex.size();
@@ -1180,7 +1185,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
                                                 const double indfrac=0.1,
                                                 const int minsnpEM=10000, 
                                                 const double EMsnpfrac=0.1,
-                                                int L=1000){
+                                                int L=500){
   //compute painting for all target individuals
   const int nsnp=gd.size();
   const int nref=refindex.size();

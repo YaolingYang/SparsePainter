@@ -336,7 +336,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int L,
   return(results);
 }
 
-tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int L=1000, 
+tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int L=500, 
                                                                 string query="target"){
   string qin = "p_" + query + ".vcf";
   string in = "p_donor.vcf";
@@ -345,6 +345,11 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int L=1000,
   dpbwt x;
   int *numMatches;
   ReadVCF(in, qin, panel);
+  
+  while(L>N){
+    L=ceil(L/2);
+    cout<<"L cannot be greater than N, reducing L to "<<L<<endl;
+  }
   
   numMatches = new int[qM];
   

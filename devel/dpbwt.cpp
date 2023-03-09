@@ -5,6 +5,8 @@
 #include<string>
 #include<vector>
 #include<random>
+#include <algorithm>
+#include <utility>
 
 using namespace std;
 
@@ -15,119 +17,157 @@ int N = 0;
 int *dZ;
 
 struct dpbwtnode{
-    dpbwtnode *below, *above, *u, *v;
-    int divergence, id, originalid;
+  dpbwtnode *below, *above, *u, *v;
+  int divergence, id, originalid;
 };
 
 struct dpbwt{
-    dpbwtnode bottomfirstcol;
-    vector<dpbwtnode*> firstcol;
-    vector<vector<bool>> panel;
-    int size, count;
+  dpbwtnode bottomfirstcol;
+  vector<dpbwtnode*> firstcol;
+  vector<vector<bool>> panel;
+  int size, count;
 };
 
 void ReadVCF(string inFile, string qinFile, bool ** & panel){
-    using namespace std;
-    {//count M and N
-        string line = "1#";
-        ifstream in(inFile);
-        stringstream linestr;
-        while (line[1] == '#')
-            getline(in, line);
-
-
-        linestr.str(line);
-        linestr.clear();
-        for (int i = 0; i<9;++i)
-            linestr>>line;
-        N = M = 0;
-        while (!linestr.eof()){
-            ++M;
-            ++M;
-            linestr >> line;
-        }
-
-        while (getline(in, line))
-            ++N;
-        in.close();
-    }
-    {//count qM, finish M
-        string line = "1#";
-        ifstream qin(qinFile);
-        while(line[1] == '#')
-            getline(qin, line);
-        stringstream linestr;
-    
-        linestr.str(line);
-        linestr.clear();
-        for (int i = 0; i<9; ++i)
-            linestr >> line;
-        qM = 0;
-        while (!linestr.eof()){
-            ++qM;
-            ++qM;
-            linestr >> line;
-        }
-        M +=qM;
-        int qN = 0;
-        while (getline(qin, line)){
-            ++qN;
-        }
-        if (qN != N){
-            cout << "Query file and input file have different numbers of sites. Query has " << qN << ". Panel has " << N << endl;
-            throw "Query and input file have different numbers of sites";
-        }
-        qin.close();
-    }
-    bool *temp = new bool[(long long)M * N];
-    panel = new bool*[M];
-    for (int i = 0; i<M; i++){
-        panel[i] = &(temp[i*N]);
-    }
-    string line = "##", qline = "##";
-    ifstream in (inFile);
+  using namespace std;
+  {//count M and N
+  string line = "1#";
+  ifstream in(inFile);
+  stringstream linestr;
+  while (line[1] == '#')
+    getline(in, line);
+  
+  
+  linestr.str(line);
+  linestr.clear();
+  for (int i = 0; i<9;++i)
+    linestr>>line;
+  N = M = 0;
+  while (!linestr.eof()){
+    ++M;
+    ++M;
+    linestr >> line;
+  }
+  
+  while (getline(in, line))
+    ++N;
+  in.close();
+  }
+  {//count qM, finish M
+    string line = "1#";
     ifstream qin(qinFile);
-    stringstream linestr, qlinestr;
-    int x = 0;
-    char y = 0;
-
-    while (line[1] == '#')
-        getline(in, line);
-    while (qline[1] == '#')
-        getline(qin, qline);
-    for(int j = 0; j<N; ++j){
-        getline(in, line);
-        getline(qin, qline);
-        linestr.str(line);
-        linestr.clear();
-        qlinestr.str(qline);
-        qlinestr.clear();
-        for (int i = 0; i<9; ++i){
-            linestr >> line;
-            qlinestr >> qline;
-        }
-        for (int i = 0; i<(M-qM)/2; ++i){
-            linestr >> x >> y;
-            panel[i*2][j] = (bool)x;
-            linestr >> x;
-            panel[i*2 + 1][j] = (bool)x;
-        }
-        for (int i = (M-qM)/2; i < M/2; ++i){
-            qlinestr >> x >> y;
-            panel[i*2][j] = (bool)x;
-            qlinestr >> x;
-            panel[i*2+1][j] = (bool)x;
-        }
+    while(line[1] == '#')
+      getline(qin, line);
+    stringstream linestr;
+    
+    linestr.str(line);
+    linestr.clear();
+    for (int i = 0; i<9; ++i)
+      linestr >> line;
+    qM = 0;
+    while (!linestr.eof()){
+      ++qM;
+      ++qM;
+      linestr >> line;
     }
-    in.close();
+    M +=qM;
+    int qN = 0;
+    while (getline(qin, line)){
+      ++qN;
+    }
+    if (qN != N){
+      cout << "Query file and input file have different numbers of sites. Query has " << qN << ". Panel has " << N << endl;
+      throw "Query and input file have different numbers of sites";
+    }
     qin.close();
+  }
+  bool *temp = new bool[(long long)M * N];
+  panel = new bool*[M];
+  for (int i = 0; i<M; i++){
+    panel[i] = &(temp[i*N]);
+  }
+  string line = "##", qline = "##";
+  ifstream in (inFile);
+  ifstream qin(qinFile);
+  stringstream linestr, qlinestr;
+  int x = 0;
+  char y = 0;
+  
+  while (line[1] == '#')
+    getline(in, line);
+  while (qline[1] == '#')
+    getline(qin, qline);
+  for(int j = 0; j<N; ++j){
+    getline(in, line);
+    getline(qin, qline);
+    linestr.str(line);
+    linestr.clear();
+    qlinestr.str(qline);
+    qlinestr.clear();
+    for (int i = 0; i<9; ++i){
+      linestr >> line;
+      qlinestr >> qline;
+    }
+    for (int i = 0; i<(M-qM)/2; ++i){
+      linestr >> x >> y;
+      panel[i*2][j] = (bool)x;
+      linestr >> x;
+      panel[i*2 + 1][j] = (bool)x;
+    }
+    for (int i = (M-qM)/2; i < M/2; ++i){
+      qlinestr >> x >> y;
+      panel[i*2][j] = (bool)x;
+      qlinestr >> x;
+      panel[i*2+1][j] = (bool)x;
+    }
+  }
+  in.close();
+  qin.close();
+}
+
+vector<int> getorder(const vector<double>& vec) {
+  vector<pair<double, int>> pairs;
+  for (int i = 0; i < vec.size(); i++) {
+    pairs.emplace_back(vec[i], i);
+  }
+  
+  random_device rd;
+  mt19937 gen(rd());
+  stable_sort(pairs.begin(), pairs.end(), [&gen](const pair<double, int>& lhs, const pair<double, int>& rhs) {
+    if (lhs.first == rhs.first) {
+      return gen() < gen();
+    }
+    return lhs.first < rhs.first;
+  });
+  
+  vector<int> order;
+  order.reserve(vec.size());
+  for (const auto& p : pairs) {
+    order.push_back(p.second);
+  }
+  
+  return order;
 }
 
 
-tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L, 
-                                                                      int *numMatches,
+bool containsIndex(const vector<int>& fullidx, int starttemp, int endtemp) {
+  bool contain=false;
+  for(int i : fullidx) {
+    if(i >= starttemp && i <= endtemp) {
+      contain=true;
+    }
+  }
+  return(contain);
+}
+
+
+tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
                                                                       bool **panel, 
-                                                                      dpbwt & x){
+                                                                      dpbwt & x,
+                                                                      const int minmatch,
+                                                                      vector<double> &gd){
+  const int L0=L;
+  
   dZ = new int[M];
   for (int i = 0; i<M; i++){
     dZ[i] = 0;
@@ -233,6 +273,8 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
   
   
   for (int i = M-qM; i<M; i++){
+    cout<<i<<endl;
+    L=L0;
     
     int Oid = i;
     dpbwtnode *t = &(x.bottomfirstcol),
@@ -275,62 +317,148 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
         bd[k] = bdtemp;
       }
       
-      // store the output
       
-      dpbwtnode *f, *g, *ftemp, *gtemp;
-      int matches = 0;
-      f = g = z[0].below;
-      for(int k = 0; k<N; ++k){
-        ftemp = (panel[Oid][k])? f->u : f->v;
-        gtemp = (panel[Oid][k])? g->u : g->v;
-        f = (panel[Oid][k])? f->v : f->u;
-        g = (panel[Oid][k])? g->v : g->u;
-        while (ftemp != gtemp){
-          //matchOut << ftemp->originalid << " = q" << i-M+qM << " at [" << dZ[ftemp->id] << ", " << k << ")\n";
-          donorid.push_back(ftemp->originalid);
-          startpos.push_back(dZ[ftemp->id]);
-          endpos.push_back(k-1);
-          ++matches;
-          ftemp = ftemp->below;
+      // below using while loop to update L and ensure at least minmatch matches at each SNP
+      
+      vector<int> donoridtemp;
+      
+      vector<int> startpostemp;
+      
+      vector<int> endpostemp;
+      
+      vector<int> nomatchsnp;
+      
+      vector<int> nmatch;
+      
+      int times=0;
+      
+      bool allsnpmatches=false;
+      
+      while(!allsnpmatches){
+        vector<int> nmatchtemp(N,0);
+        donoridtemp.clear();
+        startpostemp.clear();
+        endpostemp.clear();
+        
+        dpbwtnode *f, *g, *ftemp, *gtemp;
+        f = g = z[0].below;
+        for(int k = 0; k<N; ++k){
+          ftemp = (panel[Oid][k])? f->u : f->v;
+          gtemp = (panel[Oid][k])? g->u : g->v;
+          f = (panel[Oid][k])? f->v : f->u;
+          g = (panel[Oid][k])? g->v : g->u;
+          while (ftemp != gtemp){
+            //matchOut << ftemp->originalid << " = q" << i-M+qM << " at [" << dZ[ftemp->id] << ", " << k << ")\n";
+            int start=dZ[ftemp->id];
+            int end=k-1;
+            donoridtemp.push_back(ftemp->originalid);
+            startpostemp.push_back(start);
+            endpostemp.push_back(end);
+            ftemp = ftemp->below;
+            for(int q=start;q<=end;++q){
+              nmatchtemp[q]++;
+            }
+          }
+          if (f==g){
+            if (k+1-zd[k+1] == L){
+              f = f->above;
+              //store divergence
+              dZ[f->id] = k+1-L;
+            }
+            if (k+1-bd[k+1] == L){
+              //store divergence
+              dZ[g->id] = k+1-L;
+              g = g->below;
+            }
+          }
+          if (f!=g) {
+            while (f->divergence <= k+1 - L){
+              f = f->above;
+              //store divergence
+              dZ[f->id] = k+1-L;
+            }
+            while (g->divergence <= k+1 - L){
+              //store divergence
+              dZ[g->id] = k+1-L;
+              g = g->below;
+            }
+          }
         }
-        if (f==g){
-          if (k+1-zd[k+1] == L){
-            f = f->above;
-            //store divergence
-            dZ[f->id] = k+1-L;
-          }
-          if (k+1-bd[k+1] == L){
-            //store divergence
-            dZ[g->id] = k+1-L;
-            g = g->below;
-          }
-        }
-        if (f!=g) {
-          while (f->divergence <= k+1 - L){
-            f = f->above;
-            //store divergence
-            dZ[f->id] = k+1-L;
-          }
-          while (g->divergence <= k+1 - L){
-            //store divergence
-            dZ[g->id] = k+1-L;
-            g = g->below;
+        
+        while (f != g){
+          //output match
+          //matchOut << f->originalid << " = q" << i-M+qM << " at [" << dZ[f->id] << ", " << N << ")\n";
+          
+          int start2=dZ[f->id];
+          int end2=N-1;
+          donoridtemp.push_back(f->originalid);
+          startpostemp.push_back(start2);
+          endpostemp.push_back(end2);
+          f = f->below;
+          for(int q=start2;q<=end2;++q){
+            nmatchtemp[q]++;
           }
         }
+        
+        if(times==0){
+          for(int j=0;j<N;++j){
+            if (nmatchtemp[j] < minmatch) {
+              nomatchsnp.push_back(j);
+            }
+          }
+        }else{
+          vector<int> nomatchsnptemp=nomatchsnp;
+          nomatchsnp.clear();
+          for(int j=0;j<nomatchsnptemp.size();++j){
+            if (nmatchtemp[nomatchsnptemp[j]] < minmatch) {
+              nomatchsnp.push_back(nomatchsnptemp[j]);
+            }
+          }
+        }
+        if(nomatchsnp.size()==0){
+          nmatch=nmatchtemp;
+          allsnpmatches = true;
+        }else{
+          L=L/2;
+        }
+        times++;
       }
-      while (f != g){
-        //output match
-        //matchOut << f->originalid << " = q" << i-M+qM << " at [" << dZ[f->id] << ", " << N << ")\n";
-        donorid.push_back(f->originalid);
-        startpos.push_back(dZ[f->id]);
-        endpos.push_back(N-1);
-        ++matches;
-        f = f->below;
-      }
-      numMatches[i-M+qM] = matches;
+      
       delete [] z;
       
-      //recode the position of the next start position of query haplotype
+      
+      //below we remove shorter matches while ensuring at least minmatch matches at each SNP
+      //information of matches is stored in donoridtemp, startpostemp and endpostemp
+      //number of matches at each SNP are stored in nmatch
+      //we first sort the genetic distance of each match
+      vector<double> gdmatch(startpostemp.size());
+      for(int mi=0; mi<startpostemp.size();++mi){
+        gdmatch[mi]=gd[endpostemp[mi]]-gd[startpostemp[mi]];
+      }
+      vector<int> length_order=getorder(gdmatch);
+      
+      vector<int> fullidx; // record which SNP has only minmatch matches
+      for(int q=0;q<N;++q){
+        if(nmatch[q]==minmatch) fullidx.push_back(q);
+      }
+      for(int mi=0;mi<length_order.size();++mi){
+        
+        int starttemp=startpostemp[length_order[mi]];
+        int endtemp=endpostemp[length_order[mi]];
+        
+        if(!containsIndex(fullidx,starttemp,endtemp)){
+          for(int q=starttemp;q<=endtemp;++q){
+            nmatch[q]--;
+            if(nmatch[q]==minmatch) fullidx.push_back(q);
+          }
+        }else{
+          startpos.push_back(starttemp);
+          endpos.push_back(endtemp);
+          donorid.push_back(donoridtemp[length_order[mi]]);
+        }
+      }
+      
+      //record the position of the next start position of query haplotype
       queryidall.push_back(startpos.size());
   }
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> results(queryidall,donorid,startpos,endpos);
@@ -338,13 +466,14 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
 }
 
 tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L, 
-                                                                string query="target"){
+                                                                vector<double> gd,
+                                                                string query="target",
+                                                                int minmatch=100){
   string qin = "p_" + query + ".vcf";
   string in = "p_donor.vcf";
   
   bool **panel;
   dpbwt x;
-  int *numMatches;
   ReadVCF(in, qin, panel);
   
   while(L>N){
@@ -352,9 +481,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L,
     cout<<"L cannot be greater than N, reducing L to "<<L<<endl;
   }
   
-  numMatches = new int[qM];
-  
-  return(longMatchdpbwt(L,numMatches, panel, x));
+  return(longMatchdpbwt(L,panel,x,minmatch,gd));
   
 }
 

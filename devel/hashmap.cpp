@@ -282,30 +282,21 @@ void ReadVCF(string inFile, string qinFile, bool ** & panel){
   qin.close();
 }
 
+
 vector<int> getorder(const vector<double>& vec) {
-  vector<pair<double, int>> pairs;
-  for (int i = 0; i < vec.size(); i++) {
-    pairs.emplace_back(vec[i], i);
-  }
   
-  random_device rd;
-  mt19937 gen(rd());
-  stable_sort(pairs.begin(), pairs.end(), [&gen](const pair<double, int>& lhs, const pair<double, int>& rhs) {
-    if (lhs.first == rhs.first) {
-      return gen() < gen();
+  vector<int> order(vec.size());
+  iota(order.begin(), order.end(), 0);
+  
+  sort(order.begin(), order.end(), [&vec](int i, int j) {
+    if (vec[i] == vec[j]) {
+      return i < j;
     }
-    return lhs.first < rhs.first;
+    return vec[i] < vec[j];
   });
-  
-  vector<int> order;
-  order.reserve(vec.size());
-  for (const auto& p : pairs) {
-    order.push_back(p.second);
-  }
   
   return order;
 }
-
 
 bool containsIndex(const vector<int>& fullidx, int starttemp, int endtemp) {
   bool contain=false;
@@ -432,6 +423,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
   for (int i = M-qM; i<M; i++){
     cout<<i<<endl;
     L=L0;
+    int prevL=L0;
     
     int Oid = i;
     dpbwtnode *t = &(x.bottomfirstcol),
@@ -485,17 +477,35 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
       
       vector<int> nomatchsnp;
       
-      vector<int> nmatch;
+      vector<int> nmatch(N,0);
       
       int times=0;
       
       bool allsnpmatches=false;
       
       while(!allsnpmatches){
-        vector<int> nmatchtemp(N,0);
-        donoridtemp.clear();
-        startpostemp.clear();
-        endpostemp.clear();
+        
+
+        
+        vector<bool> addmatch(N,false);
+        
+        //int prevL=L*2;
+        
+        if(times!=0){
+          for(int w=0;w<nomatchsnp.size();++w){
+            for(int s=0;s<prevL;++s){
+              int pos=nomatchsnp[w]+s;
+              if(pos>=N) break;
+              addmatch[pos]=true;
+            }
+          }
+        }
+
+
+        
+        //donoridtemp.clear();
+        //startpostemp.clear();
+        //endpostemp.clear();
         
         dpbwtnode *f, *g, *ftemp, *gtemp;
         f = g = z[0].below;
@@ -506,16 +516,37 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
           g = (panel[Oid][k])? g->v : g->u;
           while (ftemp != gtemp){
             //matchOut << ftemp->originalid << " = q" << i-M+qM << " at [" << dZ[ftemp->id] << ", " << k << ")\n";
-            int start=dZ[ftemp->id];
             int end=k-1;
-            donoridtemp.push_back(ftemp->originalid);
-            startpostemp.push_back(start);
-            endpostemp.push_back(end);
-            ftemp = ftemp->below;
-            for(int q=start;q<=end;++q){
-              nmatchtemp[q]++;
+            if(times==0){
+              int start=dZ[ftemp->id];
+              donoridtemp.push_back(ftemp->originalid);
+              startpostemp.push_back(start);
+              endpostemp.push_back(end);
+              ftemp = ftemp->below;
+              for(int q=start;q<=end;++q){
+                nmatch[q]++;
+              }
+            }else{
+              if(addmatch[end]){
+                int start=dZ[ftemp->id];
+                //add new matches with new L
+                if(end-start+1<prevL){
+                  donoridtemp.push_back(ftemp->originalid);
+                  startpostemp.push_back(start);
+                  endpostemp.push_back(end);
+                  ftemp = ftemp->below;
+                  for(int q=start;q<=end;++q){
+                    nmatch[q]++;
+                  }
+                }else{
+                  ftemp = ftemp->below;
+                }
+              }else{
+                ftemp = ftemp->below;
+              }
             }
           }
+          
           if (f==g){
             if (k+1-zd[k+1] == L){
               f = f->above;
@@ -541,25 +572,45 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
             }
           }
         }
-
+        
         while (f != g){
           //output match
           //matchOut << f->originalid << " = q" << i-M+qM << " at [" << dZ[f->id] << ", " << N << ")\n";
-          
-          int start2=dZ[f->id];
           int end2=N-1;
-          donoridtemp.push_back(f->originalid);
-          startpostemp.push_back(start2);
-          endpostemp.push_back(end2);
-          f = f->below;
-          for(int q=start2;q<=end2;++q){
-            nmatchtemp[q]++;
+          if(times==0){
+            int start2=dZ[f->id];
+            donoridtemp.push_back(f->originalid);
+            startpostemp.push_back(start2);
+            endpostemp.push_back(end2);
+            f = f->below;
+            for(int q=start2;q<=end2;++q){
+              nmatch[q]++;
+            }
+          }else{
+            if(addmatch[end2]){
+              int start2=dZ[f->id];
+              //add new matches with new L
+              if(end2-start2+1<prevL){
+                donoridtemp.push_back(f->originalid);
+                startpostemp.push_back(start2);
+                endpostemp.push_back(end2);
+                f = f->below;
+                for(int q=start2;q<=end2;++q){
+                  nmatch[q]++;
+                }
+              }else{
+                f = f->below;
+              }
+            }else{
+              f = f->below;
+            }
           }
+          
         }
         
         if(times==0){
           for(int j=0;j<N;++j){
-            if (nmatchtemp[j] < minmatch) {
+            if (nmatch[j] < minmatch) {
               nomatchsnp.push_back(j);
             }
           }
@@ -567,16 +618,16 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
           vector<int> nomatchsnptemp=nomatchsnp;
           nomatchsnp.clear();
           for(int j=0;j<nomatchsnptemp.size();++j){
-            if (nmatchtemp[nomatchsnptemp[j]] < minmatch) {
+            if (nmatch[nomatchsnptemp[j]] < minmatch) {
               nomatchsnp.push_back(nomatchsnptemp[j]);
             }
           }
         }
-        if(nomatchsnp.size()==0){
-          nmatch=nmatchtemp;
+        if(nomatchsnp.size()==0 || L==1){
           allsnpmatches = true;
         }else{
-          L=L/2;
+          prevL=L;
+          L=(prevL+1)/2; // this is equal to ceil(L/2) is L is double type
         }
         times++;
       }
@@ -588,6 +639,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
       //information of matches is stored in donoridtemp, startpostemp and endpostemp
       //number of matches at each SNP are stored in nmatch
       //we first sort the genetic distance of each match
+      
       vector<double> gdmatch(startpostemp.size());
       for(int mi=0; mi<startpostemp.size();++mi){
         gdmatch[mi]=gd[endpostemp[mi]]-gd[startpostemp[mi]];
@@ -596,7 +648,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
       
       vector<int> fullidx; // record which SNP has only minmatch matches
       for(int q=0;q<N;++q){
-        if(nmatch[q]==minmatch) fullidx.push_back(q);
+        if(nmatch[q]<=minmatch) fullidx.push_back(q);
       }
       for(int mi=0;mi<length_order.size();++mi){
         
@@ -614,13 +666,15 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
           donorid.push_back(donoridtemp[length_order[mi]]);
         }
       }
-      
       //record the position of the next start position of query haplotype
+      //such that we know how many matches are there for this query haplotype
       queryidall.push_back(startpos.size());
   }
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> results(queryidall,donorid,startpos,endpos);
   return(results);
 }
+
+
 
 tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L, 
                                                                 vector<double> gd,

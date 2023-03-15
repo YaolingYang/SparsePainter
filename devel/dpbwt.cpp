@@ -10,12 +10,6 @@
 
 using namespace std;
 
-int L=1000;
-int M = 0;
-int qM = 0;
-int N = 0;
-int *dZ;
-
 struct dpbwtnode{
   dpbwtnode *below, *above, *u, *v;
   int divergence, id, originalid;
@@ -28,30 +22,29 @@ struct dpbwt{
   int size, count;
 };
 
-void ReadVCF(string inFile, string qinFile, bool ** & panel){
-  using namespace std;
+void ReadVCF(string inFile, string qinFile, bool ** & panel, int &N, int &M, int &qM){
   {//count M and N
-  string line = "1#";
-  ifstream in(inFile);
-  stringstream linestr;
-  while (line[1] == '#')
-    getline(in, line);
-  
-  
-  linestr.str(line);
-  linestr.clear();
-  for (int i = 0; i<9;++i)
-    linestr>>line;
-  N = M = 0;
-  while (!linestr.eof()){
-    ++M;
-    ++M;
-    linestr >> line;
-  }
-  
-  while (getline(in, line))
-    ++N;
-  in.close();
+    string line = "1#";
+    ifstream in(inFile);
+    stringstream linestr;
+    while (line[1] == '#')
+      getline(in, line);
+    
+    
+    linestr.str(line);
+    linestr.clear();
+    for (int i = 0; i<9;++i)
+      linestr>>line;
+    N = M = 0;
+    while (!linestr.eof()){
+      ++M;
+      ++M;
+      linestr >> line;
+    }
+    
+    while (getline(in, line))
+      ++N;
+    in.close();
   }
   {//count qM, finish M
     string line = "1#";
@@ -125,6 +118,60 @@ void ReadVCF(string inFile, string qinFile, bool ** & panel){
   qin.close();
 }
 
+void ReadVCFsamefile(string inFile, bool ** & panel, int &N, int &M){
+  {//count M and N
+    string line = "1#";
+    ifstream in(inFile);
+    while (line[1] == '#')
+      getline(in, line);
+    stringstream linestr;
+    
+    linestr.str(line);
+    linestr.clear();
+    for (int i = 0; i<9; i++)
+      linestr >> line;
+    N = M = 0;
+    while (!linestr.eof()){
+      ++M;
+      ++M;
+      linestr >> line;
+    }
+    while (getline(in,line)){
+      ++N;
+    }
+    in.close();
+  }
+  bool *temp = new bool[(long long)M * N];
+  panel = new bool*[M];
+  for (long long i = 0; i<M; i++){
+    panel[i] = &(temp[i*N]);
+  }
+  string line = "##";
+  ifstream in(inFile);
+  stringstream linestr;
+  int x = 0;
+  char y = 0;
+  
+  while (line[1] == '#')
+    getline(in, line);
+  for (int j = 0; j<N; ++j){
+    getline(in, line);
+    linestr.str(line);
+    linestr.clear();
+    for (int i = 0; i<9; ++i){
+      linestr >> line; 
+    }
+    for (int i = 0; i<M/2; ++i){
+      linestr >> x >> y;
+      panel[i*2][j] = (bool)x;
+      linestr >> x;
+      panel[i*2+1][j] = (bool)x;
+      
+    }
+  }
+  in.close();
+}
+
 vector<int> getorder(const vector<double>& vec) {
   
   vector<int> order(vec.size());
@@ -155,7 +202,20 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
                                                                       bool **panel, 
                                                                       dpbwt & x,
                                                                       const int minmatch,
-                                                                      vector<double> &gd){
+                                                                      vector<double> &gd,
+                                                                      vector<int>& queryidx,
+                                                                      int N,
+                                                                      int M,
+                                                                      int qM){
+  int *dZ;
+  vector<int> queryidxuse=queryidx;
+  if(qM!=0){
+    for(int i=0;i<queryidx.size();++i){
+      queryidxuse[i]=queryidxuse[i]+M-qM;
+    }
+  }
+  
+  
   const int L0=L;
   
   dZ = new int[M];
@@ -261,8 +321,9 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
   // end position of match
   vector<int> endpos;
   
+  //for (int i = M-qM; i<M; i++)
   
-  for (int i = M-qM; i<M; i++){
+  for (int i : queryidxuse){
     cout<<i<<endl;
     L=L0;
     int prevL=L0;
@@ -519,21 +580,35 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
 
 tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L, 
                                                                 vector<double> gd,
+                                                                vector<int>& queryidx,
                                                                 string query="target",
                                                                 int minmatch=100){
+  
   string qin = "p_" + query + ".vcf";
   string in = "p_donor.vcf";
-  
   bool **panel;
   dpbwt x;
-  ReadVCF(in, qin, panel);
+  
+  int M = 0;
+  int qM = 0;
+  int N = 0;
+  
+  if(query=="donor"){
+    ReadVCFsamefile(in, panel,N,M);
+  }else{
+    ReadVCF(in, qin, panel,N,M,qM);
+  }
+  
+  cout<<"finish read"<<endl;
   
   while(L>N){
     L=ceil(L/2);
     cout<<"L cannot be greater than N, reducing L to "<<L<<endl;
   }
   
-  return(longMatchdpbwt(L,panel,x,minmatch,gd));
+  return(longMatchdpbwt(L,panel,x,minmatch,gd,queryidx,N,M,qM));
+  
+  
   
 }
 

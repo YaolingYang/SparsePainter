@@ -16,10 +16,7 @@
 using namespace Rcpp;
 using namespace std;
 
-int M = 0;
-int qM = 0;
-int N = 0;
-int *dZ;
+
 
 //namespace hMatRcpp {
 
@@ -185,8 +182,7 @@ struct dpbwt{
   int size, count;
 };
 
-void ReadVCF(string inFile, string qinFile, bool ** & panel){
-  using namespace std;
+void ReadVCF(string inFile, string qinFile, bool ** & panel, int &N, int &M, int &qM){
   {//count M and N
   string line = "1#";
   ifstream in(inFile);
@@ -282,6 +278,59 @@ void ReadVCF(string inFile, string qinFile, bool ** & panel){
   qin.close();
 }
 
+void ReadVCFsamefile(string inFile, bool ** & panel, int &N, int &M){
+  {//count M and N
+    string line = "1#";
+    ifstream in(inFile);
+    while (line[1] == '#')
+      getline(in, line);
+    stringstream linestr;
+    
+    linestr.str(line);
+    linestr.clear();
+    for (int i = 0; i<9; i++)
+      linestr >> line;
+    N = M = 0;
+    while (!linestr.eof()){
+      ++M;
+      ++M;
+      linestr >> line;
+    }
+    while (getline(in,line)){
+      ++N;
+    }
+    in.close();
+  }
+  bool *temp = new bool[(long long)M * N];
+  panel = new bool*[M];
+  for (long long i = 0; i<M; i++){
+    panel[i] = &(temp[i*N]);
+  }
+  string line = "##";
+  ifstream in(inFile);
+  stringstream linestr;
+  int x = 0;
+  char y = 0;
+  
+  while (line[1] == '#')
+    getline(in, line);
+  for (int j = 0; j<N; ++j){
+    getline(in, line);
+    linestr.str(line);
+    linestr.clear();
+    for (int i = 0; i<9; ++i){
+      linestr >> line; 
+    }
+    for (int i = 0; i<M/2; ++i){
+      linestr >> x >> y;
+      panel[i*2][j] = (bool)x;
+      linestr >> x;
+      panel[i*2+1][j] = (bool)x;
+      
+    }
+  }
+  in.close();
+}
 
 vector<int> getorder(const vector<double>& vec) {
   
@@ -313,7 +362,20 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
                                                                       bool **panel, 
                                                                       dpbwt & x,
                                                                       const int minmatch,
-                                                                      vector<double> &gd){
+                                                                      vector<double> &gd,
+                                                                      vector<int>& queryidx,
+                                                                      int N,
+                                                                      int M,
+                                                                      int qM){
+  int *dZ;
+  vector<int> queryidxuse=queryidx;
+  if(qM!=0){
+    for(int i=0;i<queryidx.size();++i){
+      queryidxuse[i]=queryidxuse[i]+M-qM;
+    }
+  }
+
+  
   const int L0=L;
   
   dZ = new int[M];
@@ -419,8 +481,9 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
   // end position of match
   vector<int> endpos;
   
+  //for (int i = M-qM; i<M; i++)
   
-  for (int i = M-qM; i<M; i++){
+  for (int i : queryidxuse){
     cout<<i<<endl;
     L=L0;
     int prevL=L0;
@@ -485,7 +548,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
       
       while(!allsnpmatches){
         
-
+        
         
         vector<bool> addmatch(N,false);
         
@@ -500,8 +563,8 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
             }
           }
         }
-
-
+        
+        
         
         //donoridtemp.clear();
         //startpostemp.clear();
@@ -675,24 +738,37 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(int& L,
 }
 
 
-
 tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L, 
                                                                 vector<double> gd,
+                                                                vector<int>& queryidx,
                                                                 string query="target",
                                                                 int minmatch=100){
+
   string qin = "p_" + query + ".vcf";
   string in = "p_donor.vcf";
-  
   bool **panel;
   dpbwt x;
-  ReadVCF(in, qin, panel);
+  
+  int M = 0;
+  int qM = 0;
+  int N = 0;
+  
+  if(query=="donor"){
+    ReadVCFsamefile(in, panel,N,M);
+  }else{
+    ReadVCF(in, qin, panel,N,M,qM);
+  }
+  
+  cout<<"finish read"<<endl;
   
   while(L>N){
     L=ceil(L/2);
     cout<<"L cannot be greater than N, reducing L to "<<L<<endl;
   }
+
+  return(longMatchdpbwt(L,panel,x,minmatch,gd,queryidx,N,M,qM));
   
-  return(longMatchdpbwt(L,panel,x,minmatch,gd));
+  
   
 }
 
@@ -1108,10 +1184,8 @@ double est_rho_average(const hAnc& refidx,
                        const int nref, 
                        const int nsnp,
                        vector<double>& gd,
-                       const vector<int>& queryidall, 
-                       const vector<int>& donorid_ref,
-                       const vector<int>& startpos_ref,
-                       const vector<int>& endpos_ref,
+                       int L,
+                       int minmatch,
                        const double indfrac=0.1,
                        const int ite_time=10, 
                        const string method="Viterbi",
@@ -1123,18 +1197,46 @@ double est_rho_average(const hAnc& refidx,
   int count=0;
   double gdall=gd[nsnp-1]-gd[0];
   
+  
+  vector<int> allsamples;
+  vector<int> popstart={0}; //the start position of diffent population samples
+  
+  //stratified sampling
   for(int i=0;i<npop;++i){
     //randomly sample a percentage of indfrac reference samples
     vector<int> popidx=refidx.findrows(i);
     
-    int nref_sample=static_cast<int>(ceil(popidx.size()*indfrac));
+    int nref_sample=static_cast<int>(ceil(popidx.size()*indfrac));  //the number of samples of this ancestry
     
-    vector<int> samples=randomsample(popidx,nref_sample);
+    vector<int> samples=randomsample(popidx,nref_sample); // sample index of this ancestry
     
-    for(int k=0;k<samples.size();k++){
+    for(int j=0;j<nref_sample;++j){
+      allsamples.push_back(samples[j]);
+    }
+    popstart.push_back(allsamples.size());
+  }
+  
+  
+  cout<<"Do dPBWT for donor haplotypes"<<endl;
+  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L, gd,allsamples,"donor",minmatch);
+  vector<int> queryidall=get<0>(dpbwtall_ref);
+  vector<int> donorid_ref=get<1>(dpbwtall_ref);
+  vector<int> startpos_ref=get<2>(dpbwtall_ref);
+  vector<int> endpos_ref=get<3>(dpbwtall_ref);
+  cout<<"dPBWT works successfully"<<endl;
+  
+  int samplesum=0;
+  
+  for(int i=0;i<npop;++i){
+    vector<int> samples;
+    for(int j=popstart[i];j<popstart[i+1];++j){
+      samples.push_back(allsamples[j]);
+    }
+    
+    for(int k=0;k<samples.size();++k){
       //leave-one-out
-      //vector<vector<int>> matchdata=read_data("donor",samples[k]);
-      vector<vector<int>> matchdata=get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samples[k]);
+      vector<vector<int>> matchdata=get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samplesum);
+      samplesum++;
       vector<int> removeidx;
       for(int j=0;j<npop;++j){
         if(j==i){
@@ -1297,6 +1399,7 @@ vector<double> chunklength_each(vector<double>& gd,
 // [[Rcpp::export]]
 vector<vector<double>> chunklengthall(vector<double>& gd,
                                       const vector<int>& refindex, 
+                                      const double paintfrac=0.2,
                                       const string method="Viterbi", 
                                       const int ite_time=10,
                                       const double indfrac=0.1,
@@ -1309,23 +1412,49 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
   const int nref=refindex.size();
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
-  vector<vector<double>> chunklength(nref, vector<double>(npop));
   double rho;
   int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
-  cout<<"Do dPBWT for donor haplotypes"<<endl;
-  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L, gd,"donor",minmatch);
+  
+  //stratified sampling
+  
+  vector<int> queryidx;
+  vector<int> popstart={0}; //the start position of diffent population samples
+  
+  //stratified sampling
+  for(int i=0;i<npop;++i){
+    //randomly sample a percentage of indfrac reference samples
+    vector<int> popidx=refidx.findrows(i);
+    
+    int nref_sample=static_cast<int>(ceil(popidx.size()*paintfrac));  //the number of samples of this ancestry
+    
+    vector<int> samples=randomsample(popidx,nref_sample); // sample index of this ancestry
+    
+    for(int j=0;j<nref_sample;++j){
+      queryidx.push_back(samples[j]);
+    }
+    popstart.push_back(queryidx.size());
+  }
+  
+  
+  cout<<"Begin estimating fixed rho"<<endl;
+
+  rho=est_rho_average(refidx,nref,nsnp,gd,L,minmatch,indfrac,
+                      ite_time,method,minsnpEM,EMsnpfrac);
+  
+  cout<<"Do dPBWT on the reference"<<endl;
+  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L, gd,queryidx,"donor",minmatch);
   vector<int> queryidall_ref=get<0>(dpbwtall_ref);
   vector<int> donorid_ref=get<1>(dpbwtall_ref);
   vector<int> startpos_ref=get<2>(dpbwtall_ref);
   vector<int> endpos_ref=get<3>(dpbwtall_ref);
   cout<<"dPBWT works successfully"<<endl;
-
-  cout<<"Begin estimating fixed rho"<<endl;
-  rho=est_rho_average(refidx,nref,nsnp,gd,queryidall_ref,
-                      donorid_ref,startpos_ref,endpos_ref,indfrac,
-                      ite_time,method,minsnpEM,EMsnpfrac);
   
-  for(int i=0;i<nref;++i){
+  int nrefpaint=queryidx.size();
+    
+  vector<vector<double>> chunklength(nrefpaint, vector<double>(npop));
+  
+  
+  for(int i=0;i<nrefpaint;++i){
     cout<<"Calculating chunk length for donor sample "<<i+1<<endl;
     //leave-one-out
     vector<vector<int>> matchdata=get_matchdata(queryidall_ref,
@@ -1334,10 +1463,10 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
                                                 endpos_ref,
                                                 i);
     vector<int> removeidx;
-    int popidx=refindex[i];
+    int popidx=refindex[queryidx[i]];
     for(int j=0;j<npop;++j){
       if(j==popidx){
-        removeidx.push_back(i);
+        removeidx.push_back(queryidx[i]);
       }else{
         removeidx.push_back(randomsample(refidx.findrows(j),1)[0]);
       }
@@ -1359,6 +1488,7 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
 vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
                                                 const vector<int>& refindex,
                                                 const int nind,
+                                                const double targetfrac=0.1,
                                                 const string method="Viterbi",
                                                 bool fixrho=true,
                                                 const int ite_time=10,
@@ -1367,47 +1497,43 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
                                                 const double EMsnpfrac=0.1,
                                                 int L=500,
                                                 double minmatchfrac=0.001){
+  
+  vector<int> allind;
+  for(int i=0;i<nind;++i){
+    allind.push_back(i);
+  }
+  int nind_use=static_cast<int>(ceil(nind*targetfrac));
+  vector<int> queryidx=randomsample(allind,nind_use);
+  
   //compute painting for all target individuals
   const int nsnp=gd.size();
   const int nref=refindex.size();
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
-  vector<vector<vector<double>>> painting_all(nind, vector<vector<double>>(npop, vector<double>(nsnp)));
+  vector<vector<vector<double>>> painting_all(nind_use, vector<vector<double>>(npop, vector<double>(nsnp)));
   double rho_use;
   double gdall=gd[nsnp-1]-gd[0];
   int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
+  
   if(fixrho){
-    cout<<"do dPBWT for donor haplotypes"<<endl;
-    tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L, gd,"donor",minmatch);
-    vector<int> queryidall_ref=get<0>(dpbwtall_ref);
-    vector<int> donorid_ref=get<1>(dpbwtall_ref);
-    vector<int> startpos_ref=get<2>(dpbwtall_ref);
-    vector<int> endpos_ref=get<3>(dpbwtall_ref);
-    cout<<"dPBWT works successfully"<<endl;
     
     cout<<"Begin estimating fixed rho"<<endl;
-    rho_use=est_rho_average(refidx,nref,nsnp,gd,queryidall_ref,donorid_ref,
-                            startpos_ref,endpos_ref,indfrac,ite_time,
+    rho_use=est_rho_average(refidx,nref,nsnp,gd,L,minmatch,indfrac,ite_time,
                             method,minsnpEM,EMsnpfrac);
-    // clear the space occupied
-    donorid_ref.clear();
-    donorid_ref.shrink_to_fit();
-    startpos_ref.clear();
-    startpos_ref.shrink_to_fit();
-    endpos_ref.clear();
-    endpos_ref.shrink_to_fit();
   }
   
   
   cout<<"Do dPBWT for target haplotypes"<<endl;
-  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target=do_dpbwt(L, gd,"target",minmatch);
+  
+  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target=do_dpbwt(L, gd,queryidx,"target",minmatch);
+  
   vector<int> queryidall_target=get<0>(dpbwtall_target);
   vector<int> donorid_target=get<1>(dpbwtall_target);
   vector<int> startpos_target=get<2>(dpbwtall_target);
   vector<int> endpos_target=get<3>(dpbwtall_target);
   cout<<"dPBWT works successfully"<<endl;
-  for(int ii=0;ii<nind;++ii){
-    cout<<"Calculating painting for individual "<<ii+1<<endl;
+  for(int ii=0;ii<nind_use;++ii){
+    cout<<"Calculating painting for haplotype "<<ii+1<<endl;
     vector<vector<int>> targetmatchdata=get_matchdata(queryidall_target,
                                                       donorid_target,
                                                       startpos_target,
@@ -1442,69 +1568,6 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   return(painting_all);
 }
 
-
-
-
-// [[Rcpp::export]]
-vector<double> checksparsitytarget(const int nind,
-                                   const int nref,
-                                   const int nsnp, 
-                                   vector<double> gd,
-                                   int L=500,
-                                   double minmatchfrac=0.001){
-  int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
-  vector<double> sparsity(nind,0);
-  cout<<"Do dPBWT for target haplotypes"<<endl;
-  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target=do_dpbwt(L, gd,"target",minmatch);
-  vector<int> queryidall_target=get<0>(dpbwtall_target);
-  vector<int> donorid_target=get<1>(dpbwtall_target);
-  vector<int> startpos_target=get<2>(dpbwtall_target);
-  vector<int> endpos_target=get<3>(dpbwtall_target);
-  cout<<"dPBWT works successfully"<<endl;
-  for(int ii=0;ii<nind;++ii){
-    int count=0;
-    vector<vector<int>> matchdata=get_matchdata(queryidall_target,
-                                                donorid_target,
-                                                startpos_target,
-                                                endpos_target,
-                                                ii);
-    for(int j=0;j<matchdata.size();++j){
-      count=count+matchdata[j][2]-matchdata[j][1];
-    }
-    sparsity[ii]=static_cast<double>(count)/nref/nsnp;
-  }
-  return(sparsity);
-}
-
-// [[Rcpp::export]]
-vector<double> checksparsitydonor(const int nref,
-                                  const int nsnp,
-                                  vector<double> gd,
-                                  int L=500,
-                                  double minmatchfrac=0.001){
-  int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
-  vector<double> sparsity(nref,0);
-  cout<<"Do dPBWT for donor haplotypes"<<endl;
-  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L, gd,"donor",minmatch);
-  vector<int> queryidall_ref=get<0>(dpbwtall_ref);
-  vector<int> donorid_ref=get<1>(dpbwtall_ref);
-  vector<int> startpos_ref=get<2>(dpbwtall_ref);
-  vector<int> endpos_ref=get<3>(dpbwtall_ref);
-  cout<<"dPBWT works successfully"<<endl;
-  for(int ii=0;ii<nref;++ii){
-    int count=0;
-    vector<vector<int>> matchdata=get_matchdata(queryidall_ref,
-                                                donorid_ref,
-                                                startpos_ref,
-                                                endpos_ref,
-                                                ii);
-    for(int j=0;j<matchdata.size();++j){
-      count=count+matchdata[j][2]-matchdata[j][1];
-    }
-    sparsity[ii]=static_cast<double>(count)/nref/nsnp;
-  }
-  return(sparsity);
-}
 
 
 

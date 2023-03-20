@@ -177,6 +177,7 @@ public:
 
 /////////////////////beginning of dpbwt contents///////////////////////////
 
+
 struct dpbwtnode{
   dpbwtnode *below, *above, *u, *v;
   int divergence, id, originalid;
@@ -191,27 +192,27 @@ struct dpbwt{
 
 void ReadVCF(string inFile, string qinFile, bool ** & panel, int &N, int &M, int &qM){
   {//count M and N
-  string line = "1#";
-  ifstream in(inFile);
-  stringstream linestr;
-  while (line[1] == '#')
-    getline(in, line);
-  
-  
-  linestr.str(line);
-  linestr.clear();
-  for (int i = 0; i<9;++i)
-    linestr>>line;
-  N = M = 0;
-  while (!linestr.eof()){
-    ++M;
-    ++M;
-    linestr >> line;
-  }
-  
-  while (getline(in, line))
-    ++N;
-  in.close();
+    string line = "1#";
+    ifstream in(inFile);
+    stringstream linestr;
+    while (line[1] == '#')
+      getline(in, line);
+    
+    
+    linestr.str(line);
+    linestr.clear();
+    for (int i = 0; i<9;++i)
+      linestr>>line;
+    N = M = 0;
+    while (!linestr.eof()){
+      ++M;
+      ++M;
+      linestr >> line;
+    }
+    
+    while (getline(in, line))
+      ++N;
+    in.close();
   }
   {//count qM, finish M
     string line = "1#";
@@ -376,7 +377,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
                                                                       const int M,
                                                                       const int qM,
                                                                       const int L_minmatch){
-  int *dZ;
   vector<int> queryidxuse=queryidx;
   if(qM!=0){
     for(int i=0;i<queryidx.size();++i){
@@ -384,10 +384,11 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
     }
   }
   
-  dZ = new int[M];
-  for (int i = 0; i<M; i++){
-    dZ[i] = 0;
-  }
+  //int *dZ;
+  //dZ = new int[M];
+  //for (int i = 0; i<M; i++){
+  //  dZ[i] = 0;
+  //}
   
   x.bottomfirstcol.divergence = 0;
   x.bottomfirstcol.id = -1;
@@ -487,12 +488,34 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
   // end position of match
   vector<int> endpos;
   
-  for (int i : queryidxuse){
-    cout<<i<<endl;
+  struct LoopResult {
+    vector<int> donorid;
+    vector<int> startpos;
+    vector<int> endpos;
+    int queryid;
+  };
+  
+  // define a results vector
+  vector<LoopResult> allResults(queryidxuse.size());
+  
+  #pragma omp parallel for
+  
+  for (int idx = 0; idx < queryidxuse.size(); idx++) {
+    
+    int *dZ;
+    dZ = new int[M];
+    for (int i = 0; i<M; i++){
+      dZ[i] = 0;
+    }
+    
+    int i = queryidxuse[idx];
+    
+    //cout<<i<<endl;
     int L=L_initial;
     int prevL=L;
     
     int Oid = i;
+    
     dpbwtnode *t = &(x.bottomfirstcol),
       *botk = &(x.bottomfirstcol),
       *z = new dpbwtnode[N+1];
@@ -550,9 +573,11 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
       
       bool allsnpmatches=false;
       
+      vector<int> local_donorid;
+      vector<int> local_startpos;
+      vector<int> local_endpos;
+      
       while(!allsnpmatches){
-        
-        
         
         vector<bool> addmatch(N,false);
         
@@ -701,7 +726,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
             times++;
           }
         }
-    
+        
       }
       
       delete [] z;
@@ -733,15 +758,32 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
             if(nmatch[q]==minmatch) fullidx.push_back(q);
           }
         }else{
-          startpos.push_back(starttemp);
-          endpos.push_back(endtemp);
-          donorid.push_back(donoridtemp[length_order[mi]]);
+          local_startpos.push_back(starttemp);
+          local_endpos.push_back(endtemp);
+          local_donorid.push_back(donoridtemp[length_order[mi]]);
         }
       }
+      
+      LoopResult result;
+      result.donorid = local_donorid;
+      result.startpos = local_startpos;
+      result.endpos = local_endpos;
+      result.queryid = local_startpos.size();
+      allResults[idx] = result;
+      
       //record the position of the next start position of query haplotype
       //such that we know how many matches are there for this query haplotype
-      queryidall.push_back(startpos.size());
+      //queryidall.push_back(startpos.size());
   }
+  
+  
+  for (const auto& result : allResults) {
+    donorid.insert(donorid.end(), result.donorid.begin(), result.donorid.end());
+    startpos.insert(startpos.end(), result.startpos.begin(), result.startpos.end());
+    endpos.insert(endpos.end(), result.endpos.begin(), result.endpos.end());
+    queryidall.push_back(queryidall.back() + result.queryid);
+  }
+  
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> results(queryidall,donorid,startpos,endpos);
   return(results);
 }
@@ -753,7 +795,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial,
                                                                 string query="target",
                                                                 int minmatch=100,
                                                                 int L_minmatch=20){
-
+  
   string qin = "p_" + query + ".vcf";
   string in = "p_donor.vcf";
   bool **panel;
@@ -775,7 +817,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial,
     L_initial=ceil(L_initial/2);
     cout<<"Initial L cannot be greater than N, reducing L to "<<L_initial<<endl;
   }
-
+  
   return(longMatchdpbwt(L_initial,panel,x,minmatch,gd,queryidx,N,M,qM,L_minmatch));
   
   
@@ -1146,7 +1188,7 @@ hMat matchfiletohMat(const vector<vector<int>>& matchdata,
   return(mat);
 }
 
-  
+
 
 double est_rho_EM(hMat& mat, 
                   vector<double>& gd,
@@ -1166,11 +1208,11 @@ double est_rho_EM(hMat& mat,
   for(int t=0;t<ite_time;++t){
     sameprob=cal_sameprob(nsnp,rho_ite,gd);
     otherprob=cal_otherprob(nref,sameprob);
-
+    
     tuple<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
     hMat forward_prob=get<0>(f);
     vector<double> logmultF=get<1>(f);
- 
+    
     tuple<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
     hMat backward_prob=get<0>(b);
     vector<double> logmultB=get<1>(b);
@@ -1427,11 +1469,11 @@ vector<double> chunklength_each(vector<double>& gd,
   }
   sameprob=cal_sameprob(nsnp,rho,gd);
   otherprob=cal_otherprob(nref,sameprob);
-    
+  
   tuple<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
   hMat forward_prob=get<0>(f);
   vector<double> logmultF=get<1>(f);
-    
+  
   tuple<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
   hMat backward_prob=get<0>(b);
   vector<double> logmultB=get<1>(b);
@@ -1451,7 +1493,7 @@ vector<double> chunklength_each(vector<double>& gd,
     // different chunk length for different populations
     vector<double> sumlleft(npop,0.0);
     vector<double> sumlright(npop,0.0);
-      
+    
     for(int i=0;i<twj1.size();++i){
       sumlleft[refindex[twj1[i]]]+=wl*valuefprev[i]*valuebprev[i];
     }
@@ -1508,7 +1550,7 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
   
   
   cout<<"Begin estimating fixed rho"<<endl;
-
+  
   rho=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,indfrac,
                       ite_time,method,minsnpEM,EMsnpfrac);
   
@@ -1522,7 +1564,7 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
   cout<<"dPBWT works successfully"<<endl;
   
   int nrefpaint=queryidx.size();
-    
+  
   vector<vector<double>> chunklength(nrefpaint, vector<double>(npop));
   
   
@@ -1570,6 +1612,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
                                                 int L_initial=500,
                                                 double minmatchfrac=0.001,
                                                 int L_minmatch=20,
+                                                int L_min_for_score=50,
                                                 bool haploid=false){
   
   vector<int> allind;
@@ -1580,16 +1623,31 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   // we want to guarantee both copies of an individual are sampled
   int nhap_use;
   vector<int> queryidx;
-  if(haploid){
-    queryidx=randomsample(allind,nind_use);
-    nhap_use=nind_use;
-  }else{
-    vector<int> queryidx_temp=randomsample(allind,nind_use);
-    for(int i : queryidx_temp){
-      queryidx.push_back(2*i);
-      queryidx.push_back(2*i+1);
+  if(nind_use==nind){
+    if(haploid){
+      for(int i=0;i<nind;++i){
+        queryidx.push_back(i);
+      }
+      nhap_use=nind;
+    }else{
+      for(int i=0;i<nind;++i){
+        queryidx.push_back(2*i);
+        queryidx.push_back(2*i+1);
+      }
+      nhap_use=nind*2;
     }
-    nhap_use=nind_use*2;
+  }else{
+    if(haploid){
+      queryidx=randomsample(allind,nind_use);
+      nhap_use=nind_use;
+    }else{
+      vector<int> queryidx_temp=randomsample(allind,nind_use);
+      for(int i : queryidx_temp){
+        queryidx.push_back(2*i);
+        queryidx.push_back(2*i+1);
+      }
+      nhap_use=nind_use*2;
+    }
   }
   
   
@@ -1598,7 +1656,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   const int nref=refindex.size();
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
-  vector<vector<vector<double>>> painting_all(nhap_use, vector<vector<double>>(npop, vector<double>(nsnp)));
+  vector<vector<vector<double>>> painting_all(nhap_use, vector<vector<double>>(npop+1, vector<double>(nsnp)));
   double rho_use;
   double gdall=gd[nsnp-1]-gd[0];
   int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
@@ -1622,6 +1680,31 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   vector<int> endpos_target=get<3>(dpbwtall_target);
   cout<<"dPBWT works successfully"<<endl;
   
+  //how reliable the painting is
+  cout<<"Calculating the reliability scores"<<endl;
+  for(int ii=0;ii<nhap_use;++ii){
+    
+    vector<int> n_L_satisfy(nsnp,0);
+    
+    for(int j=queryidall_target[ii];j<queryidall_target[ii+1];++j){
+      int starttemp=startpos_target[j];
+      int endtemp=endpos_target[j];
+      if(endtemp-starttemp+1>=L_min_for_score){
+        for(int k=starttemp;k<endtemp;++k){
+          n_L_satisfy[k]++;
+        }
+      }
+    }
+    // convert n_L_satisfy to score
+    for(int q=0;q<nsnp;++q){
+      if(n_L_satisfy[q]>=minmatch){
+        painting_all[ii][0][q]=1;
+      }else{
+        painting_all[ii][0][q] = static_cast<double>(n_L_satisfy[q]) / minmatch;;
+      }
+    }
+  }
+  
   #pragma omp parallel for
   for(int ii=0;ii<nhap_use;++ii){
     cout<<"Calculating painting for haplotype "<<ii+1<<endl;
@@ -1636,7 +1719,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
       vector<vector<double>> pind_dense=hMatrix2matrix(pind);
       for(int j=0;j<npop;++j){
         for(int k=0;k<nsnp;++k){
-          painting_all[ii][j][k]=pind_dense[j][k];
+          painting_all[ii][j+1][k]=pind_dense[j][k];
         }
       }
     }else{
@@ -1651,7 +1734,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
       vector<vector<double>> pind_dense=hMatrix2matrix(pind);
       for(int j=0;j<npop;++j){
         for(int k=0;k<nsnp;++k){
-          painting_all[ii][j][k]=pind_dense[j][k];
+          painting_all[ii][j+1][k]=pind_dense[j][k];
         }
       }
     }
@@ -1663,7 +1746,87 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
 
 
 
-
+// [[Rcpp::export]]
+vector<int> startcheck(vector<double>& gd,
+                                                const vector<int>& refindex,
+                                                const int nind,
+                                                const double targetfrac=0.1,
+                                                const string method="Viterbi",
+                                                bool fixrho=true,
+                                                const int ite_time=10,
+                                                const double indfrac=0.1,
+                                                const int minsnpEM=10000, 
+                                                const double EMsnpfrac=0.1,
+                                                int L_initial=500,
+                                                double minmatchfrac=0.001,
+                                                int L_minmatch=20,
+                                                int L_min_for_score=50,
+                                                bool haploid=false){
+  
+  vector<int> allind;
+  for(int i=0;i<nind;++i){
+    allind.push_back(i);
+  }
+  int nind_use=static_cast<int>(ceil(nind*targetfrac));
+  // we want to guarantee both copies of an individual are sampled
+  int nhap_use;
+  vector<int> queryidx;
+  if(nind_use==nind){
+    if(haploid){
+      for(int i=0;i<nind;++i){
+        queryidx.push_back(i);
+      }
+      nhap_use=nind;
+    }else{
+      for(int i=0;i<nind;++i){
+        queryidx.push_back(2*i);
+        queryidx.push_back(2*i+1);
+      }
+      nhap_use=nind*2;
+    }
+  }else{
+    if(haploid){
+      queryidx=randomsample(allind,nind_use);
+      nhap_use=nind_use;
+    }else{
+      vector<int> queryidx_temp=randomsample(allind,nind_use);
+      for(int i : queryidx_temp){
+        queryidx.push_back(2*i);
+        queryidx.push_back(2*i+1);
+      }
+      nhap_use=nind_use*2;
+    }
+  }
+  
+  
+  //compute painting for all target individuals
+  const int nsnp=gd.size();
+  const int nref=refindex.size();
+  hAnc refidx(refindex);
+  const int npop=refidx.pos.size();
+  vector<vector<vector<double>>> painting_all(nhap_use, vector<vector<double>>(npop+1, vector<double>(nsnp)));
+  double rho_use;
+  double gdall=gd[nsnp-1]-gd[0];
+  int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
+  
+  if(fixrho){
+    
+    cout<<"Begin estimating fixed rho"<<endl;
+    rho_use=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,indfrac,ite_time,
+                            method,minsnpEM,EMsnpfrac);
+  }
+  
+  
+  cout<<"Do dPBWT for target haplotypes"<<endl;
+  
+  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,
+                                                                                  "target",minmatch,L_minmatch);
+  
+  vector<int> startpos_target=get<2>(dpbwtall_target);
+  
+  
+  return(startpos_target);
+}
 
 
 //vector<vector<int>> read_data(string type, int idx) {

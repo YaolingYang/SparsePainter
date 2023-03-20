@@ -403,7 +403,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
     prev = current;
   }
   
-
+  
   for (int i = 0; i < M-qM; i++){
     int Oid = i;
     
@@ -506,7 +506,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
   // define a results vector
   vector<LoopResult> allResults(queryidxuse.size());
   
-  #pragma omp parallel for
+#pragma omp parallel for
   
   for (int idx = 0; idx < queryidxuse.size(); idx++) {
     
@@ -1575,7 +1575,7 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
   
   vector<vector<double>> chunklength(nrefpaint, vector<double>(npop));
   
-  #pragma omp parallel for
+#pragma omp parallel for
   for(int i=0;i<nrefpaint;++i){
     cout<<"Calculating chunk length for donor sample "<<i+1<<endl;
     //leave-one-out
@@ -1620,8 +1620,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
                                                 int L_initial=500,
                                                 double minmatchfrac=0.001,
                                                 int L_minmatch=20,
-                                                int L_min_for_score=50,
-                                                bool haploid=false){
+                                                int L_min_for_score=50){
   
   vector<int> allind;
   for(int i=0;i<nind;++i){
@@ -1632,30 +1631,18 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   int nhap_use;
   vector<int> queryidx;
   if(nind_use==nind){
-    if(haploid){
-      for(int i=0;i<nind;++i){
-        queryidx.push_back(i);
-      }
-      nhap_use=nind;
-    }else{
-      for(int i=0;i<nind;++i){
+    for(int i=0;i<nind;++i){
         queryidx.push_back(2*i);
         queryidx.push_back(2*i+1);
-      }
-      nhap_use=nind*2;
     }
+    nhap_use=nind*2;
   }else{
-    if(haploid){
-      queryidx=randomsample(allind,nind_use);
-      nhap_use=nind_use;
-    }else{
-      vector<int> queryidx_temp=randomsample(allind,nind_use);
-      for(int i : queryidx_temp){
-        queryidx.push_back(2*i);
-        queryidx.push_back(2*i+1);
-      }
-      nhap_use=nind_use*2;
+    vector<int> queryidx_temp=randomsample(allind,nind_use);
+    for(int i : queryidx_temp){
+      queryidx.push_back(2*i);
+      queryidx.push_back(2*i+1);
     }
+    nhap_use=nind_use*2;
   }
   
   
@@ -1713,7 +1700,7 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
     }
   }
   
-  #pragma omp parallel for
+#pragma omp parallel for
   for(int ii=0;ii<nhap_use;++ii){
     cout<<"Calculating painting for haplotype "<<ii+1<<endl;
     vector<vector<int>> targetmatchdata=get_matchdata(queryidall_target,

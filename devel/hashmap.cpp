@@ -403,14 +403,20 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
     prev = current;
   }
   
+
   for (int i = 0; i < M-qM; i++){
     int Oid = i;
+    
+    
     x.panel.push_back(vector<bool>());
     x.panel[i].resize(N);
+    
     dpbwtnode *t = &(x.bottomfirstcol),
       *botk = &(x.bottomfirstcol),
       *z = new dpbwtnode[N+1];
+      
       x.firstcol.push_back(&z[0]);
+      
       
       z[0].id = i;
       z[0].originalid = Oid; //!!!! different from indel benchmark
@@ -454,7 +460,9 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
         if (z[k+1].above != nullptr)
           z[k+1].above->below = &z[k+1];
         botk = botk->v;
+        
         x.panel[i][k] = panel[Oid][k];
+        
       }
       
       int zdtemp = N,
@@ -1567,7 +1575,7 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
   
   vector<vector<double>> chunklength(nrefpaint, vector<double>(npop));
   
-  
+  #pragma omp parallel for
   for(int i=0;i<nrefpaint;++i){
     cout<<"Calculating chunk length for donor sample "<<i+1<<endl;
     //leave-one-out
@@ -1744,89 +1752,6 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   return(painting_all);
 }
 
-
-
-// [[Rcpp::export]]
-vector<int> startcheck(vector<double>& gd,
-                                                const vector<int>& refindex,
-                                                const int nind,
-                                                const double targetfrac=0.1,
-                                                const string method="Viterbi",
-                                                bool fixrho=true,
-                                                const int ite_time=10,
-                                                const double indfrac=0.1,
-                                                const int minsnpEM=10000, 
-                                                const double EMsnpfrac=0.1,
-                                                int L_initial=500,
-                                                double minmatchfrac=0.001,
-                                                int L_minmatch=20,
-                                                int L_min_for_score=50,
-                                                bool haploid=false){
-  
-  vector<int> allind;
-  for(int i=0;i<nind;++i){
-    allind.push_back(i);
-  }
-  int nind_use=static_cast<int>(ceil(nind*targetfrac));
-  // we want to guarantee both copies of an individual are sampled
-  int nhap_use;
-  vector<int> queryidx;
-  if(nind_use==nind){
-    if(haploid){
-      for(int i=0;i<nind;++i){
-        queryidx.push_back(i);
-      }
-      nhap_use=nind;
-    }else{
-      for(int i=0;i<nind;++i){
-        queryidx.push_back(2*i);
-        queryidx.push_back(2*i+1);
-      }
-      nhap_use=nind*2;
-    }
-  }else{
-    if(haploid){
-      queryidx=randomsample(allind,nind_use);
-      nhap_use=nind_use;
-    }else{
-      vector<int> queryidx_temp=randomsample(allind,nind_use);
-      for(int i : queryidx_temp){
-        queryidx.push_back(2*i);
-        queryidx.push_back(2*i+1);
-      }
-      nhap_use=nind_use*2;
-    }
-  }
-  
-  
-  //compute painting for all target individuals
-  const int nsnp=gd.size();
-  const int nref=refindex.size();
-  hAnc refidx(refindex);
-  const int npop=refidx.pos.size();
-  vector<vector<vector<double>>> painting_all(nhap_use, vector<vector<double>>(npop+1, vector<double>(nsnp)));
-  double rho_use;
-  double gdall=gd[nsnp-1]-gd[0];
-  int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
-  
-  if(fixrho){
-    
-    cout<<"Begin estimating fixed rho"<<endl;
-    rho_use=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,indfrac,ite_time,
-                            method,minsnpEM,EMsnpfrac);
-  }
-  
-  
-  cout<<"Do dPBWT for target haplotypes"<<endl;
-  
-  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,
-                                                                                  "target",minmatch,L_minmatch);
-  
-  vector<int> startpos_target=get<2>(dpbwtall_target);
-  
-  
-  return(startpos_target);
-}
 
 
 //vector<vector<int>> read_data(string type, int idx) {

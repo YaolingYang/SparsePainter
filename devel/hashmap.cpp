@@ -190,7 +190,13 @@ struct dpbwt{
   int size, count;
 };
 
-void ReadVCF(string inFile, string qinFile, bool ** & panel, int &N, int &M, int &qM){
+void ReadVCF(string inFile, 
+             string qinFile, 
+             bool ** & panel, 
+             int &N, 
+             int &M, 
+             int &qM, 
+             bool haploid=false){
   {//count M and N
     string line = "1#";
     ifstream in(inFile);
@@ -204,10 +210,17 @@ void ReadVCF(string inFile, string qinFile, bool ** & panel, int &N, int &M, int
     for (int i = 0; i<9;++i)
       linestr>>line;
     N = M = 0;
-    while (!linestr.eof()){
-      ++M;
-      ++M;
-      linestr >> line;
+    if(haploid){
+      while (!linestr.eof()){
+        ++M;
+        linestr >> line;
+      }
+    }else{
+      while (!linestr.eof()){
+        ++M;
+        ++M;
+        linestr >> line;
+      }
     }
     
     while (getline(in, line))
@@ -226,10 +239,17 @@ void ReadVCF(string inFile, string qinFile, bool ** & panel, int &N, int &M, int
     for (int i = 0; i<9; ++i)
       linestr >> line;
     qM = 0;
-    while (!linestr.eof()){
-      ++qM;
-      ++qM;
-      linestr >> line;
+    if(haploid){
+      while (!linestr.eof()){
+        ++qM;
+        linestr >> line;
+      }
+    }else{
+      while (!linestr.eof()){
+        ++qM;
+        ++qM;
+        linestr >> line;
+      }
     }
     M +=qM;
     int qN = 0;
@@ -269,25 +289,40 @@ void ReadVCF(string inFile, string qinFile, bool ** & panel, int &N, int &M, int
       linestr >> line;
       qlinestr >> qline;
     }
-    for (int i = 0; i<(M-qM)/2; ++i){
-      linestr >> x >> y;
-      panel[i*2][j] = (bool)x;
-      linestr >> x;
-      panel[i*2 + 1][j] = (bool)x;
+    if(haploid){
+      for (int i = 0; i<M-qM; ++i){
+        linestr >> x >> y;
+        panel[i][j] = (bool)x;
+      }
+      for (int i = M-qM; i < M; ++i){
+        qlinestr >> x >> y;
+        panel[i][j] = (bool)x;
+      }
+    }else{
+      for (int i = 0; i<(M-qM)/2; ++i){
+        linestr >> x >> y;
+        panel[i*2][j] = (bool)x;
+        linestr >> x;
+        panel[i*2 + 1][j] = (bool)x;
+      }
+      for (int i = (M-qM)/2; i < M/2; ++i){
+        qlinestr >> x >> y;
+        panel[i*2][j] = (bool)x;
+        qlinestr >> x;
+        panel[i*2+1][j] = (bool)x;
+      }
     }
-    // consider changing to reading only the target individuals we want to paint
-    for (int i = (M-qM)/2; i < M/2; ++i){
-      qlinestr >> x >> y;
-      panel[i*2][j] = (bool)x;
-      qlinestr >> x;
-      panel[i*2+1][j] = (bool)x;
-    }
+    
   }
   in.close();
   qin.close();
 }
 
-void ReadVCFsamefile(string inFile, bool ** & panel, int &N, int &M){
+void ReadVCFsamefile(string inFile, 
+                     bool ** & panel, 
+                     int &N, 
+                     int &M,
+                     bool haploid=false){
   {//count M and N
     string line = "1#";
     ifstream in(inFile);
@@ -300,10 +335,17 @@ void ReadVCFsamefile(string inFile, bool ** & panel, int &N, int &M){
     for (int i = 0; i<9; i++)
       linestr >> line;
     N = M = 0;
-    while (!linestr.eof()){
-      ++M;
-      ++M;
-      linestr >> line;
+    if(haploid){
+      while (!linestr.eof()){
+        ++M;
+        linestr >> line;
+      }
+    }else{
+      while (!linestr.eof()){
+        ++M;
+        ++M;
+        linestr >> line;
+      }
     }
     while (getline(in,line)){
       ++N;
@@ -330,33 +372,55 @@ void ReadVCFsamefile(string inFile, bool ** & panel, int &N, int &M){
     for (int i = 0; i<9; ++i){
       linestr >> line; 
     }
-    for (int i = 0; i<M/2; ++i){
-      linestr >> x >> y;
-      panel[i*2][j] = (bool)x;
-      linestr >> x;
-      panel[i*2+1][j] = (bool)x;
-      
+    if(haploid){
+      for (int i = 0; i<M; ++i){
+        linestr >> x >> y;
+        panel[i][j] = (bool)x;
+      }
+    }else{
+      for (int i = 0; i<M/2; ++i){
+        linestr >> x >> y;
+        panel[i*2][j] = (bool)x;
+        linestr >> x;
+        panel[i*2+1][j] = (bool)x;
+      }
     }
   }
   in.close();
 }
 
+
 vector<int> getorder(const vector<double>& vec) {
-  
   vector<int> order(vec.size());
   iota(order.begin(), order.end(), 0);
   
-  sort(order.begin(), order.end(), [&vec](int i, int j) {
-    if (vec[i] == vec[j]) {
-      return i < j;
-    }
+  stable_sort(order.begin(), order.end(), [&vec](int i, int j) {
     return vec[i] < vec[j];
   });
   
-  return order;
+  unordered_map<double, vector<int>> groups;
+  for (int i : order) {
+    groups[vec[i]].push_back(i);
+  }
+
+  random_device rd;
+  mt19937 g(rd());
+  for (auto& group : groups) {
+    shuffle(group.second.begin(), group.second.end(), g);
+  }
+  
+  vector<int> randomized_order;
+  for (int i : order) {
+    randomized_order.push_back(groups[vec[i]].back());
+    groups[vec[i]].pop_back();
+  }
+  
+  return randomized_order;
 }
 
-bool containsIndex(const vector<int>& fullidx, int starttemp, int endtemp) {
+bool containsIndex(const vector<int>& fullidx, 
+                   int starttemp, 
+                   int endtemp) {
   bool contain=false;
   for(int i : fullidx) {
     if(i >= starttemp && i <= endtemp) {
@@ -383,12 +447,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
       queryidxuse[i]=queryidxuse[i]+M-qM;
     }
   }
-  
-  //int *dZ;
-  //dZ = new int[M];
-  //for (int i = 0; i<M; i++){
-  //  dZ[i] = 0;
-  //}
+
   
   x.bottomfirstcol.divergence = 0;
   x.bottomfirstcol.id = -1;
@@ -487,6 +546,8 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
       
   }
   
+  cout<<"finish dpbwt for reference panel"<<endl;
+  
   // match of which query sample
   vector<int> queryidall={0};
   // match to which reference sample (donor)
@@ -506,7 +567,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
   // define a results vector
   vector<LoopResult> allResults(queryidxuse.size());
   
-#pragma omp parallel for
+  #pragma omp parallel for
   
   for (int idx = 0; idx < queryidxuse.size(); idx++) {
     
@@ -802,10 +863,12 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial,
                                                                 vector<int>& queryidx,
                                                                 string query="target",
                                                                 int minmatch=100,
-                                                                int L_minmatch=20){
-  
-  string qin = "p_" + query + ".vcf";
-  string in = "p_donor.vcf";
+                                                                int L_minmatch=20,
+                                                                bool haploid=false,
+                                                                const string donorfile="donor.vcf",
+                                                                const string targetfile="target.vcf"){
+
+  string in = donorfile;
   bool **panel;
   dpbwt x;
   
@@ -814,9 +877,10 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial,
   int N = 0;
   
   if(query=="donor"){
-    ReadVCFsamefile(in, panel,N,M);
+    ReadVCFsamefile(in, panel,N,M,haploid);
   }else{
-    ReadVCF(in, qin, panel,N,M,qM);
+    string qin = targetfile;
+    ReadVCF(in, qin, panel,N,M,qM,haploid);
   }
   
   cout<<"finish read"<<endl;
@@ -1196,6 +1260,39 @@ hMat matchfiletohMat(const vector<vector<int>>& matchdata,
   return(mat);
 }
 
+vector<double> readmap(const string& mapfile) {
+  ifstream file(mapfile);
+  vector<double> gd;
+  
+  if (!file.is_open()) {
+    cerr << "Error: Unable to open file " << mapfile << endl;
+    return gd;
+  }
+  
+  string line;
+  double column2;
+  
+  // Read and discard the header line
+  getline(file, line);
+  
+  // Read the data lines
+  while (getline(file, line)) {
+    istringstream lineStream(line);
+    
+    // Skip the first column by ignoring the input
+    lineStream.ignore(numeric_limits<streamsize>::max(), ' ');
+    
+    // Read the second column and store it in 'column2'
+    lineStream >> column2;
+    
+    // Add 'column2' to the 'gd' vector
+    gd.push_back(column2);
+  }
+  
+  file.close();
+  return gd;
+}
+
 
 
 double est_rho_EM(hMat& mat, 
@@ -1309,7 +1406,9 @@ double est_rho_average(const hAnc& refidx,
                        const int ite_time=10, 
                        const string method="Viterbi",
                        const int minsnpEM=10000, 
-                       const double EMsnpfrac=0.1){
+                       const double EMsnpfrac=0.1,
+                       bool haploid=false,
+                       const string donorfile="donor.vcf"){
   // estimate \rho from the reference panel
   int npop=refidx.pos.size();
   vector<double> rho_est;
@@ -1338,7 +1437,8 @@ double est_rho_average(const hAnc& refidx,
   
   cout<<"Do dPBWT for donor haplotypes"<<endl;
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L_initial, gd,allsamples,
-                                                                               "donor",minmatch,L_minmatch);
+                                                                               "donor",minmatch,L_minmatch,
+                                                                               haploid,donorfile);
   vector<int> queryidall=get<0>(dpbwtall_ref);
   vector<int> donorid_ref=get<1>(dpbwtall_ref);
   vector<int> startpos_ref=get<2>(dpbwtall_ref);
@@ -1517,8 +1617,7 @@ vector<double> chunklength_each(vector<double>& gd,
 
 
 // [[Rcpp::export]]
-vector<vector<double>> chunklengthall(vector<double>& gd,
-                                      const vector<int>& refindex, 
+vector<vector<double>> chunklengthall(vector<int>& refindex, 
                                       const double paintfrac=0.2,
                                       const string method="Viterbi", 
                                       const int ite_time=10,
@@ -1527,7 +1626,25 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
                                       const double EMsnpfrac=0.1,
                                       int L_initial=500,
                                       double minmatchfrac=0.001,
-                                      int L_minmatch=20){
+                                      int L_minmatch=20,
+                                      bool haploid=false,
+                                      const string donorfile="donor.vcf",
+                                      const string mapfile="map.txt"){
+  
+  // read the map data to get the genetic distance in Morgans
+  vector<double> gd;
+  gd = readmap(mapfile);
+  
+  
+  if(!haploid){
+    vector<int> refindex_new;
+    for(int i=0;i<refindex.size();++i){
+      refindex_new.push_back(refindex[i]);
+      refindex_new.push_back(refindex[i]);
+    }
+    refindex=refindex_new;
+  }
+  
   //compute coancestry matrix for all reference individuals
   const int nsnp=gd.size();
   const int nref=refindex.size();
@@ -1546,13 +1663,30 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
     //randomly sample a percentage of indfrac reference samples
     vector<int> popidx=refidx.findrows(i);
     
-    int nref_sample=static_cast<int>(ceil(popidx.size()*paintfrac));  //the number of samples of this ancestry
-    
-    vector<int> samples=randomsample(popidx,nref_sample); // sample index of this ancestry
-    
-    for(int j=0;j<nref_sample;++j){
-      queryidx.push_back(samples[j]);
+    if(haploid){
+      int nref_sample=static_cast<int>(ceil(popidx.size()*paintfrac));  //the number of samples of this ancestry
+      
+      vector<int> samples=randomsample(popidx,nref_sample); // sample index of this ancestry
+      
+      for(int j=0;j<nref_sample;++j){
+        queryidx.push_back(samples[j]);
+      }
+    }else{
+      int nref_sample=static_cast<int>(ceil(popidx.size()*paintfrac/2));  //the number of individuals of this ancestry
+      
+      vector<int> popidx_use;
+      for(int j=0;j<popidx.size();++j){
+        if(j%2==0) popidx_use.push_back(popidx[j]);
+      }
+      
+      vector<int> samples=randomsample(popidx_use,nref_sample); // sample index of this ancestry
+      
+      for(int j=0;j<nref_sample;++j){
+        queryidx.push_back(samples[2*j]);
+        queryidx.push_back(samples[2*j+1]);
+      }
     }
+    
     popstart.push_back(queryidx.size());
   }
   
@@ -1560,11 +1694,12 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
   cout<<"Begin estimating fixed rho"<<endl;
   
   rho=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,indfrac,
-                      ite_time,method,minsnpEM,EMsnpfrac);
+                      ite_time,method,minsnpEM,EMsnpfrac,haploid,donorfile);
   
   cout<<"Do dPBWT on the reference"<<endl;
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L_initial, gd,queryidx,
-                                                                               "donor",minmatch,L_minmatch);
+                                                                               "donor",minmatch,L_minmatch,
+                                                                               haploid,donorfile);
   vector<int> queryidall_ref=get<0>(dpbwtall_ref);
   vector<int> donorid_ref=get<1>(dpbwtall_ref);
   vector<int> startpos_ref=get<2>(dpbwtall_ref);
@@ -1607,8 +1742,7 @@ vector<vector<double>> chunklengthall(vector<double>& gd,
 
 
 // [[Rcpp::export]]
-vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
-                                                const vector<int>& refindex,
+vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
                                                 const int nind,
                                                 const double targetfrac=0.1,
                                                 const string method="Viterbi",
@@ -1620,7 +1754,26 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
                                                 int L_initial=500,
                                                 double minmatchfrac=0.001,
                                                 int L_minmatch=20,
-                                                int L_min_for_score=50){
+                                                int L_min_for_score=50,
+                                                bool haploid=false,
+                                                const string donorfile="donor.vcf",
+                                                const string targetfile="target.vcf",
+                                                const string mapfile="map.txt"){
+  
+  // read the map data to get the genetic distance in Morgans
+  vector<double> gd;
+  gd = readmap(mapfile);
+  
+  
+  //adjust refindex
+  if(!haploid){
+    vector<int> refindex_new;
+    for(int i=0;i<refindex.size();++i){
+      refindex_new.push_back(refindex[i]);
+      refindex_new.push_back(refindex[i]);
+    }
+    refindex=refindex_new;
+  }
   
   vector<int> allind;
   for(int i=0;i<nind;++i){
@@ -1630,21 +1783,33 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
   // we want to guarantee both copies of an individual are sampled
   int nhap_use;
   vector<int> queryidx;
+  
   if(nind_use==nind){
-    for(int i=0;i<nind;++i){
+    if(haploid){
+      for(int i=0;i<nind;++i){
+        queryidx.push_back(i);
+      }
+      nhap_use=nind;
+    }else{
+      for(int i=0;i<nind;++i){
         queryidx.push_back(2*i);
         queryidx.push_back(2*i+1);
+      }
+      nhap_use=nind*2;
     }
-    nhap_use=nind*2;
   }else{
-    vector<int> queryidx_temp=randomsample(allind,nind_use);
-    for(int i : queryidx_temp){
-      queryidx.push_back(2*i);
-      queryidx.push_back(2*i+1);
+    if(haploid){
+      queryidx=randomsample(allind,nind_use);
+      nhap_use=nind_use;
+    }else{
+      vector<int> queryidx_temp=randomsample(allind,nind_use);
+      for(int i : queryidx_temp){
+        queryidx.push_back(2*i);
+        queryidx.push_back(2*i+1);
+      }
+      nhap_use=nind_use*2;
     }
-    nhap_use=nind_use*2;
   }
-  
   
   //compute painting for all target individuals
   const int nsnp=gd.size();
@@ -1660,14 +1825,15 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
     
     cout<<"Begin estimating fixed rho"<<endl;
     rho_use=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,indfrac,ite_time,
-                            method,minsnpEM,EMsnpfrac);
+                            method,minsnpEM,EMsnpfrac,haploid,donorfile);
   }
   
   
   cout<<"Do dPBWT for target haplotypes"<<endl;
   
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,
-                                                                                  "target",minmatch,L_minmatch);
+                                                                                  "target",minmatch,L_minmatch,
+                                                                                  haploid,donorfile,targetfile);
   
   vector<int> queryidall_target=get<0>(dpbwtall_target);
   vector<int> donorid_target=get<1>(dpbwtall_target);
@@ -1692,11 +1858,12 @@ vector<vector<vector<double>>> paintingalldense(vector<double>& gd,
     }
     // convert n_L_satisfy to score
     for(int q=0;q<nsnp;++q){
-      if(n_L_satisfy[q]>=minmatch){
-        painting_all[ii][0][q]=1;
-      }else{
-        painting_all[ii][0][q] = static_cast<double>(n_L_satisfy[q]) / minmatch;;
-      }
+      //if(n_L_satisfy[q]>=minmatch){
+      //  painting_all[ii][0][q]=1;
+      //}else{
+      //  painting_all[ii][0][q] = static_cast<double>(n_L_satisfy[q]) / minmatch;;
+      //}
+      painting_all[ii][0][q]=n_L_satisfy[q];
     }
   }
   

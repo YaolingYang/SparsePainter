@@ -8,12 +8,30 @@ setwd("C:/Ubuntu/longmatchquery/bigeg2")
 refindex=rep(c(0,1,2,3),each=2000)
 
 starttime=proc.time()
-paintings=paintingalldense(refindex,nind=500,targetfrac=1.0,fixrho=FALSE,method="Viterbi",
-                          minmatchfrac = 0.0005,L_initial=320,L_minmatch=20)
+paintings=paintingalldense(refindex,nind=50,targetfrac=1.0,fixrho=FALSE,method="Viterbi",
+                          minmatchfrac = 0.002,L_initial=320,L_minmatch=20,window=0.05)
 proc.time()-starttime
 
-cc=as.data.frame(paintings[[1]])
-image(as.matrix(cc[,-1]))
+## read the LDA data and format it
+lines <- readLines("LDA.txt")
+
+fields <- strsplit(lines, split = " ")
+
+nrows <- length(fields)
+
+ncols <- max(sapply(fields, length))
+
+df <- data.frame(matrix(NA, nrow = nrows, ncol = ncols))
+
+for (i in 1:nrows) {
+  df[i, 1:length(fields[[i]])] <- fields[[i]]
+}
+
+df2 <- read.table("LDAS.txt")
+
+
+cc=as.data.frame(paintings[[8000]])
+image(as.matrix(cc))
 
 cc2=as.data.frame(paintings[[1]])
 image(as.matrix(cc2[,-1]))

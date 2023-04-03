@@ -15,10 +15,11 @@
 #include <unordered_map>
 #include <algorithm>
 #include <random>
+#include <cmath>
 
-#include<iomanip>
-#include<sstream>
-#include<utility>
+#include <iomanip>
+#include <sstream>
+#include <utility>
 
 using namespace Rcpp;
 using namespace std;
@@ -883,7 +884,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial,
     ReadVCF(in, qin, panel,N,M,qM,haploid);
   }
   
-  cout<<"finish read"<<endl;
+  cout<<"finish read vcf"<<endl;
   
   while(L_initial>N){
     L_initial=ceil(L_initial/2);
@@ -900,15 +901,27 @@ vector<vector<int>> get_matchdata(vector<int> queryidall,
                                   vector<int> donorid,
                                   vector<int> startpos,
                                   vector<int> endpos,
-                                  int queryid){
+                                  int queryid,
+                                  bool loo=false){
   int querystart=queryidall[queryid];
   int nextquerystart=queryidall[queryid+1];
   int nrow_match=nextquerystart-querystart;
   vector<vector<int>> matchinfo(nrow_match,vector<int>(3));
-  for(int p=querystart;p<nextquerystart;++p){
-    matchinfo[p-querystart][0]=donorid[p];
-    matchinfo[p-querystart][1]=startpos[p];
-    matchinfo[p-querystart][2]=endpos[p];
+  // leave out the same haplotype
+  if(loo){
+    for(int p=querystart;p<nextquerystart;++p){
+      if(donorid[p]!=queryid){
+        matchinfo[p-querystart][0]=donorid[p];
+        matchinfo[p-querystart][1]=startpos[p];
+        matchinfo[p-querystart][2]=endpos[p];
+      }
+    }
+  }else{
+    for(int p=querystart;p<nextquerystart;++p){
+      matchinfo[p-querystart][0]=donorid[p];
+      matchinfo[p-querystart][1]=startpos[p];
+      matchinfo[p-querystart][2]=endpos[p];
+    }
   }
   return(matchinfo);
 }
@@ -1260,17 +1273,18 @@ hMat matchfiletohMat(const vector<vector<int>>& matchdata,
   return(mat);
 }
 
-vector<double> readmap(const string& mapfile) {
+tuple<vector<double>,vector<double>> readmap(const string& mapfile) {
   ifstream file(mapfile);
-  vector<double> gd;
+  vector<double> pd,gd;
   
   if (!file.is_open()) {
     cerr << "Error: Unable to open file " << mapfile << endl;
-    return gd;
+    tuple<vector<double>,vector<double>> output(pd,gd);
+    return output;
   }
   
   string line;
-  double column2;
+  double column1,column2;
   
   // Read and discard the header line
   getline(file, line);
@@ -1279,18 +1293,19 @@ vector<double> readmap(const string& mapfile) {
   while (getline(file, line)) {
     istringstream lineStream(line);
     
-    // Skip the first column by ignoring the input
-    lineStream.ignore(numeric_limits<streamsize>::max(), ' ');
+    // Read the first column and store it in 'column1'
+    lineStream >> column1;
     
     // Read the second column and store it in 'column2'
     lineStream >> column2;
     
-    // Add 'column2' to the 'gd' vector
+    pd.push_back(column1);
     gd.push_back(column2);
   }
   
   file.close();
-  return gd;
+  tuple<vector<double>,vector<double>> output(pd,gd);
+  return output;
 }
 
 
@@ -1632,8 +1647,8 @@ vector<vector<double>> chunklengthall(vector<int>& refindex,
                                       const string mapfile="map.txt"){
   
   // read the map data to get the genetic distance in Morgans
-  vector<double> gd;
-  gd = readmap(mapfile);
+  tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);
+  vector<double> gd = get<1>(mapinfo);
   
   
   if(!haploid){
@@ -1740,6 +1755,197 @@ vector<vector<double>> chunklengthall(vector<int>& refindex,
 }
 
 
+void LDA(const vector<vector<vector<double>>> &painting_all,
+         const vector<double>& gd,
+         const vector<double>& pd,
+         const string LDAfile, 
+         const bool outputLDAS,
+         const string LDASfile,
+         const double window){
+  
+  int nhap=painting_all.size();
+  int npop=painting_all[0].size();
+  int nsnp=painting_all[0][0].size();
+  
+  // calculate the number of SNPs in the left and right window of each SNP
+  vector<int> nsnp_left(nsnp);
+  vector<int> nsnp_right(nsnp);
+  
+  for (int j = 0; j < nsnp; ++j) {
+    int left_ptr = j - 1;
+    int right_ptr = j + 1;
+    nsnp_left[j] = 0;
+    nsnp_right[j] = 0;
+    // Count SNPs in the left window
+    while (left_ptr >= 0 && gd[j] - gd[left_ptr] <= window) {
+      nsnp_left[j]++;
+      left_ptr--;
+    }
+    // Count SNPs in the right window
+    while (right_ptr < nsnp && gd[right_ptr] - gd[j] <= window) {
+      nsnp_right[j]++;
+      right_ptr++;
+    }
+  }
+  
+  // then we calculate LDA and store in LDA_result (hMat)
+  hMat LDA_result(nsnp,nsnp,0.0);
+  
+  //resample haplotypes
+  vector<int> allhaps_idx;
+  for(int i=0;i<nhap;++i){
+    allhaps_idx.push_back(i);
+  }
+  vector<int> resample_idx = randomsample(allhaps_idx,nhap);
+  
+  //begin calculating LDA
+#pragma omp parallel for
+  for(int i=0;i<nsnp;++i){
+    cout<<"Computing LDA for SNP "<<i<<endl;
+    for(int j=i-nsnp_left[i];j<=i+nsnp_right[i];++j){
+      if(j==i){
+        LDA_result.m[i].set(i,1.0);
+      }else{
+        double distance=0;
+        double theo_distance=0;
+        for (int ii=0; ii<nhap; ii++){
+          double sum_squared_diff=0;
+          double sum_squared_diff_theo=0;
+          for (int k=0; k<npop; k++){
+            sum_squared_diff+= pow(painting_all[ii][k][i]-painting_all[ii][k][j],2);
+            sum_squared_diff_theo+= pow(painting_all[resample_idx[ii]][k][i]-painting_all[ii][k][j],2);
+          }
+          distance += sqrt(sum_squared_diff/npop);
+          theo_distance += sqrt(sum_squared_diff_theo/npop);
+        }
+        double LDA_value=abs(theo_distance-distance)/theo_distance;
+        if(LDA_value>=0.001) LDA_result.m[i].set(j,LDA_value);
+      }
+    }
+  }
+  
+  //output the LDA results into LDAfile
+  ofstream outputFile(LDAfile);
+  outputFile.precision(15);
+  if (outputFile.is_open()) {
+    for (int i = 0; i < nsnp; ++i) {
+      outputFile << fixed << setprecision(0) << pd[i];
+      vector<int> keys = LDA_result.m[i].k;
+      for (int j = 0; j < keys.size(); ++j) {
+        outputFile << " " << fixed << setprecision(3) << LDA_result.m[i].get(keys[j]);
+        outputFile << "(" << fixed << setprecision(0) << pd[keys[j]] << ")";
+      }
+      outputFile << "\n";
+    }
+    outputFile.close();
+  } else {
+    cerr << "Unable to open file" << LDAfile;
+  }
+  
+  
+  // calculate LDA score
+  vector<double> LDAS(nsnp);
+#pragma omp parallel for
+  for(int i=0;i<nsnp;++i){
+    cout<<"Computing LDAS for SNP "<<i<<endl;
+    vector<double> gdgap;
+    vector<double> LDA_ave;
+    for(int j=i-nsnp_left[i];j<=i+nsnp_right[i]-1;++j){
+      gdgap.push_back(gd[j+1]-gd[j]);
+      LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j+1))/2);
+    }
+    double left_distance=gd[i]-gd[i-nsnp_left[i]];
+    double right_distance=gd[i+nsnp_right[i]]-gd[i];
+    if(i-nsnp_left[i]>0 && i+nsnp_right[i]<nsnp){
+      gdgap.push_back(window-left_distance);
+      gdgap.push_back(window-right_distance);
+      LDA_ave.push_back((LDA_result.m[i].get(i-nsnp_left[i])+LDA_result.m[i].get(i-nsnp_left[i]-1))/2);
+      LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
+    }
+    
+    if(i-nsnp_left[i]==0 && i+nsnp_right[i]<nsnp){
+      // right window
+      gdgap.push_back(window-right_distance);
+      LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
+      // use the right window to estimate the left window
+      // window-left_distance is the distance to be estimated from the right window
+      double gdright_add=0;
+      int j=i+nsnp_right[i];
+      
+      while(gdright_add < window-left_distance){
+        // how long distance from enough
+        double distance_from_enough = window-left_distance-gdright_add;
+        gdright_add=window+gd[i]-gd[j];
+        if(gdright_add <= window-left_distance){
+          // estimated distance still not enough or just enough
+          if(j==i+nsnp_right[i]){
+            gdgap.push_back(window-right_distance);
+          }else{
+            gdgap.push_back(gd[j+1]-gd[j]);
+          }
+        }else{
+          // estimated distance is enough
+          gdgap.push_back(distance_from_enough);
+        }
+        LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j+1))/2);
+        j=j-1;
+        //endwhile
+      }
+      //endif
+    }
+    
+    
+    if(i-nsnp_left[i]>0 && i+nsnp_right[i]==nsnp){
+      // left window
+      gdgap.push_back(window-left_distance);
+      LDA_ave.push_back((LDA_result.m[i].get(i-nsnp_left[i])+LDA_result.m[i].get(i-nsnp_left[i]-1))/2);
+      // use the left window to estimate the right window
+      // window-right_distance is the distance to be estimated from the left window
+      double gdleft_add=0;
+      int j=i-nsnp_left[i];
+      
+      while(gdleft_add < window-right_distance){
+        // how long distance from enough
+        double distance_from_enough = window-right_distance-gdleft_add;
+        gdleft_add=gd[j]-(gd[i]-window);
+        if(gdleft_add <= window-right_distance){
+          // estimated distance still not enough or just enough
+          if(j==i-nsnp_left[i]){
+            gdgap.push_back(window-left_distance);
+          }else{
+            gdgap.push_back(gd[j]-gd[j-1]);
+          }
+        }else{
+          // estimated distance is enough
+          gdgap.push_back(distance_from_enough);
+        }
+        LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j-1))/2);
+        j=j+1;
+        //endwhile
+      }
+      //endif
+    }
+    for(int q=0;q<gdgap.size();++q){
+      LDAS[i]+=LDA_ave[q]*gdgap[q];
+    }
+  }
+  
+  //output the LDAS results into LDASfile
+  ofstream outputFile2(LDASfile);
+  if (outputFile2.is_open()) {
+    outputFile2.precision(15);
+    for (int i = 0; i < nsnp; ++i) {
+      outputFile2 << fixed<< setprecision(0) << pd[i];
+      outputFile2 << " " << fixed << setprecision(3) << LDAS[i] << "\n";
+    }
+    outputFile2.close();
+  } else {
+    cerr << "Unable to open file" << LDASfile;
+  }
+  
+}
+
+
 
 // [[Rcpp::export]]
 vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
@@ -1758,12 +1964,17 @@ vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
                                                 bool haploid=false,
                                                 const string donorfile="donor.vcf",
                                                 const string targetfile="target.vcf",
-                                                const string mapfile="map.txt"){
+                                                const string mapfile="map.txt",
+                                                bool outputLDA=true,
+                                                bool outputLDAS=true,
+                                                const string LDAfile="LDA.txt",
+                                                const string LDASfile="LDAS.txt",
+                                                const double window=0.05){
   
   // read the map data to get the genetic distance in Morgans
-  vector<double> gd;
-  gd = readmap(mapfile);
-  
+  tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);
+  vector<double> gd = get<1>(mapinfo);
+  vector<double> pd = get<0>(mapinfo);
   
   //adjust refindex
   if(!haploid){
@@ -1816,7 +2027,7 @@ vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
   const int nref=refindex.size();
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
-  vector<vector<vector<double>>> painting_all(nhap_use, vector<vector<double>>(npop+1, vector<double>(nsnp)));
+  vector<vector<vector<double>>> painting_all(nhap_use, vector<vector<double>>(npop, vector<double>(nsnp)));
   double rho_use;
   double gdall=gd[nsnp-1]-gd[0];
   int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
@@ -1831,9 +2042,16 @@ vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
   
   cout<<"Do dPBWT for target haplotypes"<<endl;
   
-  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,
-                                                                                  "target",minmatch,L_minmatch,
-                                                                                  haploid,donorfile,targetfile);
+  bool loo=false;
+  
+  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target;
+  
+  if(donorfile==targetfile){
+    loo=true;
+    dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,"donor",minmatch,L_minmatch,haploid,donorfile);
+  }else{
+    dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,"target",minmatch,L_minmatch,haploid,donorfile,targetfile);
+  }
   
   vector<int> queryidall_target=get<0>(dpbwtall_target);
   vector<int> donorid_target=get<1>(dpbwtall_target);
@@ -1841,47 +2059,25 @@ vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
   vector<int> endpos_target=get<3>(dpbwtall_target);
   cout<<"dPBWT works successfully"<<endl;
   
-  //how reliable the painting is
-  cout<<"Calculating the reliability scores"<<endl;
-  for(int ii=0;ii<nhap_use;++ii){
-    
-    vector<int> n_L_satisfy(nsnp,0);
-    
-    for(int j=queryidall_target[ii];j<queryidall_target[ii+1];++j){
-      int starttemp=startpos_target[j];
-      int endtemp=endpos_target[j];
-      if(endtemp-starttemp+1>=L_min_for_score){
-        for(int k=starttemp;k<endtemp;++k){
-          n_L_satisfy[k]++;
-        }
-      }
-    }
-    // convert n_L_satisfy to score
-    for(int q=0;q<nsnp;++q){
-      //if(n_L_satisfy[q]>=minmatch){
-      //  painting_all[ii][0][q]=1;
-      //}else{
-      //  painting_all[ii][0][q] = static_cast<double>(n_L_satisfy[q]) / minmatch;;
-      //}
-      painting_all[ii][0][q]=n_L_satisfy[q];
-    }
-  }
-  
-#pragma omp parallel for
+  #pragma omp parallel for
   for(int ii=0;ii<nhap_use;++ii){
     cout<<"Calculating painting for haplotype "<<ii+1<<endl;
+    
+    // leave one out if the donor file is the same as the target file
+    
     vector<vector<int>> targetmatchdata=get_matchdata(queryidall_target,
                                                       donorid_target,
                                                       startpos_target,
                                                       endpos_target,
-                                                      ii);
+                                                      ii,loo);
+    
     hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
     if(fixrho){
       hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
       vector<vector<double>> pind_dense=hMatrix2matrix(pind);
       for(int j=0;j<npop;++j){
         for(int k=0;k<nsnp;++k){
-          painting_all[ii][j+1][k]=pind_dense[j][k];
+          painting_all[ii][j][k]=pind_dense[j][k];
         }
       }
     }else{
@@ -1896,15 +2092,22 @@ vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
       vector<vector<double>> pind_dense=hMatrix2matrix(pind);
       for(int j=0;j<npop;++j){
         for(int k=0;k<nsnp;++k){
-          painting_all[ii][j+1][k]=pind_dense[j][k];
+          painting_all[ii][j][k]=pind_dense[j][k];
         }
       }
     }
   }
   
+  if(outputLDA){
+    LDA(painting_all,gd,pd,LDAfile,outputLDAS,LDASfile,window);
+  }
   
   return(painting_all);
 }
+
+
+
+
 
 
 

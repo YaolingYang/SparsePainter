@@ -1310,6 +1310,69 @@ tuple<vector<double>,vector<double>> readmap(const string& mapfile) {
 
 
 
+tuple<vector<string>,vector<int>> readpopfile(const string& popfile) {
+  ifstream file(popfile);
+  vector<string> indnames;
+  vector<int> refindex;
+  
+  if (!file.is_open()) {
+    cerr << "Error: Unable to open file " << popfile << endl;
+    tuple<vector<string>,vector<int>> output(indnames,refindex);
+    return output;
+  }
+  
+  string line;
+  string column1;
+  int column2;
+  
+  // Read the data lines
+  while (getline(file, line)) {
+    istringstream lineStream(line);
+    
+    // Read the first column and store it in 'column1'
+    lineStream >> column1;
+    
+    // Read the second column and store it in 'column2'
+    lineStream >> column2;
+    
+    indnames.push_back(column1);
+    refindex.push_back(column2);
+  }
+  
+  file.close();
+  tuple<vector<string>,vector<int>> output(indnames,refindex);
+  return output;
+}
+
+
+vector<string> readtargetname(const string& targetname) {
+  ifstream file(targetname);
+  vector<string> tgnames;
+  
+  if (!file.is_open()) {
+    cerr << "Error: Unable to open file " << targetname << endl;
+    return tgnames;
+  }
+  
+  string line;
+  string column1;
+  
+  // Read the data lines
+  while (getline(file, line)) {
+    istringstream lineStream(line);
+    
+    // Read the first column and store it in 'column1'
+    lineStream >> column1;
+    
+    tgnames.push_back(column1);
+  }
+  
+  file.close();
+  return tgnames;
+}
+
+
+
 double est_rho_EM(hMat& mat, 
                   vector<double>& gd,
                   const int ite_time=10){
@@ -1632,8 +1695,7 @@ vector<double> chunklength_each(vector<double>& gd,
 
 
 // [[Rcpp::export]]
-vector<vector<double>> chunklengthall(vector<int>& refindex, 
-                                      const double paintfrac=0.2,
+vector<vector<double>> chunklengthall(const double paintfrac=0.2,
                                       const string method="Viterbi", 
                                       const int ite_time=10,
                                       const double indfrac=0.1,
@@ -1644,12 +1706,19 @@ vector<vector<double>> chunklengthall(vector<int>& refindex,
                                       int L_minmatch=20,
                                       bool haploid=false,
                                       const string donorfile="donor.vcf",
-                                      const string mapfile="map.txt"){
+                                      const string mapfile="map.txt",
+                                      const string popfile="popnames.txt",
+                                      const string chunklengthfile="chunklength.txt"){
   
   // read the map data to get the genetic distance in Morgans
   tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);
   vector<double> gd = get<1>(mapinfo);
   
+  tuple<vector<string>,vector<int>> popinfo = readpopfile(popfile);
+  vector<string> indnames = get<0>(popinfo);
+  vector<int> refindex = get<1>(popinfo);
+  
+  vector<int> samples_idx;
   
   if(!haploid){
     vector<int> refindex_new;
@@ -1671,11 +1740,11 @@ vector<vector<double>> chunklengthall(vector<int>& refindex,
   //stratified sampling
   
   vector<int> queryidx;
-  vector<int> popstart={0}; //the start position of diffent population samples
+  vector<int> popstart={0}; //the start position of different population samples
   
   //stratified sampling
   for(int i=0;i<npop;++i){
-    //randomly sample a percentage of indfrac reference samples
+    //randomly sample a percentage of paintfrac reference samples
     vector<int> popidx=refidx.findrows(i);
     
     if(haploid){
@@ -1685,20 +1754,22 @@ vector<vector<double>> chunklengthall(vector<int>& refindex,
       
       for(int j=0;j<nref_sample;++j){
         queryidx.push_back(samples[j]);
+        samples_idx.push_back(samples[j]);
       }
     }else{
       int nref_sample=static_cast<int>(ceil(popidx.size()*paintfrac/2));  //the number of individuals of this ancestry
       
       vector<int> popidx_use;
       for(int j=0;j<popidx.size();++j){
-        if(j%2==0) popidx_use.push_back(popidx[j]);
+        if(j%2==0) popidx_use.push_back(popidx[j]/2);
       }
       
       vector<int> samples=randomsample(popidx_use,nref_sample); // sample index of this ancestry
       
       for(int j=0;j<nref_sample;++j){
-        queryidx.push_back(samples[2*j]);
-        queryidx.push_back(samples[2*j+1]);
+        samples_idx.push_back(samples[j]);
+        queryidx.push_back(2*samples[j]);
+        queryidx.push_back(2*samples[j]+1);
       }
     }
     
@@ -1712,6 +1783,7 @@ vector<vector<double>> chunklengthall(vector<int>& refindex,
                       ite_time,method,minsnpEM,EMsnpfrac,haploid,donorfile);
   
   cout<<"Do dPBWT on the reference"<<endl;
+
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L_initial, gd,queryidx,
                                                                                "donor",minmatch,L_minmatch,
                                                                                haploid,donorfile);
@@ -1751,6 +1823,53 @@ vector<vector<double>> chunklengthall(vector<int>& refindex,
       chunklength[i][j]=cl[j];
     }
   }
+  
+  
+  ofstream outputFile(chunklengthfile);
+  if (outputFile.is_open()) {
+    outputFile << "indnames" << " ";
+    //the first row is the SNP's physical position
+    for (int i = 0; i < npop; ++i) {
+      outputFile <<"pop";
+      outputFile << fixed << setprecision(0) << i;
+      if(i != npop-1) outputFile << " ";
+    }
+    outputFile << "\n";
+    
+    if(haploid){
+      for(int ii=0;ii<nrefpaint;++ii){
+        outputFile << indnames[samples_idx[ii]] << " ";
+        for(int j=0;j<npop;++j){
+          outputFile << fixed << setprecision(5) << chunklength[ii][j];
+          if(j!=npop-1) outputFile << " ";
+        }
+        outputFile << "\n";
+      }
+    }else{
+      for(int ii=0;ii<nrefpaint/2;++ii){
+        outputFile << indnames[samples_idx[ii]] <<"_0 ";
+        for(int j=0;j<npop;++j){
+          outputFile << fixed << setprecision(5) << chunklength[2*ii][j];
+          if(j!=npop-1) outputFile << " ";
+        }
+        outputFile << "\n";
+        
+        outputFile << indnames[samples_idx[ii]] <<"_1 ";
+        for(int j=0;j<npop;++j){
+          outputFile << fixed << setprecision(5) << chunklength[2*ii+1][j];
+          if(j!=npop-1) outputFile << " ";
+        }
+        outputFile << "\n";
+      }
+    }
+    
+    outputFile.close();
+  } else {
+    cerr << "Unable to open file" << chunklengthfile;
+  }
+  
+  
+  
   return(chunklength);
 }
 
@@ -1948,8 +2067,7 @@ void LDA(const vector<vector<vector<double>>> &painting_all,
 
 
 // [[Rcpp::export]]
-vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
-                                                const int nind,
+vector<vector<vector<double>>> paintingalldense(const int nind,
                                                 const double targetfrac=0.1,
                                                 const string method="Viterbi",
                                                 bool fixrho=true,
@@ -1965,8 +2083,12 @@ vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
                                                 const string donorfile="donor.vcf",
                                                 const string targetfile="target.vcf",
                                                 const string mapfile="map.txt",
+                                                const string popfile="popnames.txt",
+                                                const string targetname="targetname.txt",
+                                                bool outputpainting=true,
                                                 bool outputLDA=true,
                                                 bool outputLDAS=true,
+                                                const string paintingfile="painting.txt",
                                                 const string LDAfile="LDA.txt",
                                                 const string LDASfile="LDAS.txt",
                                                 const double window=0.05){
@@ -1975,6 +2097,14 @@ vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
   tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);
   vector<double> gd = get<1>(mapinfo);
   vector<double> pd = get<0>(mapinfo);
+  
+  tuple<vector<string>,vector<int>> popinfo = readpopfile(popfile);
+  //vector<string> indnames = get<0>(popinfo);
+  vector<int> refindex = get<1>(popinfo);
+  
+  vector<string> indnames = readtargetname(targetname);
+  
+  vector<int> queryidx_temp;
   
   //adjust refindex
   if(!haploid){
@@ -2001,19 +2131,22 @@ vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
         queryidx.push_back(i);
       }
       nhap_use=nind;
+      queryidx_temp=queryidx;
     }else{
       for(int i=0;i<nind;++i){
         queryidx.push_back(2*i);
         queryidx.push_back(2*i+1);
+        queryidx_temp.push_back(i);
       }
       nhap_use=nind*2;
     }
   }else{
     if(haploid){
       queryidx=randomsample(allind,nind_use);
+      queryidx_temp=queryidx;
       nhap_use=nind_use;
     }else{
-      vector<int> queryidx_temp=randomsample(allind,nind_use);
+      queryidx_temp=randomsample(allind,nind_use);
       for(int i : queryidx_temp){
         queryidx.push_back(2*i);
         queryidx.push_back(2*i+1);
@@ -2095,6 +2228,55 @@ vector<vector<vector<double>>> paintingalldense(vector<int>& refindex,
           painting_all[ii][j][k]=pind_dense[j][k];
         }
       }
+    }
+  }
+  
+  if(outputpainting){
+    //output the LDA results into LDAfile
+    ofstream outputFile(paintingfile);
+    if (outputFile.is_open()) {
+      outputFile << "indnames" << " ";
+      //the first row is the SNP's physical position
+      for (int i = 0; i < nsnp; ++i) {
+        outputFile << fixed << setprecision(0) << pd[i];
+        if(i != nsnp-1) outputFile << " ";
+      }
+      outputFile << "\n";
+      
+      if(haploid){
+        for(int ii=0;ii<nhap_use;++ii){
+          outputFile << indnames[queryidx_temp[ii]] << " ";
+          for (int j = 0; j < nsnp; ++j) {
+            for(int k=0;k<npop;++k){
+              outputFile << fixed << setprecision(3) << painting_all[ii][k][j];
+              if(k!=npop-1) outputFile << ",";
+            }
+            if(j!=nsnp-1) outputFile << " ";
+          }
+          outputFile << "\n";
+        }
+      }else{
+        for(int ii=0;ii<nhap_use/2;++ii){
+          outputFile << indnames[queryidx_temp[ii]] << " ";
+          for (int j = 0; j < nsnp; ++j) {
+            for(int k=0;k<npop;++k){
+              outputFile << fixed << setprecision(3) << painting_all[2*ii][k][j];
+              if(k!=npop-1) outputFile << ",";
+            }
+            outputFile << "|";
+            for(int k=0;k<npop;++k){
+              outputFile << fixed << setprecision(3) << painting_all[2*ii+1][k][j];
+              if(k!=npop-1) outputFile << ",";
+            }
+            if(j!=nsnp-1) outputFile << " ";
+          }
+          outputFile << "\n";
+        }
+      }
+      
+      outputFile.close();
+    } else {
+      cerr << "Unable to open file" << paintingfile;
     }
   }
   

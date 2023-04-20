@@ -1407,7 +1407,7 @@ double est_rho_average(const hAnc& refidx,
     
     for(int k=0;k<samples.size();++k){
       //leave-one-out
-      vector<vector<int>> matchdata=get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,allsamples[k]);
+      vector<vector<int>> matchdata=get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samples[k]);
       vector<int> removeidx;
       for(int j=0;j<npop;++j){
         if(j==i){

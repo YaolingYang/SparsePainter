@@ -231,6 +231,7 @@ void Readphase_donor(const string inFile,
     cout <<"dpbwt for donor" <<i<<endl;
     getline(in, line);
     vector<bool> panelsnp;
+    
     for (char c : line) {
       panelsnp.push_back(c == '1');
     }
@@ -422,6 +423,8 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
   
   int nind_left=nind;
   
+  omp_set_num_threads(ncores);
+  
   while(nind_left>0){
     int ncores_use = (ncores < nind_left) ? ncores : nind_left;
     vector<vector<bool>> panelsnp(ncores_use);
@@ -432,8 +435,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
         panelsnp[i-nind+nind_left].push_back(c == '1');
       }
     }
-    
-    omp_set_num_threads(ncores_use);
     
     #pragma omp parallel for
     
@@ -669,6 +670,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
         }
         
         delete [] z;
+        delete[] dZ;
         
         
         //below we remove shorter matches while ensuring at least minmatch matches at each SNP
@@ -1933,7 +1935,6 @@ void paintingalldense(const string method="Viterbi",
                       const string mapfile="map.txt",
                       const string popfile="popnames.txt",
                       const string targetname="targetname.txt",
-                      bool outputpainting=true,
                       bool outputLDA=true,
                       bool outputLDAS=true,
                       const string paintingfile="painting.txt",
@@ -1995,7 +1996,6 @@ void paintingalldense(const string method="Viterbi",
   const int nref=refindex.size();
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
-  vector<vector<vector<double>>> painting_all(nhap_use, vector<vector<double>>(npop, vector<double>(nsnp)));
   double rho_use;
   double gdall=gd[nsnp-1]-gd[0];
   int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
@@ -2036,98 +2036,137 @@ void paintingalldense(const string method="Viterbi",
   vector<int> endpos_target=get<3>(dpbwtall_target);
   cout<<"dPBWT works successfully"<<endl;
   
+  // begin painting
+  // we only store ncores*2 samples in memory and directly output
+  
   omp_set_num_threads(ncores);
   
-  #pragma omp parallel for
-  for(int ii=0;ii<nhap_use;++ii){
-    cout<<"Calculating painting for haplotype "<<ii+1<<endl;
-    
-    // leave one out if the donor file is the same as the target file
-    
-    vector<vector<int>> targetmatchdata=get_matchdata(queryidall_target,
-                                                      donorid_target,
-                                                      startpos_target,
-                                                      endpos_target,
-                                                      ii,loo);
-    
-    hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
-    if(fixrho){
-      hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
-      vector<vector<double>> pind_dense=hMatrix2matrix(pind);
-      for(int j=0;j<npop;++j){
-        for(int k=0;k<nsnp;++k){
-          painting_all[ii][j][k]=pind_dense[j][k];
-        }
-      }
-    }else{
-      vector<int> startpos, endpos;
-      for (const auto& row : targetmatchdata) {
-        startpos.push_back(row[1]);
-        endpos.push_back(row[2]);
-      }
-      rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
-      cout<<"Estimated rho is "<<rho_use<<endl;
-      hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
-      vector<vector<double>> pind_dense=hMatrix2matrix(pind);
-      for(int j=0;j<npop;++j){
-        for(int k=0;k<nsnp;++k){
-          painting_all[ii][j][k]=pind_dense[j][k];
-        }
-      }
-    }
-  }
+  int nsamples_use;
+  int nhap_left=nhap_use;
   
-  if(outputpainting){
-    //output the LDA results into LDAfile
-    ofstream outputFile(paintingfile);
-    if (outputFile.is_open()) {
-      outputFile << "indnames" << " ";
-      //the first row is the SNP's physical position
-      for (int i = 0; i < nsnp; ++i) {
-        outputFile << fixed << setprecision(0) << pd[i];
-        if(i != nsnp-1) outputFile << " ";
-      }
-      outputFile << "\n";
+  //vector<vector<vector<double>>> painting_all(ncores, 
+  //                                            vector<vector<double>>(npop, vector<double>(nsnp)));
+  
+  //if(nhap_use<ncores){
+    //vector<vector<vector<double>>> painting_all(nhap_use, 
+   //                                             vector<vector<double>>(npop, vector<double>(nsnp)));
+  //}
+  
+  
+  //store data in hMat if want to compute LDA
+  //vector<hMat> painting_all_hmat(nhap_use, hMat(npop, nsnp));
+  
+  
+  
+  //output the painting into paintingfile
+  ofstream outputFile(paintingfile);
+  outputFile << "indnames" << " ";
+  //the first row is the SNP's physical position
+  for (int i = 0; i < nsnp; ++i) {
+    outputFile << fixed << setprecision(0) << pd[i];
+    if(i != nsnp-1) outputFile << " ";
+  }
+  outputFile << "\n";
+  
+  while(nhap_left>0){
+    nsamples_use = (ncores < nhap_left) ? ncores : nhap_left; //ensure both copies are included
+    
+    //if(nsamples_use<ncores){
+      vector<vector<vector<double>>> painting_all(nsamples_use, 
+                                                  vector<vector<double>>(npop, vector<double>(nsnp)));
+    //}
+    
+    #pragma omp parallel for
+    for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+      cout<<"Calculating painting for sample "<<ii+1<<endl;
       
-      if(haploid){
-        for(int ii=0;ii<nhap_use;++ii){
-          outputFile << indnames[ii] << " ";
-          for (int j = 0; j < nsnp; ++j) {
-            for(int k=0;k<npop;++k){
-              outputFile << fixed << setprecision(3) << painting_all[ii][k][j];
-              if(k!=npop-1) outputFile << ",";
-            }
-            if(j!=nsnp-1) outputFile << " ";
+      // leave one out if the donor file is the same as the target file
+      
+      vector<vector<int>> targetmatchdata=get_matchdata(queryidall_target,
+                                                        donorid_target,
+                                                        startpos_target,
+                                                        endpos_target,
+                                                        ii,loo);
+      
+      hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
+      if(fixrho){
+        hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+        
+        
+        //if want to compute LDA
+        //painting_all_hmat[ii]=pind;
+        
+        
+        vector<vector<double>> pind_dense=hMatrix2matrix(pind);
+        for(int j=0;j<npop;++j){
+          for(int k=0;k<nsnp;++k){
+            painting_all[ii-nhap_use+nhap_left][j][k]=pind_dense[j][k];
           }
-          outputFile << "\n";
         }
       }else{
-        for(int ii=0;ii<nhap_use/2;++ii){
-          outputFile << indnames[ii] << " ";
-          for (int j = 0; j < nsnp; ++j) {
-            for(int k=0;k<npop;++k){
-              outputFile << fixed << setprecision(3) << painting_all[2*ii][k][j];
-              if(k!=npop-1) outputFile << ",";
-            }
-            outputFile << "|";
-            for(int k=0;k<npop;++k){
-              outputFile << fixed << setprecision(3) << painting_all[2*ii+1][k][j];
-              if(k!=npop-1) outputFile << ",";
-            }
-            if(j!=nsnp-1) outputFile << " ";
+        vector<int> startpos, endpos;
+        for (const auto& row : targetmatchdata) {
+          startpos.push_back(row[1]);
+          endpos.push_back(row[2]);
+        }
+        rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
+        cout<<"Estimated rho is "<<rho_use<<endl;
+        hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+        
+        
+        //if want to compute LDA
+        //painting_all_hmat[ii]=pind;
+        
+        
+        vector<vector<double>> pind_dense=hMatrix2matrix(pind);
+        for(int j=0;j<npop;++j){
+          for(int k=0;k<nsnp;++k){
+            painting_all[ii-nhap_use+nhap_left][j][k]=pind_dense[j][k];
           }
-          outputFile << "\n";
         }
       }
-      
-      outputFile.close();
-    } else {
-      cerr << "Unable to open file" << paintingfile;
     }
+    
+    
+    //output painting
+    if(haploid){
+      for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+        outputFile << indnames[ii] << " ";
+        for (int j = 0; j < nsnp; ++j) {
+          for(int k=0;k<npop;++k){
+            outputFile << fixed << setprecision(3) << painting_all[ii-nhap_use+nhap_left][k][j];
+            if(k!=npop-1) outputFile << ",";
+          }
+          if(j!=nsnp-1) outputFile << " ";
+        }
+        outputFile << "\n";
+      }
+    }else{
+      for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+        outputFile << indnames[ii] << " ";
+        for (int j = 0; j < nsnp; ++j) {
+          for(int k=0;k<npop;++k){
+            outputFile << fixed << setprecision(3) << painting_all[2*ii-nhap_use+nhap_left][k][j];
+            if(k!=npop-1) outputFile << ",";
+          }
+          outputFile << "|";
+          for(int k=0;k<npop;++k){
+            outputFile << fixed << setprecision(3) << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+            if(k!=npop-1) outputFile << ",";
+          }
+          if(j!=nsnp-1) outputFile << " ";
+        }
+        outputFile << "\n";
+      }
+    }
+    //vector<vector<vector<double>>>().swap(painting_all);
+    nhap_left=nhap_left-nsamples_use;
   }
   
-  if(outputLDA){
-    LDA(painting_all,gd,pd,LDAfile,outputLDAS,LDASfile,window);
-  }
+  outputFile.close();
+  
+  //if(outputLDA){
+  //  LDA(painting_all,gd,pd,LDAfile,outputLDAS,LDASfile,window);
+  //}
   
 }

@@ -1,5 +1,8 @@
 // [[Rcpp::plugins(cpp11)]]
 //[[Rcpp::plugins(openmp)]]
+// Compile with:
+// module load languages/gcc/10.4.0
+// g++ revised_hashmap.cpp -o test.exe -lz -fopenmp -lpthread
 #ifdef _OPENMP
 #include <omp.h>
 #else
@@ -11,7 +14,7 @@
 #include <vector>
 #include <string>
 #include <regex>
-#include <Rcpp.h>
+//#include <Rcpp.h>
 #include <unordered_map>
 #include <algorithm>
 #include <random>
@@ -22,8 +25,9 @@
 #include <utility>
 
 #include "gzstream.h"
+#include "gzstream.C"
 
-using namespace Rcpp;
+//using namespace Rcpp;
 using namespace std;
 
 //namespace hMatRcpp {
@@ -192,12 +196,29 @@ struct dpbwt{
   int size, count;
 };
 
+  
+  void free_dpbwt_memory(dpbwt& x) {
+    for (dpbwtnode* node : x.firstcol) {
+      delete[] node;
+    }
+    
+    for (auto& inner_vector : x.panel) {
+      inner_vector.clear();
+      inner_vector.shrink_to_fit();
+    }
+    
+    x.panel.clear();
+    x.panel.shrink_to_fit();
+  }
+
 void Readphase_donor(const string inFile,
                      dpbwt & x,
                      const int N, 
                      const int M, 
                      const int qM, 
                      bool haploid=false) {
+  
+  cout << "Read data and do dpbwt for reference panel" << endl;
   
   x.bottomfirstcol.divergence = 0;
   x.bottomfirstcol.id = -1;
@@ -633,10 +654,38 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
             
           }
           
-          if(L==L_minmatch){
+          if(L<=L_minmatch){
             // we don't need to check whether we have all positions with minmatch matches
             // if L is already the minimum value allowed
-            allsnpmatches = true;
+            //if(times==0){
+              // find which SNPs don't have minmatch matches
+              //for(int j=0;j<N;++j){
+               // if (nmatch[j] ==0) {
+               //   nomatchsnp.push_back(j);
+               // }
+              //}
+            //}else{
+            //  cout<<"here"<<endl;
+            //  vector<int> nomatchsnptemp=nomatchsnp;
+            //  nomatchsnp.clear();
+             // // find which SNPs still don't have any matches
+             // for(int j=0;j<nomatchsnptemp.size();++j){
+             //   if (nmatch[nomatchsnptemp[j]] ==0) {
+             //     nomatchsnp.push_back(nomatchsnptemp[j]);
+             //   }
+            //  }
+            //}
+            //cout<<L<<" and "<<nomatchsnp.size()<<endl;
+            //if(nomatchsnp.size()==0){
+              // stop when all SNPs have at least one match
+              allsnpmatches = true;
+            //}else{
+              // update L
+            //  prevL=L;
+             // L=(prevL+1)/2; // this is equal to ceil(L/2) when L is double type
+             // if(L==1) allsnpmatches = true;
+             // times++;
+            //}
           }else{
             if(times==0){
               // find which SNPs don't have minmatch matches
@@ -748,7 +797,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial,
                                                                 const string donorfile="donor.phase.gz",
                                                                 const string targetfile="target.phase.gz"){
   
-  bool **panel;
   dpbwt x;
   
   Readphase_donor(donorfile,x,N,M,qM,haploid);
@@ -757,10 +805,14 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial,
     L_initial=ceil(L_initial/2);
     cout<<"Initial L cannot be greater than N, reducing L to "<<L_initial<<endl;
   }
+  
+  tuple<vector<int>,vector<int>,vector<int>,vector<int>> matchresults=longMatchdpbwt(L_initial,x,minmatch,
+                                                                                     gd,queryidx,N,M,qM,
+                                                                                     L_minmatch,ncores,targetfile);
+  
+  free_dpbwt_memory(x);
     
-  return(longMatchdpbwt(L_initial,x,minmatch,gd,queryidx,N,M,qM,L_minmatch,ncores,targetfile));
-  
-  
+  return(matchresults);
   
 }
 
@@ -1430,7 +1482,7 @@ double est_rho_average(const hAnc& refidx,
         }
         double rho_estimated=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
         count=count+1;
-        cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
+        //cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
         rho_est.push_back(rho_estimated);
       }else{
         hMat mat=matchfiletohMat(matchdata,nref-npop,nsnp);
@@ -1459,20 +1511,20 @@ double est_rho_average(const hAnc& refidx,
           
           double rho_estimated=est_rho_EM(mat_use,gd_use,ite_time);
           count=count+1;
-          cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
+          //cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
           rho_est.push_back(rho_estimated);
         }else{
           
           double rho_estimated=est_rho_EM(mat,gd,ite_time);
           count=count+1;
-          cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
+          //cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
           rho_est.push_back(rho_estimated);
         }
       }
     }
   }
   double rho_ave=vec_sum(rho_est)/rho_est.size();
-  cout<<"Average estimated rho is "<<rho_ave<<endl;
+  //cout<<"Average estimated rho is "<<rho_ave<<endl;
   return(rho_ave);
 }
 
@@ -1506,7 +1558,9 @@ hMat indpainting(const hMat& mat,
       popprob[popidx]=popprob[popidx]+marginal_prob.m[j].get(refnumberidx);
     }
     for(int i=0; i<npop; ++i){
-      marginal_prob_pop.m[j].set(i,popprob[i]);
+      if(popprob[i]>=0.001){
+        marginal_prob_pop.m[j].set(i,popprob[i]);
+      }
     }
   }
   return(marginal_prob_pop);
@@ -1918,7 +1972,6 @@ void LDA(const vector<vector<vector<double>>> &painting_all,
 
 
 
-// [[Rcpp::export]]
 void paintingalldense(const string method="Viterbi",
                       bool fixrho=true,
                       const int ite_time=10,
@@ -1928,7 +1981,6 @@ void paintingalldense(const string method="Viterbi",
                       int L_initial=500,
                       double minmatchfrac=0.001,
                       int L_minmatch=20,
-                      int L_min_for_score=50,
                       bool haploid=false,
                       const string donorfile="donor.phase.gz",
                       const string targetfile="target.phase.gz",
@@ -2043,19 +2095,10 @@ void paintingalldense(const string method="Viterbi",
   
   int nsamples_use;
   int nhap_left=nhap_use;
-  
-  //vector<vector<vector<double>>> painting_all(ncores, 
-  //                                            vector<vector<double>>(npop, vector<double>(nsnp)));
-  
-  //if(nhap_use<ncores){
-    //vector<vector<vector<double>>> painting_all(nhap_use, 
-   //                                             vector<vector<double>>(npop, vector<double>(nsnp)));
-  //}
-  
+
   
   //store data in hMat if want to compute LDA
   //vector<hMat> painting_all_hmat(nhap_use, hMat(npop, nsnp));
-  
   
   
   //output the painting into paintingfile
@@ -2069,12 +2112,11 @@ void paintingalldense(const string method="Viterbi",
   outputFile << "\n";
   
   while(nhap_left>0){
-    nsamples_use = (ncores < nhap_left) ? ncores : nhap_left; //ensure both copies are included
+    nsamples_use = (ncores*2 < nhap_left) ? ncores*2 : nhap_left; //ensure both copies are included
     
-    //if(nsamples_use<ncores){
-      vector<vector<vector<double>>> painting_all(nsamples_use, 
-                                                  vector<vector<double>>(npop, vector<double>(nsnp)));
-    //}
+    vector<vector<vector<double>>> painting_all(nsamples_use, 
+                                                vector<vector<double>>(npop, vector<double>(nsnp)));
+ 
     
     #pragma omp parallel for
     for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
@@ -2110,7 +2152,7 @@ void paintingalldense(const string method="Viterbi",
           endpos.push_back(row[2]);
         }
         rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
-        cout<<"Estimated rho is "<<rho_use<<endl;
+        //cout<<"Estimated rho is "<<rho_use<<endl;
         hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
         
         
@@ -2159,7 +2201,7 @@ void paintingalldense(const string method="Viterbi",
         outputFile << "\n";
       }
     }
-    //vector<vector<vector<double>>>().swap(painting_all);
+    vector<vector<vector<double>>>().swap(painting_all);
     nhap_left=nhap_left-nsamples_use;
   }
   
@@ -2169,4 +2211,34 @@ void paintingalldense(const string method="Viterbi",
   //  LDA(painting_all,gd,pd,LDAfile,outputLDAS,LDASfile,window);
   //}
   
+}
+
+int main() {
+  paintingalldense("Viterbi", 
+                   false, 
+                   10, 
+                   0.1, 
+                   10000, 
+                   0.1, 
+                   320, 
+                   0.001, 
+                   40,
+                   false, 
+                   //"donor.phase.gz",
+                   "chr19_1000G.phase.gz",
+                   //"donor.phase.gz", 
+                   "chr19_UKB.phase.gz",
+                   //"map.txt", 
+                   "chr19_map.txt",
+                   "popnames.txt", 
+                   "targetnamefew.txt", 
+                   true, 
+                   true, 
+                   "painting.txt", 
+                   "LDA.txt", 
+                   "LDAS.txt", 
+                   0.05, 
+                   10);
+  
+  return 0;
 }

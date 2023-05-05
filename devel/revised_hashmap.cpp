@@ -660,20 +660,20 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
             //if(times==0){
               // find which SNPs don't have minmatch matches
               //for(int j=0;j<N;++j){
-               // if (nmatch[j] ==0) {
-               //   nomatchsnp.push_back(j);
-               // }
+               //if (nmatch[j] ==0) {
+                  //nomatchsnp.push_back(j);
+                //}
               //}
             //}else{
-            //  cout<<"here"<<endl;
-            //  vector<int> nomatchsnptemp=nomatchsnp;
-            //  nomatchsnp.clear();
-             // // find which SNPs still don't have any matches
-             // for(int j=0;j<nomatchsnptemp.size();++j){
-             //   if (nmatch[nomatchsnptemp[j]] ==0) {
-             //     nomatchsnp.push_back(nomatchsnptemp[j]);
-             //   }
-            //  }
+              //cout<<"here"<<endl;
+              //vector<int> nomatchsnptemp=nomatchsnp;
+              //nomatchsnp.clear();
+              // find which SNPs still don't have any matches
+             //for(int j=0;j<nomatchsnptemp.size();++j){
+              //  if (nmatch[nomatchsnptemp[j]] ==0) {
+              //    nomatchsnp.push_back(nomatchsnptemp[j]);
+              //  }
+              //}
             //}
             //cout<<L<<" and "<<nomatchsnp.size()<<endl;
             //if(nomatchsnp.size()==0){
@@ -681,10 +681,10 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
               allsnpmatches = true;
             //}else{
               // update L
-            //  prevL=L;
-             // L=(prevL+1)/2; // this is equal to ceil(L/2) when L is double type
-             // if(L==1) allsnpmatches = true;
-             // times++;
+             // prevL=L;
+              //L=(prevL+1)/2; // this is equal to ceil(L/2) when L is double type
+              //if(L==1) allsnpmatches = true;
+              //times++;
             //}
           }else{
             if(times==0){
@@ -2169,6 +2169,8 @@ void paintingalldense(const string method="Viterbi",
       }
     }
     
+    cout<<"finish compute painting"<<endl;
+    
     
     //output painting
     if(haploid){
@@ -2221,8 +2223,8 @@ int main() {
                    10000, 
                    0.1, 
                    320, 
-                   0.001, 
-                   40,
+                   0.002, 
+                   20,
                    false, 
                    //"donor.phase.gz",
                    "chr19_1000G.phase.gz",
@@ -2231,7 +2233,7 @@ int main() {
                    //"map.txt", 
                    "chr19_map.txt",
                    "popnames.txt", 
-                   "targetnamefew.txt", 
+                   "targetname.txt", 
                    true, 
                    true, 
                    "painting.txt", 

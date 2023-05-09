@@ -1558,7 +1558,7 @@ hMat indpainting(const hMat& mat,
       popprob[popidx]=popprob[popidx]+marginal_prob.m[j].get(refnumberidx);
     }
     for(int i=0; i<npop; ++i){
-      if(popprob[i]>=0.001){
+      if(popprob[i]>=0.01){
         marginal_prob_pop.m[j].set(i,popprob[i]);
       }
     }
@@ -1729,8 +1729,8 @@ vector<vector<double>> chunklengthall(const string method="Viterbi",
   }
   
   
-  ofstream outputFile(chunklengthfile);
-  if (outputFile.is_open()) {
+  ogzstream outputFile(chunklengthfile.c_str());
+  if (outputFile) {
     outputFile << "indnames" << " ";
     //the first row is the SNP's physical position
     for (int i = 0; i < npop; ++i) {
@@ -1778,197 +1778,116 @@ vector<vector<double>> chunklengthall(const string method="Viterbi",
 }
 
 
-void LDA(const vector<vector<vector<double>>> &painting_all,
-         const vector<double>& gd,
-         const vector<double>& pd,
-         const string LDAfile, 
-         const bool outputLDAS,
-         const string LDASfile,
-         const double window){
-  
-  int nhap=painting_all.size();
-  int npop=painting_all[0].size();
-  int nsnp=painting_all[0][0].size();
-  
-  // calculate the number of SNPs in the left and right window of each SNP
-  vector<int> nsnp_left(nsnp);
-  vector<int> nsnp_right(nsnp);
-  
-  for (int j = 0; j < nsnp; ++j) {
-    int left_ptr = j - 1;
-    int right_ptr = j + 1;
-    nsnp_left[j] = 0;
-    nsnp_right[j] = 0;
-    // Count SNPs in the left window
-    while (left_ptr >= 0 && gd[j] - gd[left_ptr] <= window) {
-      nsnp_left[j]++;
-      left_ptr--;
-    }
-    // Count SNPs in the right window
-    while (right_ptr < nsnp && gd[right_ptr] - gd[j] <= window) {
-      nsnp_right[j]++;
-      right_ptr++;
-    }
-  }
-  
-  // then we calculate LDA and store in LDA_result (hMat)
-  hMat LDA_result(nsnp,nsnp,0.0);
-  
-  //resample haplotypes
-  vector<int> allhaps_idx;
-  for(int i=0;i<nhap;++i){
-    allhaps_idx.push_back(i);
-  }
-  vector<int> resample_idx = randomsample(allhaps_idx,nhap);
-  
-  //begin calculating LDA
-#pragma omp parallel for
-  for(int i=0;i<nsnp;++i){
-    cout<<"Computing LDA for SNP "<<i<<endl;
-    for(int j=i-nsnp_left[i];j<=i+nsnp_right[i];++j){
-      if(j==i){
-        LDA_result.m[i].set(i,1.0);
-      }else{
-        double distance=0;
-        double theo_distance=0;
-        for (int ii=0; ii<nhap; ii++){
-          double sum_squared_diff=0;
-          double sum_squared_diff_theo=0;
-          for (int k=0; k<npop; k++){
-            sum_squared_diff+= pow(painting_all[ii][k][i]-painting_all[ii][k][j],2);
-            sum_squared_diff_theo+= pow(painting_all[resample_idx[ii]][k][i]-painting_all[ii][k][j],2);
-          }
-          distance += sqrt(sum_squared_diff/npop);
-          theo_distance += sqrt(sum_squared_diff_theo/npop);
-        }
-        double LDA_value=abs(theo_distance-distance)/theo_distance;
-        if(LDA_value>=0.001) LDA_result.m[i].set(j,LDA_value);
-      }
-    }
-  }
-  
-  //output the LDA results into LDAfile
-  ofstream outputFile(LDAfile);
-  if (outputFile.is_open()) {
-    for (int i = 0; i < nsnp; ++i) {
-      vector<int> keys = LDA_result.m[i].k;
-      for (int j = 0; j < keys.size(); ++j) {
-        if(i < keys[j]){
-          outputFile << fixed << setprecision(0) << pd[i];
-          outputFile << " " << fixed << setprecision(0) << pd[keys[j]];
-          outputFile << " " << fixed << setprecision(3) << LDA_result.m[i].get(keys[j]);
-          outputFile << "\n";
-        }
-      }
-    }
+  void LDAS(hMat &LDA_result,
+            const string LDASfile,
+            const double window,
+            const vector<double> gd,
+            const vector<double> pd,
+            const vector<int> nsnp_left,
+            const vector<int> nsnp_right,
+            const int nsnp){
     
-    outputFile.close();
-  } else {
-    cerr << "Unable to open file" << LDAfile;
-  }
-  
-  
-  // calculate LDA score
-  vector<double> LDAS(nsnp);
+    // calculate LDA score
+    vector<double> LDAS(nsnp);
 #pragma omp parallel for
-  for(int i=0;i<nsnp;++i){
-    cout<<"Computing LDAS for SNP "<<i<<endl;
-    vector<double> gdgap;
-    vector<double> LDA_ave;
-    for(int j=i-nsnp_left[i];j<=i+nsnp_right[i]-1;++j){
-      gdgap.push_back(gd[j+1]-gd[j]);
-      LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j+1))/2);
-    }
-    double left_distance=gd[i]-gd[i-nsnp_left[i]];
-    double right_distance=gd[i+nsnp_right[i]]-gd[i];
-    if(i-nsnp_left[i]>0 && i+nsnp_right[i]<nsnp){
-      gdgap.push_back(window-left_distance);
-      gdgap.push_back(window-right_distance);
-      LDA_ave.push_back((LDA_result.m[i].get(i-nsnp_left[i])+LDA_result.m[i].get(i-nsnp_left[i]-1))/2);
-      LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
-    }
-    
-    if(i-nsnp_left[i]==0 && i+nsnp_right[i]<nsnp){
-      // right window
-      gdgap.push_back(window-right_distance);
-      LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
-      // use the right window to estimate the left window
-      // window-left_distance is the distance to be estimated from the right window
-      double gdright_add=0;
-      int j=i+nsnp_right[i];
-      
-      while(gdright_add < window-left_distance){
-        // how long distance from enough
-        double distance_from_enough = window-left_distance-gdright_add;
-        gdright_add=window+gd[i]-gd[j];
-        if(gdright_add <= window-left_distance){
-          // estimated distance still not enough or just enough
-          if(j==i+nsnp_right[i]){
-            gdgap.push_back(window-right_distance);
-          }else{
-            gdgap.push_back(gd[j+1]-gd[j]);
-          }
-        }else{
-          // estimated distance is enough
-          gdgap.push_back(distance_from_enough);
-        }
+    for(int i=0;i<nsnp;++i){
+      //cout<<"Computing LDAS for SNP "<<i<<endl;
+      vector<double> gdgap;
+      vector<double> LDA_ave;
+      for(int j=i-nsnp_left[i];j<=i+nsnp_right[i]-1;++j){
+        gdgap.push_back(gd[j+1]-gd[j]);
         LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j+1))/2);
-        j=j-1;
-        //endwhile
       }
-      //endif
-    }
-    
-    
-    if(i-nsnp_left[i]>0 && i+nsnp_right[i]==nsnp){
-      // left window
-      gdgap.push_back(window-left_distance);
-      LDA_ave.push_back((LDA_result.m[i].get(i-nsnp_left[i])+LDA_result.m[i].get(i-nsnp_left[i]-1))/2);
-      // use the left window to estimate the right window
-      // window-right_distance is the distance to be estimated from the left window
-      double gdleft_add=0;
-      int j=i-nsnp_left[i];
+      double left_distance=gd[i]-gd[i-nsnp_left[i]];
+      double right_distance=gd[i+nsnp_right[i]]-gd[i];
+      if(i-nsnp_left[i]>0 && i+nsnp_right[i]<nsnp){
+        gdgap.push_back(window-left_distance);
+        gdgap.push_back(window-right_distance);
+        LDA_ave.push_back((LDA_result.m[i].get(i-nsnp_left[i])+LDA_result.m[i].get(i-nsnp_left[i]-1))/2);
+        LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
+      }
       
-      while(gdleft_add < window-right_distance){
-        // how long distance from enough
-        double distance_from_enough = window-right_distance-gdleft_add;
-        gdleft_add=gd[j]-(gd[i]-window);
-        if(gdleft_add <= window-right_distance){
-          // estimated distance still not enough or just enough
-          if(j==i-nsnp_left[i]){
-            gdgap.push_back(window-left_distance);
+      if(i-nsnp_left[i]==0 && i+nsnp_right[i]<nsnp){
+        // right window
+        gdgap.push_back(window-right_distance);
+        LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
+        // use the right window to estimate the left window
+        // window-left_distance is the distance to be estimated from the right window
+        double gdright_add=0;
+        int j=i+nsnp_right[i];
+        
+        while(gdright_add < window-left_distance){
+          // how long distance from enough
+          double distance_from_enough = window-left_distance-gdright_add;
+          gdright_add=window+gd[i]-gd[j];
+          if(gdright_add <= window-left_distance){
+            // estimated distance still not enough or just enough
+            if(j==i+nsnp_right[i]){
+              gdgap.push_back(window-right_distance);
+            }else{
+              gdgap.push_back(gd[j+1]-gd[j]);
+            }
           }else{
-            gdgap.push_back(gd[j]-gd[j-1]);
+            // estimated distance is enough
+            gdgap.push_back(distance_from_enough);
           }
-        }else{
-          // estimated distance is enough
-          gdgap.push_back(distance_from_enough);
+          LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j+1))/2);
+          j=j-1;
+          //endwhile
         }
-        LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j-1))/2);
-        j=j+1;
-        //endwhile
+        //endif
       }
-      //endif
+      
+      
+      if(i-nsnp_left[i]>0 && i+nsnp_right[i]==nsnp){
+        // left window
+        gdgap.push_back(window-left_distance);
+        LDA_ave.push_back((LDA_result.m[i].get(i-nsnp_left[i])+LDA_result.m[i].get(i-nsnp_left[i]-1))/2);
+        // use the left window to estimate the right window
+        // window-right_distance is the distance to be estimated from the left window
+        double gdleft_add=0;
+        int j=i-nsnp_left[i];
+        
+        while(gdleft_add < window-right_distance){
+          // how long distance from enough
+          double distance_from_enough = window-right_distance-gdleft_add;
+          gdleft_add=gd[j]-(gd[i]-window);
+          if(gdleft_add <= window-right_distance){
+            // estimated distance still not enough or just enough
+            if(j==i-nsnp_left[i]){
+              gdgap.push_back(window-left_distance);
+            }else{
+              gdgap.push_back(gd[j]-gd[j-1]);
+            }
+          }else{
+            // estimated distance is enough
+            gdgap.push_back(distance_from_enough);
+          }
+          LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j-1))/2);
+          j=j+1;
+          //endwhile
+        }
+        //endif
+      }
+      for(int q=0;q<gdgap.size();++q){
+        LDAS[i]+=LDA_ave[q]*gdgap[q];
+      }
     }
-    for(int q=0;q<gdgap.size();++q){
-      LDAS[i]+=LDA_ave[q]*gdgap[q];
+    
+    //output the LDAS results into LDASfile
+    ofstream outputFile(LDASfile);
+    if (outputFile.is_open()) {
+      outputFile.precision(15);
+      for (int i = 0; i < nsnp; ++i) {
+        outputFile << fixed<< setprecision(0) << pd[i];
+        outputFile << " " << fixed << setprecision(3) << LDAS[i] << "\n";
+      }
+      outputFile.close();
+    } else {
+      cerr << "Unable to open file" << LDASfile;
     }
+    
   }
-  
-  //output the LDAS results into LDASfile
-  ofstream outputFile2(LDASfile);
-  if (outputFile2.is_open()) {
-    outputFile2.precision(15);
-    for (int i = 0; i < nsnp; ++i) {
-      outputFile2 << fixed<< setprecision(0) << pd[i];
-      outputFile2 << " " << fixed << setprecision(3) << LDAS[i] << "\n";
-    }
-    outputFile2.close();
-  } else {
-    cerr << "Unable to open file" << LDASfile;
-  }
-  
-}
 
 
 
@@ -1989,10 +1908,10 @@ void paintingalldense(const string method="Viterbi",
                       const string targetname="targetname.txt",
                       bool outputLDA=true,
                       bool outputLDAS=true,
-                      const string paintingfile="painting.txt",
-                      const string LDAfile="LDA.txt",
-                      const string LDASfile="LDAS.txt",
-                      const double window=0.05,
+                      const string paintingfile="painting.txt.gz",
+                      const string LDAfile="LDA.txt.gz",
+                      const string LDASfile="LDAS.txt.gz",
+                      const double window=0.02,
                       int ncores=0){
   //detect cores
   if(ncores==0){
@@ -2101,8 +2020,40 @@ void paintingalldense(const string method="Viterbi",
   //vector<hMat> painting_all_hmat(nhap_use, hMat(npop, nsnp));
   
   
+  vector<int> nsnp_left(nsnp);
+  vector<int> nsnp_right(nsnp);
+  
+  if(outputLDA || outputLDAS){
+    // calculate the number of SNPs in the left and right window of each SNP
+    
+    for (int j = 0; j < nsnp; ++j) {
+      int left_ptr = j - 1;
+      int right_ptr = j + 1;
+      nsnp_left[j] = 0;
+      nsnp_right[j] = 0;
+      // Count SNPs in the left window
+      while (left_ptr >= 0 && gd[j] - gd[left_ptr] <= window) {
+        nsnp_left[j]++;
+        left_ptr--;
+      }
+      // Count SNPs in the right window
+      while (right_ptr < nsnp && gd[right_ptr] - gd[j] <= window) {
+        nsnp_right[j]++;
+        right_ptr++;
+      }
+    }
+    
+  }
+  
+  // calculate LDA and store in LDA_result (hMat)
+  // should be defined outside of the if command
+  hMat LDA_result(nsnp,nsnp,0.0);
+  hMat Dprime(nsnp,nsnp,0.0);
+  
+  
   //output the painting into paintingfile
-  ofstream outputFile(paintingfile);
+  //ofstream outputFile(paintingfile);
+  ogzstream outputFile(paintingfile.c_str());
   outputFile << "indnames" << " ";
   //the first row is the SNP's physical position
   for (int i = 0; i < nsnp; ++i) {
@@ -2111,24 +2062,34 @@ void paintingalldense(const string method="Viterbi",
   }
   outputFile << "\n";
   
+  int looptime=0;
+  
   while(nhap_left>0){
     nsamples_use = (ncores*2 < nhap_left) ? ncores*2 : nhap_left; //ensure both copies are included
     
     vector<vector<vector<double>>> painting_all(nsamples_use, 
                                                 vector<vector<double>>(npop, vector<double>(nsnp)));
+    
+    // get the matches before the loop
+    vector<vector<vector<int>>> targetmatch_use(nsamples_use);
+    
+    for (int ii = nhap_use - nhap_left; ii < nhap_use - nhap_left + nsamples_use; ++ii) {
+      // leave one out if the donor file is the same as the target file
+      vector<vector<int>> match_data = get_matchdata(queryidall_target,
+                                                     donorid_target,
+                                                     startpos_target,
+                                                     endpos_target,
+                                                     ii, loo);
+      
+      targetmatch_use[ii - (nhap_use - nhap_left)] = match_data;
+    }
  
     
     #pragma omp parallel for
     for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
       cout<<"Calculating painting for sample "<<ii+1<<endl;
       
-      // leave one out if the donor file is the same as the target file
-      
-      vector<vector<int>> targetmatchdata=get_matchdata(queryidall_target,
-                                                        donorid_target,
-                                                        startpos_target,
-                                                        endpos_target,
-                                                        ii,loo);
+      vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
       
       hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
       if(fixrho){
@@ -2169,7 +2130,46 @@ void paintingalldense(const string method="Viterbi",
       }
     }
     
-    cout<<"finish compute painting"<<endl;
+    //compute LDA
+    if(outputLDA || outputLDAS){
+      vector<int> allhaps_idx;
+      for(int i=0;i<nsamples_use;++i){
+        allhaps_idx.push_back(i);
+      }
+      vector<int> resample_idx = randomsample(allhaps_idx,nsamples_use);
+      #pragma omp parallel for
+      for(int i=0;i<nsnp;++i){
+        //cout<<"Computing LDA for SNP "<<i<<endl;
+        for(int j=i-nsnp_left[i];j<=i+nsnp_right[i];++j){
+          if(j==i){
+            if(looptime==0){
+              LDA_result.m[i].set(i,1.0);
+              Dprime.m[i].set(i,1.0);
+            }
+          }else{
+            double distance=0;
+            double theo_distance=0;
+            for (int nn=0; nn<nsamples_use; nn++){
+              double sum_squared_diff=0;
+              double sum_squared_diff_theo=0;
+              for (int k=0; k<npop; k++){
+                sum_squared_diff+= pow(painting_all[nn][k][i]-painting_all[nn][k][j],2);
+                sum_squared_diff_theo+= pow(painting_all[resample_idx[nn]][k][i]-painting_all[nn][k][j],2);
+              }
+              distance += sqrt(sum_squared_diff/npop);
+              theo_distance += sqrt(sum_squared_diff_theo/npop);
+            }
+            if(looptime==0){
+              LDA_result.m[i].set(j,distance);
+              Dprime.m[i].set(j,theo_distance);
+            }else{
+              LDA_result.m[i].set(j,distance+LDA_result.m[i].get(j));
+              Dprime.m[i].set(j,theo_distance+Dprime.m[i].get(j));
+            }
+          }
+        }
+      }
+    }
     
     
     //output painting
@@ -2178,7 +2178,7 @@ void paintingalldense(const string method="Viterbi",
         outputFile << indnames[ii] << " ";
         for (int j = 0; j < nsnp; ++j) {
           for(int k=0;k<npop;++k){
-            outputFile << fixed << setprecision(3) << painting_all[ii-nhap_use+nhap_left][k][j];
+            outputFile << fixed << setprecision(2) << painting_all[ii-nhap_use+nhap_left][k][j];
             if(k!=npop-1) outputFile << ",";
           }
           if(j!=nsnp-1) outputFile << " ";
@@ -2190,12 +2190,12 @@ void paintingalldense(const string method="Viterbi",
         outputFile << indnames[ii] << " ";
         for (int j = 0; j < nsnp; ++j) {
           for(int k=0;k<npop;++k){
-            outputFile << fixed << setprecision(3) << painting_all[2*ii-nhap_use+nhap_left][k][j];
+            outputFile << fixed << setprecision(2) << painting_all[2*ii-nhap_use+nhap_left][k][j];
             if(k!=npop-1) outputFile << ",";
           }
           outputFile << "|";
           for(int k=0;k<npop;++k){
-            outputFile << fixed << setprecision(3) << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+            outputFile << fixed << setprecision(2) << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
             if(k!=npop-1) outputFile << ",";
           }
           if(j!=nsnp-1) outputFile << " ";
@@ -2205,13 +2205,40 @@ void paintingalldense(const string method="Viterbi",
     }
     vector<vector<vector<double>>>().swap(painting_all);
     nhap_left=nhap_left-nsamples_use;
+    looptime++;
   }
   
   outputFile.close();
   
-  //if(outputLDA){
-  //  LDA(painting_all,gd,pd,LDAfile,outputLDAS,LDASfile,window);
-  //}
+  if(outputLDA){
+    //output the LDA results into LDAfile
+    ogzstream outputFile(LDAfile.c_str());
+    if (outputFile) {
+      for (int i = 0; i < nsnp; ++i) {
+        vector<int> keys = LDA_result.m[i].k;
+        for (int j = 0; j < keys.size(); ++j) {
+          LDA_result.m[i].set(keys[j],1-LDA_result.m[i].get(keys[j])/Dprime.m[i].get(keys[j]));
+          if(i < keys[j] && LDA_result.m[i].get(keys[j])>=0.005){
+            outputFile << fixed << setprecision(0) << pd[i];
+            outputFile << " " << fixed << setprecision(0) << pd[keys[j]];
+            outputFile << " " << fixed << setprecision(2) << LDA_result.m[i].get(keys[j]);
+            outputFile << "\n";
+          }
+        }
+      }
+      
+      outputFile.close();
+    } else {
+      cerr << "Unable to open file" << LDAfile;
+    }
+  }
+  
+  if(outputLDAS){
+    hMat Dprime(0,0,0.0);
+    cout << "Begin calculating LDA score"<<endl;
+    LDAS(LDA_result,LDASfile,window,gd,pd,nsnp_left,nsnp_right,nsnp);
+    cout << "Finish calculating LDA score"<<endl;
+  }
   
 }
 
@@ -2222,24 +2249,24 @@ int main() {
                    0.1, 
                    10000, 
                    0.1, 
-                   320, 
+                   800, 
                    0.002, 
-                   20,
+                   50,
                    false, 
                    //"donor.phase.gz",
                    "chr19_1000G.phase.gz",
-                   //"donor.phase.gz", 
+                   //"target.phase.gz", 
                    "chr19_UKB.phase.gz",
                    //"map.txt", 
                    "chr19_map.txt",
                    "popnames.txt", 
-                   "targetname.txt", 
+                   "targetname_new.txt", 
                    true, 
                    true, 
-                   "painting.txt", 
-                   "LDA.txt", 
+                   "painting.txt.gz", 
+                   "LDA.txt.gz", 
                    "LDAS.txt", 
-                   0.05, 
+                   0.02, 
                    10);
   
   return 0;

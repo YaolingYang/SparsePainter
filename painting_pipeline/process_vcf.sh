@@ -45,7 +45,7 @@ bcftools query -f'%POS\n' chr${chr}_UKB_filtered_temp.vcf.gz > UKB_positions.txt
 
 bcftools query -f'%POS\n' chr${chr}_1000G_filtered_temp.vcf.gz > 1000G_positions.txt
 
-comm -12 <(sort UKB_positions.txt) <(sort 1000G_positions.txt) | sort -n | awk '{print "${chr}\t" $1}' > shared_positions.txt
+comm -12 <(sort UKB_positions.txt) <(sort 1000G_positions.txt) | sort -n | awk -v chr="${chr}" '{print chr "\t" $1}' > shared_positions.txt
 
 bcftools index chr${chr}_UKB_filtered_temp.vcf.gz
 

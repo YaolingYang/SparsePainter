@@ -1,3 +1,5 @@
+## This file is written by Daniel Lawson.
+
 #!/bin/bash
 ## Run in slurm with:
 ## echo "./access.sh > runaccess.txt""

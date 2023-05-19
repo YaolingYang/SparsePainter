@@ -42,11 +42,11 @@ cp ../../processUKB/kb_hap_chr${chr}_v2.vcf.gz .
 wget https://bochet.gcc.biostat.washington.edu/beagle/1000_Genomes_phase3_v5a/b37.vcf/chr${chr}.1kg.phase3.v5a.vcf.gz
 
 ## Remove SNPs with multi alleles, multi rs names and MAF < 0.5% in both files
-bcftools view -Oz -o chr${chr}_UKB_filtered_temp2.vcf.gz kb_hap_chr${chr}_v2.vcf.gz --exclude 'ID!="." || STRLEN(REF)>1 || STRLEN(ALT)>1 || N_ALT>1 || MAF<0.005'
+bcftools view -Oz -o chr${chr}_UKB_filtered_temp2.vcf.gz kb_hap_chr${chr}_v2.vcf.gz --exclude 'ID=="." || STRLEN(REF)>1 || STRLEN(ALT)>1 || N_ALT>1 || MAF<0.005'
 bcftools index chr${chr}_UKB_filtered_temp2.vcf.gz
 bcftools view -S ../samples_all.txt -Oz -o chr${chr}_UKB_filtered_temp.vcf.gz chr${chr}_UKB_filtered_temp2.vcf.gz
 bcftools index chr${chr}.1kg.phase3.v5a.vcf.gz
-bcftools view -Oz -o chr${chr}_1000G_filtered_temp.vcf.gz chr${chr}.1kg.phase3.v5a.vcf.gz --exclude 'ID!="." || STRLEN(REF)>1 || STRLEN(ALT)>1 || N_ALT>1 || MAF<0.005'
+bcftools view -Oz -o chr${chr}_1000G_filtered_temp.vcf.gz chr${chr}.1kg.phase3.v5a.vcf.gz --exclude 'ID=="." || STRLEN(REF)>1 || STRLEN(ALT)>1 || N_ALT>1 || MAF<0.005'
 bcftools index chr${chr}_UKB_filtered_temp.vcf.gz
 echo finish QC
 

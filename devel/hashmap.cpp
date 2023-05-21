@@ -1,5 +1,8 @@
 // [[Rcpp::plugins(cpp11)]]
 //[[Rcpp::plugins(openmp)]]
+// Compile with:
+// module load languages/gcc/10.4.0
+// g++ hashmap2.cpp -o test.exe -lz -fopenmp -lpthread
 #ifdef _OPENMP
 #include <omp.h>
 #else
@@ -11,7 +14,7 @@
 #include <vector>
 #include <string>
 #include <regex>
-#include <Rcpp.h>
+//#include <Rcpp.h>
 #include <unordered_map>
 #include <algorithm>
 #include <random>
@@ -22,11 +25,10 @@
 #include <utility>
 
 #include "gzstream.h"
+#include "gzstream.C"
 
-using namespace Rcpp;
+//using namespace Rcpp;
 using namespace std;
-
-
 
 //namespace hMatRcpp {
 
@@ -181,6 +183,7 @@ public:
 /////////////////////beginning of dpbwt contents///////////////////////////
 
 
+
 struct dpbwtnode{
   dpbwtnode *below, *above, *u, *v;
   int divergence, id, originalid;
@@ -193,202 +196,156 @@ struct dpbwt{
   int size, count;
 };
 
-void ReadVCF(const std::string& inFile, 
-             const std::string& qinFile, 
-             bool**& panel, 
-             int& N, 
-             int& M, 
-             int& qM, 
-             bool haploid=false) {
-  {//count M and N
-    std::string line = "1#";
-    igzstream in(inFile.c_str());
-    std::stringstream linestr;
-    while (line[1] == '#')
-      getline(in, line);
-    
-    linestr.str(line);
-    linestr.clear();
-    for (int i = 0; i<9;++i)
-      linestr>>line;
-    N = M = 0;
-    if(haploid){
-      while (!linestr.eof()){
-        ++M;
-        linestr >> line;
-      }
-    }else{
-      while (!linestr.eof()){
-        ++M;
-        ++M;
-        linestr >> line;
-      }
+  
+  void free_dpbwt_memory(dpbwt& x) {
+    for (dpbwtnode* node : x.firstcol) {
+      delete[] node;
     }
     
-    while (getline(in, line))
-      ++N;
-    in.close();
-  }
-  {//count qM, finish M
-    std::string line = "1#";
-    igzstream qin(qinFile.c_str());
-    while(line[1] == '#')
-      getline(qin, line);
-    std::stringstream linestr;
+    for (auto& inner_vector : x.panel) {
+      inner_vector.clear();
+      inner_vector.shrink_to_fit();
+    }
     
-    linestr.str(line);
-    linestr.clear();
-    for (int i = 0; i<9; ++i)
-      linestr >> line;
-    qM = 0;
-    if(haploid){
-      while (!linestr.eof()){
-        ++qM;
-        linestr >> line;
-      }
-    }else{
-      while (!linestr.eof()){
-        ++qM;
-        ++qM;
-        linestr >> line;
-      }
-    }
-    M +=qM;
-    int qN = 0;
-    while (getline(qin, line)){
-      ++qN;
-    }
-    if (qN != N){
-      Rcerr << "Query file and input file have different numbers of sites. Query has " << qN << ". Panel has " << N << std::endl;
-      throw std::runtime_error("Query and input file have different numbers of sites");
-    }
-    qin.close();
+    x.panel.clear();
+    x.panel.shrink_to_fit();
   }
-  bool *temp = new bool[(long long)M * N];
-  panel = new bool*[M];
-  for (int i = 0; i<M; i++){
-    panel[i] = &(temp[i*N]);
+
+void Readphase_donor(const string inFile,
+                     dpbwt & x,
+                     const int N, 
+                     const int M, 
+                     const int qM, 
+                     bool haploid=false) {
+  
+  cout << "Read data and do dpbwt for reference panel" << endl;
+  
+  x.bottomfirstcol.divergence = 0;
+  x.bottomfirstcol.id = -1;
+  x.bottomfirstcol.below = x.bottomfirstcol.above = nullptr;
+  dpbwtnode *prev = &x.bottomfirstcol, *current;
+  for (int j = 0; j<N; ++j){
+    current = new dpbwtnode;
+    current->divergence = j+1;
+    current->id = -1;
+    current->below = current->above = nullptr;
+    prev->u = prev->v = current;
+    prev = current;
   }
-  std::string line = "##", qline = "##";
+  
   igzstream in(inFile.c_str());
-  igzstream qin(qinFile.c_str());
-  std::stringstream linestr, qlinestr;
-  int x = 0;
-  char y = 0;
-  while (line[1] == '#')
-    getline(in, line);
-  while (qline[1] == '#')
-    getline(qin, qline);
-  for(int j = 0; j<N; ++j){
-    getline(in, line);
-    getline(qin, qline);
-    linestr.str(line);
-    linestr.clear();
-    qlinestr.str(qline);
-    qlinestr.clear();
-    for (int i = 0; i<9; ++i){
-      linestr >> line;
-      qlinestr >> qline;
-    }
-    if(haploid){
-      for (int i = 0; i<M-qM; ++i){
-        linestr >> x >> y;
-        panel[i][j] = (bool)x;
-      }
-      for (int i = M-qM; i < M; ++i){
-        qlinestr >> x >> y;
-        panel[i][j] = (bool)x;
-      }
-    }else{
-      for (int i = 0; i<(M-qM)/2; ++i){
-        linestr >> x >> y;
-        panel[i*2][j] = (bool)x;
-        linestr >> x;
-        panel[i*2 + 1][j] = (bool)x;
-      }
-      for (int i = (M-qM)/2; i < M/2; ++i){
-        qlinestr >> x >> y;
-        panel[i*2][j] = (bool)x;
-        qlinestr >> x;
-        panel[i*2+1][j] = (bool)x;
-      }
-    }
-    
+  
+  if (!in) {
+    cerr << "Error opening file: " << inFile << endl;
   }
+  
+  string line;
+  
+  // Read and discard the first three lines
+  for (int i = 0; i < 3; ++i) {
+    getline(in, line);
+  }
+  
+  // Read the remaining lines and store the binary data of each line in 'panel'
+  for(int i=0; i<M-qM; ++i) {
+    // i indicates which sample we are looking at
+    //cout <<"dpbwt for donor" <<i<<endl;
+    getline(in, line);
+    vector<bool> panelsnp;
+    
+    for (char c : line) {
+      panelsnp.push_back(c == '1');
+    }
+  
+    int Oid = i;
+    
+    x.panel.push_back(vector<bool>());
+    x.panel[i].resize(N);
+    
+    dpbwtnode *t = &(x.bottomfirstcol),
+      *botk = &(x.bottomfirstcol),
+      *z = new dpbwtnode[N+1];
+      
+      x.firstcol.push_back(&z[0]);
+      
+      
+      z[0].id = i;
+      z[0].originalid = Oid; //!!!! different from indel benchmark
+      z[0].divergence = 0;
+      z[0].below = t;
+      z[0].above = t->above;
+      t->above = &z[0];
+      if (z[0].above != nullptr)
+        z[0].above->below = &z[0];
+      // open vcf as file handle
+      for (int k = 0; k<N; ++k){
+        // read snpk from vcf file handle
+        dpbwtnode* temp = z[k].above;
+        while (temp != nullptr && x.panel[temp->id][k] != panelsnp[k]){
+          if (!panelsnp[k])
+            temp->u = &z[k+1];
+          else 
+            temp->v = &z[k+1];
+          temp = temp->above;
+        }
+        if (temp == nullptr && panelsnp[k]){
+          temp = botk->above;
+          botk->u = &z[k+1];
+          while (temp != &z[k] && x.panel[temp->id][k]){
+            temp->u = &z[k+1];
+            temp = temp->above;
+          }
+        }
+        if (!panelsnp[k]){
+          z[k].u = &z[k+1];
+          z[k].v = t->v;
+        }
+        else{
+          z[k].u = t->u;
+          z[k].v = &z[k+1];
+        }
+        t = (panelsnp[k])? t->v : t->u;
+        z[k+1].id = i;
+        z[k+1].originalid = Oid;
+        z[k+1].below = t;
+        z[k+1].above = t->above;
+        t->above = &z[k+1];
+        if (z[k+1].above != nullptr)
+          z[k+1].above->below = &z[k+1];
+        botk = botk->v;
+        
+        x.panel[i][k] = panelsnp[k];
+        
+      }
+      
+      int zdtemp = N,
+        bdtemp = N;
+      
+      for (int k = N; k>= 0; --k){
+        zdtemp = min(zdtemp, k);
+        bdtemp = min(bdtemp, k);
+        if (z[k].above!=nullptr)
+          while (zdtemp>0 && panelsnp[zdtemp-1] == x.panel[z[k].above->id][zdtemp-1])
+            zdtemp--;
+        else 
+          zdtemp = k;
+        if (z[k].below->id!=-1)
+          while (bdtemp>0 && panelsnp[bdtemp-1] == x.panel[z[k].below->id][bdtemp-1])
+            bdtemp--;
+        else 
+          bdtemp = k;
+        z[k].divergence = zdtemp;
+        z[k].below->divergence = bdtemp;
+      }
+      
+      
+  }
+  
+  cout<<"finish dpbwt for reference panel"<<endl;
+  
   in.close();
-  qin.close();
 }
 
-void ReadVCFsamefile(std::string inFile, 
-                     bool **& panel, 
-                     int &N, 
-                     int &M,
-                     bool haploid=false){
-  {//count M and N
-    std::string line = "1#";
-    igzstream in(inFile.c_str());
-    while (line[1] == '#')
-      getline(in, line);
-    std::stringstream linestr;
-    
-    linestr.str(line);
-    linestr.clear();
-    for (int i = 0; i<9; i++)
-      linestr >> line;
-    N = M = 0;
-    if(haploid){
-      while (!linestr.eof()){
-        ++M;
-        linestr >> line;
-      }
-    }else{
-      while (!linestr.eof()){
-        ++M;
-        ++M;
-        linestr >> line;
-      }
-    }
-    while (getline(in,line)){
-      ++N;
-    }
-    in.close();
-  }
-  bool *temp = new bool[(long long)M * N];
-  panel = new bool*[M];
-  for (long long i = 0; i<M; i++){
-    panel[i] = &(temp[i*N]);
-  }
-  igzstream in(inFile.c_str());
-  std::string line = "##";
-  std::stringstream linestr;
-  int x = 0;
-  char y = 0;
-  
-  while (line[1] == '#')
-    getline(in, line);
-  for (int j = 0; j<N; ++j){
-    getline(in, line);
-    linestr.str(line);
-    linestr.clear();
-    for (int i = 0; i<9; ++i){
-      linestr >> line; 
-    }
-    if(haploid){
-      for (int i = 0; i<M; ++i){
-        linestr >> x >> y;
-        panel[i][j] = (bool)x;
-      }
-    }else{
-      for (int i = 0; i<M/2; ++i){
-        linestr >> x >> y;
-        panel[i*2][j] = (bool)x;
-        linestr >> x;
-        panel[i*2+1][j] = (bool)x;
-      }
-    }
-  }
-  in.close();
-}
 
 
 vector<int> getorder(const vector<double>& vec) {
@@ -403,7 +360,7 @@ vector<int> getorder(const vector<double>& vec) {
   for (int i : order) {
     groups[vec[i]].push_back(i);
   }
-
+  
   random_device rd;
   mt19937 g(rd());
   for (auto& group : groups) {
@@ -433,7 +390,6 @@ bool containsIndex(const vector<int>& fullidx,
 
 
 tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int L_initial,
-                                                                      bool **panel, 
                                                                       dpbwt & x,
                                                                       const int minmatch,
                                                                       vector<double> &gd,
@@ -441,114 +397,10 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
                                                                       const int N,
                                                                       const int M,
                                                                       const int qM,
-                                                                      const int L_minmatch){
-  vector<int> queryidxuse=queryidx;
-  if(qM!=0){
-    for(int i=0;i<queryidx.size();++i){
-      queryidxuse[i]=queryidxuse[i]+M-qM;
-    }
-  }
+                                                                      const int L_minmatch,
+                                                                      const int ncores,
+                                                                      const string qinFile){
 
-  
-  x.bottomfirstcol.divergence = 0;
-  x.bottomfirstcol.id = -1;
-  x.bottomfirstcol.below = x.bottomfirstcol.above = nullptr;
-  dpbwtnode *prev = &x.bottomfirstcol, *current;
-  for (int j = 0; j<N; ++j){
-    current = new dpbwtnode;
-    current->divergence = j+1;
-    current->id = -1;
-    current->below = current->above = nullptr;
-    prev->u = prev->v = current;
-    prev = current;
-  }
-  
-  
-  for (int i = 0; i < M-qM; i++){
-    int Oid = i;
-    
-    
-    x.panel.push_back(vector<bool>());
-    x.panel[i].resize(N);
-    
-    dpbwtnode *t = &(x.bottomfirstcol),
-      *botk = &(x.bottomfirstcol),
-      *z = new dpbwtnode[N+1];
-      
-      x.firstcol.push_back(&z[0]);
-      
-      
-      z[0].id = i;
-      z[0].originalid = Oid; //!!!! different from indel benchmark
-      z[0].divergence = 0;
-      z[0].below = t;
-      z[0].above = t->above;
-      t->above = &z[0];
-      if (z[0].above != nullptr)
-        z[0].above->below = &z[0];
-      for (int k = 0; k<N; ++k){
-        dpbwtnode* temp = z[k].above;
-        while (temp != nullptr && x.panel[temp->id][k] != panel[Oid][k]){
-          if (!panel[Oid][k])
-            temp->u = &z[k+1];
-          else 
-            temp->v = &z[k+1];
-          temp = temp->above;
-        }
-        if (temp == nullptr && panel[Oid][k]){
-          temp = botk->above;
-          botk->u = &z[k+1];
-          while (temp != &z[k] && x.panel[temp->id][k]){
-            temp->u = &z[k+1];
-            temp = temp->above;
-          }
-        }
-        if (!panel[Oid][k]){
-          z[k].u = &z[k+1];
-          z[k].v = t->v;
-        }
-        else{
-          z[k].u = t->u;
-          z[k].v = &z[k+1];
-        }
-        t = (panel[Oid][k])? t->v : t->u;
-        z[k+1].id = i;
-        z[k+1].originalid = Oid;
-        z[k+1].below = t;
-        z[k+1].above = t->above;
-        t->above = &z[k+1];
-        if (z[k+1].above != nullptr)
-          z[k+1].above->below = &z[k+1];
-        botk = botk->v;
-        
-        x.panel[i][k] = panel[Oid][k];
-        
-      }
-      
-      int zdtemp = N,
-        bdtemp = N;
-      
-      for (int k = N; k>= 0; --k){
-        zdtemp = min(zdtemp, k);
-        bdtemp = min(bdtemp, k);
-        if (z[k].above!=nullptr)
-          while (zdtemp>0 && panel[Oid][zdtemp-1] == x.panel[z[k].above->id][zdtemp-1])
-            zdtemp--;
-        else 
-          zdtemp = k;
-        if (z[k].below->id!=-1)
-          while (bdtemp>0 && panel[Oid][bdtemp-1] == x.panel[z[k].below->id][bdtemp-1])
-            bdtemp--;
-        else 
-          bdtemp = k;
-        z[k].divergence = zdtemp;
-        z[k].below->divergence = bdtemp;
-      }
-      
-  }
-  
-  cout<<"finish dpbwt for reference panel"<<endl;
-  
   // match of which query sample
   vector<int> queryidall={0};
   // match to which reference sample (donor)
@@ -566,285 +418,385 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
   };
   
   // define a results vector
-  vector<LoopResult> allResults(queryidxuse.size());
+  vector<LoopResult> allResults(queryidx.size());
   
-  #pragma omp parallel for
+  //read data for target haplotypes
   
-  for (int idx = 0; idx < queryidxuse.size(); idx++) {
-    
-    int *dZ;
-    dZ = new int[M];
-    for (int i = 0; i<M; i++){
-      dZ[i] = 0;
+  igzstream in(qinFile.c_str());
+  
+  if (!in) {
+    cerr << "Error opening file: " << qinFile << endl;
+    tuple<vector<int>,vector<int>,vector<int>,vector<int>> a;
+    return a;
+  }
+  
+  string line;
+  
+  // Read and discard the first three lines
+  for (int i = 0; i < 3; ++i) {
+    getline(in, line);
+  }
+  
+  // Read ncores lines of target data
+  // paneltarget has ncore rows and N columns
+  
+  int nind=queryidx.size();
+  
+  int nind_left=nind;
+  
+  omp_set_num_threads(ncores);
+  
+  while(nind_left>0){
+    int ncores_use = (ncores < nind_left) ? ncores : nind_left;
+    vector<vector<bool>> panelsnp(ncores_use);
+    for(int i=nind-nind_left; i<nind-nind_left+ncores_use; ++i) {
+      // i indicates which sample we are looking at
+      getline(in, line);
+      for (char c : line) {
+        panelsnp[i-nind+nind_left].push_back(c == '1');
+      }
     }
     
-    int i = queryidxuse[idx];
+    cout<<"Building dpbwt for target samples "<<nind-nind_left<<"-"<<nind-nind_left+ncores_use-1<<endl;
     
-    //cout<<i<<endl;
-    int L=L_initial;
-    int prevL=L;
+    #pragma omp parallel for
     
-    int Oid = i;
-    
-    dpbwtnode *t = &(x.bottomfirstcol),
-      *botk = &(x.bottomfirstcol),
-      *z = new dpbwtnode[N+1];
+    for (int idx=nind-nind_left; idx<nind-nind_left+ncores_use; ++idx) {
       
-      z[0].id = i;
-      z[0].originalid = Oid; //!!!! different from indel benchmark
-      z[0].divergence = 0;
-      z[0].below = t;
-      z[0].above = t->above;
-      
-      for (int k = 0; k<N; ++k){
-        
-        t = (panel[Oid][k])? t->v : t->u;
-        z[k+1].id = i;
-        z[k+1].originalid = Oid;
-        z[k+1].below = t;
-        z[k+1].above = t->above;
+      int *dZ;
+      dZ = new int[M];
+      for (int i = 0; i<M; i++){
+        dZ[i] = 0;
       }
       
-      int zdtemp = N,
-        bdtemp = N;
-      int zd[N+1], bd[N+1];
-      for (int k = N; k>= 0; --k){
-        zdtemp = min(zdtemp, k);
-        bdtemp = min(bdtemp, k);
-        if (z[k].above!=nullptr)
-          while(zdtemp>0 && panel[Oid][zdtemp-1] == x.panel[z[k].above->id][zdtemp-1])
-            zdtemp--;
-        else
-          zdtemp = k;
-        if (z[k].below->id!=-1)
-          while (bdtemp>0 && panel[Oid][bdtemp-1] == x.panel[z[k].below->id][bdtemp-1])
-            bdtemp--;
-        else 
-          bdtemp = k;
+      int i = queryidx[idx];
+      
+      //cout<<i<<endl;
+      int L=L_initial;
+      int prevL=L;
+      
+      int Oid = i;
+      
+      dpbwtnode *t = &(x.bottomfirstcol),
+        *botk = &(x.bottomfirstcol),
+        *z = new dpbwtnode[N+1];
         
-        zd[k] = zdtemp;
-        bd[k] = bdtemp;
-      }
-      
-      
-      // below using while loop to update L and ensure at least minmatch matches at each SNP
-      
-      vector<int> donoridtemp;
-      
-      vector<int> startpostemp;
-      
-      vector<int> endpostemp;
-      
-      vector<int> nomatchsnp;
-      
-      vector<int> nmatch(N,0);
-      
-      int times=0;
-      
-      bool allsnpmatches=false;
-      
-      vector<int> local_donorid;
-      vector<int> local_startpos;
-      vector<int> local_endpos;
-      
-      while(!allsnpmatches){
+        z[0].id = i;
+        z[0].originalid = Oid; //!!!! different from indel benchmark
+        z[0].divergence = 0;
+        z[0].below = t;
+        z[0].above = t->above;
         
-        vector<bool> addmatch(N,false);
+        for (int k = 0; k<N; ++k){
+          
+          t = (panelsnp[Oid-nind+nind_left][k])? t->v : t->u;
+          z[k+1].id = i;
+          z[k+1].originalid = Oid;
+          z[k+1].below = t;
+          z[k+1].above = t->above;
+        }
         
-        if(times!=0){
-          for(int w=0;w<nomatchsnp.size();++w){
-            for(int s=0;s<prevL;++s){
-              int pos=nomatchsnp[w]+s;
-              if(pos>=N) break;
-              addmatch[pos]=true;
-            }
-          }
+        int zdtemp = N,
+          bdtemp = N;
+        int zd[N+1], bd[N+1];
+        for (int k = N; k>= 0; --k){
+          zdtemp = min(zdtemp, k);
+          bdtemp = min(bdtemp, k);
+          if (z[k].above!=nullptr)
+            while(zdtemp>0 && panelsnp[Oid-nind+nind_left][zdtemp-1] == x.panel[z[k].above->id][zdtemp-1])
+              zdtemp--;
+          else
+            zdtemp = k;
+          if (z[k].below->id!=-1)
+            while (bdtemp>0 && panelsnp[Oid-nind+nind_left][bdtemp-1] == x.panel[z[k].below->id][bdtemp-1])
+              bdtemp--;
+          else 
+            bdtemp = k;
+          
+          zd[k] = zdtemp;
+          bd[k] = bdtemp;
         }
         
         
-        dpbwtnode *f, *g, *ftemp, *gtemp;
-        f = g = z[0].below;
-        for(int k = 0; k<N; ++k){
-          ftemp = (panel[Oid][k])? f->u : f->v;
-          gtemp = (panel[Oid][k])? g->u : g->v;
-          f = (panel[Oid][k])? f->v : f->u;
-          g = (panel[Oid][k])? g->v : g->u;
-          while (ftemp != gtemp){
-            //matchOut << ftemp->originalid << " = q" << i-M+qM << " at [" << dZ[ftemp->id] << ", " << k << ")\n";
-            int end=k-1;
-            if(times==0){
-              int start=dZ[ftemp->id];
-              donoridtemp.push_back(ftemp->originalid);
-              startpostemp.push_back(start);
-              endpostemp.push_back(end);
-              ftemp = ftemp->below;
-              for(int q=start;q<=end;++q){
-                nmatch[q]++;
+        // below using while loop to update L and ensure at least minmatch matches at each SNP
+        
+        vector<int> donoridtemp;
+        
+        vector<int> startpostemp;
+        
+        vector<int> endpostemp;
+        
+        vector<int> nomatchsnp;
+        
+        vector<int> nmatch(N,0);
+        
+        int times=0;
+        
+        bool allsnpmatches=false;
+        
+        vector<int> local_donorid;
+        vector<int> local_startpos;
+        vector<int> local_endpos;
+        
+        while(!allsnpmatches){
+          
+          vector<bool> addmatch(N,false);
+          
+          if(times!=0){
+            for(int w=0;w<nomatchsnp.size();++w){
+              for(int s=0;s<prevL;++s){
+                int pos=nomatchsnp[w]+s;
+                if(pos>=N) break;
+                addmatch[pos]=true;
               }
-            }else{
-              if(addmatch[end]){
+            }
+          }
+          
+          
+          dpbwtnode *f, *g, *ftemp, *gtemp;
+          f = g = z[0].below;
+          for(int k = 0; k<N; ++k){
+            ftemp = (panelsnp[Oid-nind+nind_left][k])? f->u : f->v;
+            gtemp = (panelsnp[Oid-nind+nind_left][k])? g->u : g->v;
+            f = (panelsnp[Oid-nind+nind_left][k])? f->v : f->u;
+            g = (panelsnp[Oid-nind+nind_left][k])? g->v : g->u;
+            while (ftemp != gtemp){
+              //matchOut << ftemp->originalid << " = q" << i-M+qM << " at [" << dZ[ftemp->id] << ", " << k << ")\n";
+              int end=k-1;
+              if(times==0){
                 int start=dZ[ftemp->id];
-                //add new matches with new L
-                if(end-start+1<prevL){
-                  donoridtemp.push_back(ftemp->originalid);
-                  startpostemp.push_back(start);
-                  endpostemp.push_back(end);
-                  ftemp = ftemp->below;
-                  for(int q=start;q<=end;++q){
-                    nmatch[q]++;
+                donoridtemp.push_back(ftemp->originalid);
+                startpostemp.push_back(start);
+                endpostemp.push_back(end);
+                ftemp = ftemp->below;
+                for(int q=start;q<=end;++q){
+                  nmatch[q]++;
+                }
+              }else{
+                if(addmatch[end]){
+                  int start=dZ[ftemp->id];
+                  //add new matches with new L
+                  if(end-start+1<prevL){
+                    donoridtemp.push_back(ftemp->originalid);
+                    startpostemp.push_back(start);
+                    endpostemp.push_back(end);
+                    ftemp = ftemp->below;
+                    for(int q=start;q<=end;++q){
+                      nmatch[q]++;
+                    }
+                  }else{
+                    ftemp = ftemp->below;
                   }
                 }else{
                   ftemp = ftemp->below;
                 }
-              }else{
-                ftemp = ftemp->below;
+              }
+            }
+            
+            if (f==g){
+              if (k+1-zd[k+1] == L){
+                f = f->above;
+                //store divergence
+                dZ[f->id] = k+1-L;
+              }
+              if (k+1-bd[k+1] == L){
+                //store divergence
+                dZ[g->id] = k+1-L;
+                g = g->below;
+              }
+            }
+            if (f!=g) {
+              while (f->divergence <= k+1 - L){
+                f = f->above;
+                //store divergence
+                dZ[f->id] = k+1-L;
+              }
+              while (g->divergence <= k+1 - L){
+                //store divergence
+                dZ[g->id] = k+1-L;
+                g = g->below;
               }
             }
           }
           
-          if (f==g){
-            if (k+1-zd[k+1] == L){
-              f = f->above;
-              //store divergence
-              dZ[f->id] = k+1-L;
-            }
-            if (k+1-bd[k+1] == L){
-              //store divergence
-              dZ[g->id] = k+1-L;
-              g = g->below;
-            }
-          }
-          if (f!=g) {
-            while (f->divergence <= k+1 - L){
-              f = f->above;
-              //store divergence
-              dZ[f->id] = k+1-L;
-            }
-            while (g->divergence <= k+1 - L){
-              //store divergence
-              dZ[g->id] = k+1-L;
-              g = g->below;
-            }
-          }
-        }
-        
-        while (f != g){
-          //output match
-          //matchOut << f->originalid << " = q" << i-M+qM << " at [" << dZ[f->id] << ", " << N << ")\n";
-          int end2=N-1;
-          if(times==0){
-            int start2=dZ[f->id];
-            donoridtemp.push_back(f->originalid);
-            startpostemp.push_back(start2);
-            endpostemp.push_back(end2);
-            f = f->below;
-            for(int q=start2;q<=end2;++q){
-              nmatch[q]++;
-            }
-          }else{
-            if(addmatch[end2]){
+          while (f != g){
+            //output match
+            //matchOut << f->originalid << " = q" << i-M+qM << " at [" << dZ[f->id] << ", " << N << ")\n";
+            int end2=N-1;
+            if(times==0){
               int start2=dZ[f->id];
-              //add new matches with new L
-              if(end2-start2+1<prevL){
-                donoridtemp.push_back(f->originalid);
-                startpostemp.push_back(start2);
-                endpostemp.push_back(end2);
-                f = f->below;
-                for(int q=start2;q<=end2;++q){
-                  nmatch[q]++;
+              donoridtemp.push_back(f->originalid);
+              startpostemp.push_back(start2);
+              endpostemp.push_back(end2);
+              f = f->below;
+              for(int q=start2;q<=end2;++q){
+                nmatch[q]++;
+              }
+            }else{
+              if(addmatch[end2]){
+                int start2=dZ[f->id];
+                //add new matches with new L
+                if(end2-start2+1<prevL){
+                  donoridtemp.push_back(f->originalid);
+                  startpostemp.push_back(start2);
+                  endpostemp.push_back(end2);
+                  f = f->below;
+                  for(int q=start2;q<=end2;++q){
+                    nmatch[q]++;
+                  }
+                }else{
+                  f = f->below;
                 }
               }else{
                 f = f->below;
               }
+            }
+            
+          }
+          
+          if(L<=L_minmatch){
+            // we don't need to check whether we have all positions with minmatch matches
+            // if L is already the minimum value allowed
+            //if(times==0){
+              // find which SNPs don't have minmatch matches
+              //for(int j=0;j<N;++j){
+               //if (nmatch[j] ==0) {
+                  //nomatchsnp.push_back(j);
+                //}
+              //}
+            //}else{
+              //cout<<"here"<<endl;
+              //vector<int> nomatchsnptemp=nomatchsnp;
+              //nomatchsnp.clear();
+              // find which SNPs still don't have any matches
+             //for(int j=0;j<nomatchsnptemp.size();++j){
+              //  if (nmatch[nomatchsnptemp[j]] ==0) {
+              //    nomatchsnp.push_back(nomatchsnptemp[j]);
+              //  }
+              //}
+            //}
+            //cout<<L<<" and "<<nomatchsnp.size()<<endl;
+            //if(nomatchsnp.size()==0){
+              // stop when all SNPs have at least one match
+              allsnpmatches = true;
+            //}else{
+              // update L
+             // prevL=L;
+              //L=(prevL+1)/2; // this is equal to ceil(L/2) when L is double type
+              //if(L==1) allsnpmatches = true;
+              //times++;
+            //}
+          }else{
+            if(times==0){
+              // find which SNPs don't have minmatch matches
+              for(int j=0;j<N;++j){
+                if (nmatch[j] < minmatch) {
+                  nomatchsnp.push_back(j);
+                }
+              }
             }else{
-              f = f->below;
+              vector<int> nomatchsnptemp=nomatchsnp;
+              nomatchsnp.clear();
+              // find which SNPs still don't have minmatch matches
+              for(int j=0;j<nomatchsnptemp.size();++j){
+                if (nmatch[nomatchsnptemp[j]] < minmatch) {
+                  nomatchsnp.push_back(nomatchsnptemp[j]);
+                }
+              }
+            }
+            if(nomatchsnp.size()==0){
+              // stop when all SNPs have minmatch matches
+              allsnpmatches = true;
+            }else{
+              // update L
+              prevL=L;
+              L=(prevL+1)/2; // this is equal to ceil(L/2) when L is double type
+              if(L<L_minmatch) L=L_minmatch;
+              times++;
             }
           }
           
         }
         
-        if(L==L_minmatch){
-          // we don't need to check whether we have all positions with minmatch matches
-          // if L is already the minimum value allowed
-          allsnpmatches = true;
-        }else{
-          if(times==0){
-            // find which SNPs don't have minmatch matches
-            for(int j=0;j<N;++j){
-              if (nmatch[j] < minmatch) {
-                nomatchsnp.push_back(j);
+        delete [] z;
+        delete[] dZ;
+        
+        
+        //below we remove shorter matches while ensuring at least minmatch matches at each SNP
+        //information of matches is stored in donoridtemp, startpostemp and endpostemp
+        //number of matches at each SNP are stored in nmatch
+        //we first sort the genetic distance of each match
+        
+        vector<double> gdmatch(startpostemp.size());
+        for(int mi=0; mi<startpostemp.size();++mi){
+          gdmatch[mi]=gd[endpostemp[mi]]-gd[startpostemp[mi]];
+        }
+        vector<int> length_order=getorder(gdmatch);
+        
+        vector<int> fullidx; // record which SNP fewer than only minmatch matches
+        vector<int> nmatch_output;
+        for(int q=0;q<N;++q){
+          fullidx.push_back(q);
+          nmatch_output.push_back(0);
+        }
+        for(int mi=length_order.size()-1;mi>=0;--mi){
+          
+          int starttemp=startpostemp[length_order[mi]];
+          int endtemp=endpostemp[length_order[mi]];
+          
+          if(containsIndex(fullidx,starttemp,endtemp)){
+            local_startpos.push_back(starttemp);
+            local_endpos.push_back(endtemp);
+            local_donorid.push_back(donoridtemp[length_order[mi]]);
+            for(int q=starttemp;q<=endtemp;++q){
+              nmatch_output[q]++;
+              if(nmatch_output[q]==minmatch){
+                auto it = std::remove(fullidx.begin(), fullidx.end(), q);
+                fullidx.erase(it, fullidx.end());
               }
             }
-          }else{
-            vector<int> nomatchsnptemp=nomatchsnp;
-            nomatchsnp.clear();
-            // find which SNPs still don't have minmatch matches
-            for(int j=0;j<nomatchsnptemp.size();++j){
-              if (nmatch[nomatchsnptemp[j]] < minmatch) {
-                nomatchsnp.push_back(nomatchsnptemp[j]);
-              }
-            }
-          }
-          if(nomatchsnp.size()==0){
-            // stop when all SNPs have minmatch matches
-            allsnpmatches = true;
-          }else{
-            // update L
-            prevL=L;
-            L=(prevL+1)/2; // this is equal to ceil(L/2) when L is double type
-            if(L<L_minmatch) L=L_minmatch;
-            times++;
           }
         }
         
-      }
-      
-      delete [] z;
-      
-      
-      //below we remove shorter matches while ensuring at least minmatch matches at each SNP
-      //information of matches is stored in donoridtemp, startpostemp and endpostemp
-      //number of matches at each SNP are stored in nmatch
-      //we first sort the genetic distance of each match
-      
-      vector<double> gdmatch(startpostemp.size());
-      for(int mi=0; mi<startpostemp.size();++mi){
-        gdmatch[mi]=gd[endpostemp[mi]]-gd[startpostemp[mi]];
-      }
-      vector<int> length_order=getorder(gdmatch);
-      
-      vector<int> fullidx; // record which SNP has only minmatch matches
-      for(int q=0;q<N;++q){
-        if(nmatch[q]<=minmatch) fullidx.push_back(q);
-      }
-      for(int mi=0;mi<length_order.size();++mi){
         
-        int starttemp=startpostemp[length_order[mi]];
-        int endtemp=endpostemp[length_order[mi]];
         
-        if(!containsIndex(fullidx,starttemp,endtemp)){
-          for(int q=starttemp;q<=endtemp;++q){
-            nmatch[q]--;
-            if(nmatch[q]==minmatch) fullidx.push_back(q);
-          }
-        }else{
-          local_startpos.push_back(starttemp);
-          local_endpos.push_back(endtemp);
-          local_donorid.push_back(donoridtemp[length_order[mi]]);
-        }
-      }
-      
-      LoopResult result;
-      result.donorid = local_donorid;
-      result.startpos = local_startpos;
-      result.endpos = local_endpos;
-      result.queryid = local_startpos.size();
-      allResults[idx] = result;
-      
-      //record the position of the next start position of query haplotype
-      //such that we know how many matches are there for this query haplotype
-      //queryidall.push_back(startpos.size());
+       // vector<int> fullidx; // record which SNP has only minmatch matches
+       // for(int q=0;q<N;++q){
+       //   if(nmatch[q]<=minmatch) fullidx.push_back(q);
+       // }
+       // for(int mi=0;mi<length_order.size();++mi){
+          
+        //  int starttemp=startpostemp[length_order[mi]];
+       //   int endtemp=endpostemp[length_order[mi]];
+          
+       //   if(!containsIndex(fullidx,starttemp,endtemp)){
+       //     for(int q=starttemp;q<=endtemp;++q){
+       //       nmatch[q]--;
+        //      if(nmatch[q]==minmatch) fullidx.push_back(q);
+       //     }
+       //   }else{
+       //     local_startpos.push_back(starttemp);
+       //     local_endpos.push_back(endtemp);
+       //     local_donorid.push_back(donoridtemp[length_order[mi]]);
+       //   }
+       // }
+        
+        LoopResult result;
+        result.donorid = local_donorid;
+        result.startpos = local_startpos;
+        result.endpos = local_endpos;
+        result.queryid = local_startpos.size();
+        allResults[idx] = result;
+        
+        //record the position of the next start position of query haplotype
+        //such that we know how many matches are there for this query haplotype
+        //queryidall.push_back(startpos.size());
+    }
+    
+    nind_left=nind_left-ncores_use;
   }
+  
+  in.close();
   
   
   for (const auto& result : allResults) {
@@ -862,40 +814,35 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
 tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial, 
                                                                 vector<double> gd,
                                                                 vector<int>& queryidx,
-                                                                string query="target",
+                                                                int ncores,
+                                                                const int M=0,
+                                                                const int N=0,
+                                                                const int qM=0,
                                                                 int minmatch=100,
                                                                 int L_minmatch=20,
                                                                 bool haploid=false,
-                                                                const string donorfile="donor.vcf",
-                                                                const string targetfile="target.vcf"){
-
-  string in = donorfile;
-  bool **panel;
+                                                                const string donorfile="donor.phase.gz",
+                                                                const string targetfile="target.phase.gz"){
+  
   dpbwt x;
   
-  int M = 0;
-  int qM = 0;
-  int N = 0;
-  
-  if(query=="donor"){
-    ReadVCFsamefile(in, panel,N,M,haploid);
-  }else{
-    string qin = targetfile;
-    ReadVCF(in, qin, panel,N,M,qM,haploid);
-  }
-  
-  cout<<"finish read vcf"<<endl;
+  Readphase_donor(donorfile,x,N,M,qM,haploid);
   
   while(L_initial>N){
     L_initial=ceil(L_initial/2);
     cout<<"Initial L cannot be greater than N, reducing L to "<<L_initial<<endl;
   }
   
-  return(longMatchdpbwt(L_initial,panel,x,minmatch,gd,queryidx,N,M,qM,L_minmatch));
+  tuple<vector<int>,vector<int>,vector<int>,vector<int>> matchresults=longMatchdpbwt(L_initial,x,minmatch,
+                                                                                     gd,queryidx,N,M,qM,
+                                                                                     L_minmatch,ncores,targetfile);
   
-  
+  free_dpbwt_memory(x);
+    
+  return(matchresults);
   
 }
+
 
 vector<vector<int>> get_matchdata(vector<int> queryidall,
                                   vector<int> donorid,
@@ -1065,8 +1012,6 @@ vector<int> randomsample(const vector<int>& popidx,
   // Initialize the random number generator
   random_device rd;
   mt19937 gen(rd());
-  
-  
   
   // Shuffle the elements of the vector randomly
   vector<int> shuffled_popidx = popidx;
@@ -1480,13 +1425,17 @@ double est_rho_average(const hAnc& refidx,
                        int L_initial,
                        int minmatch,
                        int L_minmatch,
+                       int ncores,
                        const double indfrac=0.1,
                        const int ite_time=10, 
                        const string method="Viterbi",
                        const int minsnpEM=10000, 
                        const double EMsnpfrac=0.1,
                        bool haploid=false,
-                       const string donorfile="donor.vcf"){
+                       const string donorfile="donor.vcf",
+                       tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=
+                         make_tuple(vector<int>(), vector<int>(), vector<int>(), vector<int>()))
+  {
   // estimate \rho from the reference panel
   int npop=refidx.pos.size();
   vector<double> rho_est;
@@ -1512,18 +1461,32 @@ double est_rho_average(const hAnc& refidx,
     popstart.push_back(allsamples.size());
   }
   
+  if (get<0>(dpbwtall_ref).empty() && 
+      get<1>(dpbwtall_ref).empty() && 
+      get<2>(dpbwtall_ref).empty() && 
+      get<3>(dpbwtall_ref).empty()){
+    
+    vector<int> queryidx;
+    
+    for(int i=0;i<nref;++i){
+      queryidx.push_back(i);
+    }
+    
+    
+    cout<<"Do dPBWT for donor haplotypes"<<endl;
+    tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L_initial, gd,queryidx,
+                                                                                 ncores,nref,nsnp,0,
+                                                                                 minmatch,L_minmatch,
+                                                                                 haploid,donorfile,donorfile);
+    
+    cout<<"dPBWT works successfully"<<endl;
+  }
   
-  cout<<"Do dPBWT for donor haplotypes"<<endl;
-  tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L_initial, gd,allsamples,
-                                                                               "donor",minmatch,L_minmatch,
-                                                                               haploid,donorfile);
   vector<int> queryidall=get<0>(dpbwtall_ref);
   vector<int> donorid_ref=get<1>(dpbwtall_ref);
   vector<int> startpos_ref=get<2>(dpbwtall_ref);
   vector<int> endpos_ref=get<3>(dpbwtall_ref);
-  cout<<"dPBWT works successfully"<<endl;
   
-  int samplesum=0;
   
   for(int i=0;i<npop;++i){
     vector<int> samples;
@@ -1533,8 +1496,7 @@ double est_rho_average(const hAnc& refidx,
     
     for(int k=0;k<samples.size();++k){
       //leave-one-out
-      vector<vector<int>> matchdata=get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samplesum);
-      samplesum++;
+      vector<vector<int>> matchdata=get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samples[k]);
       vector<int> removeidx;
       for(int j=0;j<npop;++j){
         if(j==i){
@@ -1555,7 +1517,7 @@ double est_rho_average(const hAnc& refidx,
         }
         double rho_estimated=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
         count=count+1;
-        cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
+        //cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
         rho_est.push_back(rho_estimated);
       }else{
         hMat mat=matchfiletohMat(matchdata,nref-npop,nsnp);
@@ -1584,20 +1546,20 @@ double est_rho_average(const hAnc& refidx,
           
           double rho_estimated=est_rho_EM(mat_use,gd_use,ite_time);
           count=count+1;
-          cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
+          //cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
           rho_est.push_back(rho_estimated);
         }else{
           
           double rho_estimated=est_rho_EM(mat,gd,ite_time);
           count=count+1;
-          cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
+          //cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
           rho_est.push_back(rho_estimated);
         }
       }
     }
   }
   double rho_ave=vec_sum(rho_est)/rho_est.size();
-  cout<<"Average estimated rho is "<<rho_ave<<endl;
+  //cout<<"Average estimated rho is "<<rho_ave<<endl;
   return(rho_ave);
 }
 
@@ -1631,7 +1593,9 @@ hMat indpainting(const hMat& mat,
       popprob[popidx]=popprob[popidx]+marginal_prob.m[j].get(refnumberidx);
     }
     for(int i=0; i<npop; ++i){
-      marginal_prob_pop.m[j].set(i,popprob[i]);
+      if(popprob[i]>=0.01){
+        marginal_prob_pop.m[j].set(i,popprob[i]);
+      }
     }
   }
   return(marginal_prob_pop);
@@ -1695,20 +1659,25 @@ vector<double> chunklength_each(vector<double>& gd,
 
 
 // [[Rcpp::export]]
-vector<vector<double>> chunklengthall(const double paintfrac=0.2,
-                                      const string method="Viterbi", 
+vector<vector<double>> chunklengthall(const string method="Viterbi", 
                                       const int ite_time=10,
                                       const double indfrac=0.1,
                                       const int minsnpEM=10000, 
                                       const double EMsnpfrac=0.1,
-                                      int L_initial=500,
-                                      double minmatchfrac=0.001,
-                                      int L_minmatch=20,
+                                      int L_initial=200,
+                                      double minmatchfrac=0.002,
+                                      int L_minmatch=25,
                                       bool haploid=false,
-                                      const string donorfile="donor.vcf",
+                                      const string donorfile="donor.phase.gz",
                                       const string mapfile="map.txt",
                                       const string popfile="popnames.txt",
-                                      const string chunklengthfile="chunklength.txt"){
+                                      const string chunklengthfile="chunklength.txt",
+                                      int ncores=0){
+  
+  //detect cores
+  if(ncores==0){
+    ncores = omp_get_num_procs();
+  }
   
   // read the map data to get the genetic distance in Morgans
   tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);
@@ -1717,8 +1686,6 @@ vector<vector<double>> chunklengthall(const double paintfrac=0.2,
   tuple<vector<string>,vector<int>> popinfo = readpopfile(popfile);
   vector<string> indnames = get<0>(popinfo);
   vector<int> refindex = get<1>(popinfo);
-  
-  vector<int> samples_idx;
   
   if(!haploid){
     vector<int> refindex_new;
@@ -1737,96 +1704,90 @@ vector<vector<double>> chunklengthall(const double paintfrac=0.2,
   double rho;
   int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
   
-  //stratified sampling
   
   vector<int> queryidx;
-  vector<int> popstart={0}; //the start position of different population samples
   
-  //stratified sampling
-  for(int i=0;i<npop;++i){
-    //randomly sample a percentage of paintfrac reference samples
-    vector<int> popidx=refidx.findrows(i);
-    
-    if(haploid){
-      int nref_sample=static_cast<int>(ceil(popidx.size()*paintfrac));  //the number of samples of this ancestry
-      
-      vector<int> samples=randomsample(popidx,nref_sample); // sample index of this ancestry
-      
-      for(int j=0;j<nref_sample;++j){
-        queryidx.push_back(samples[j]);
-        samples_idx.push_back(samples[j]);
-      }
-    }else{
-      int nref_sample=static_cast<int>(ceil(popidx.size()*paintfrac/2));  //the number of individuals of this ancestry
-      
-      vector<int> popidx_use;
-      for(int j=0;j<popidx.size();++j){
-        if(j%2==0) popidx_use.push_back(popidx[j]/2);
-      }
-      
-      vector<int> samples=randomsample(popidx_use,nref_sample); // sample index of this ancestry
-      
-      for(int j=0;j<nref_sample;++j){
-        samples_idx.push_back(samples[j]);
-        queryidx.push_back(2*samples[j]);
-        queryidx.push_back(2*samples[j]+1);
-      }
-    }
-    
-    popstart.push_back(queryidx.size());
+
+  for(int i=0;i<nref;++i){
+    queryidx.push_back(i);
   }
   
-  
-  cout<<"Begin estimating fixed rho"<<endl;
-  
-  rho=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,indfrac,
-                      ite_time,method,minsnpEM,EMsnpfrac,haploid,donorfile);
-  
   cout<<"Do dPBWT on the reference"<<endl;
-
+  
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L_initial, gd,queryidx,
-                                                                               "donor",minmatch,L_minmatch,
-                                                                               haploid,donorfile);
+                                                                               ncores,nref,nsnp,0,
+                                                                               minmatch,L_minmatch,
+                                                                               haploid,donorfile,donorfile);
   vector<int> queryidall_ref=get<0>(dpbwtall_ref);
   vector<int> donorid_ref=get<1>(dpbwtall_ref);
   vector<int> startpos_ref=get<2>(dpbwtall_ref);
   vector<int> endpos_ref=get<3>(dpbwtall_ref);
   cout<<"dPBWT works successfully"<<endl;
   
+  cout<<"Begin estimating fixed rho"<<endl;
+  
+  rho=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,indfrac,
+                      ite_time,method,minsnpEM,EMsnpfrac,haploid,donorfile,dpbwtall_ref);
+  
   int nrefpaint=queryidx.size();
   
   vector<vector<double>> chunklength(nrefpaint, vector<double>(npop));
   
-#pragma omp parallel for
-  for(int i=0;i<nrefpaint;++i){
-    cout<<"Calculating chunk length for donor sample "<<i+1<<endl;
-    //leave-one-out
-    vector<vector<int>> matchdata=get_matchdata(queryidall_ref,
-                                                donorid_ref,
-                                                startpos_ref,
-                                                endpos_ref,
-                                                i);
-    vector<int> removeidx;
-    int popidx=refindex[queryidx[i]];
-    for(int j=0;j<npop;++j){
-      if(j==popidx){
-        removeidx.push_back(queryidx[i]);
-      }else{
-        removeidx.push_back(randomsample(refidx.findrows(j),1)[0]);
+  omp_set_num_threads(ncores);
+  
+  int nhap_left=nrefpaint;
+  
+  while(nhap_left>0){
+    int nsamples_use = (ncores < nhap_left) ? ncores : nhap_left;
+    // get the matches before the loop
+    vector<vector<vector<int>>> matchdata_use(nsamples_use);
+    
+    for (int ii = nrefpaint - nhap_left; ii < nrefpaint - nhap_left + nsamples_use; ++ii) {
+      // leave one out if the donor file is the same as the target file
+      vector<vector<int>> match_data = get_matchdata(queryidall_ref,
+                                                     donorid_ref,
+                                                     startpos_ref,
+                                                     endpos_ref,
+                                                     ii);
+      
+      matchdata_use[ii - (nrefpaint - nhap_left)] = match_data;
+    }
+    
+    cout<<"Calculating chunk length for donor samples "<<nrefpaint-nhap_left<<"-"<<nrefpaint-nhap_left+nsamples_use-1<<endl;
+    
+    #pragma omp parallel for
+    
+    for(int i=nrefpaint-nhap_left;i<nrefpaint-nhap_left+nsamples_use;++i){
+      //leave-one-out
+      vector<vector<int>> matchdata=matchdata_use[i-nrefpaint+nhap_left];
+      vector<int> removeidx;
+      int popidx=refindex[queryidx[i]];
+      for(int j=0;j<npop;++j){
+        if(j==popidx){
+          removeidx.push_back(queryidx[i]);
+        }else{
+          removeidx.push_back(randomsample(refidx.findrows(j),1)[0]);
+        }
+        //removeidx contains the indices to be removed for leave-one-out
       }
-      //removeidx contains the indices to be removed for leave-one-out
+      removeRowsWithValue(matchdata,removeidx);
+      hMat mat=matchfiletohMat(matchdata,nref-npop,nsnp);
+      vector<double> cl=chunklength_each(gd,mat,rho,npop,refindex);
+      for(int j=0;j<npop;++j){
+        chunklength[i][j]=cl[j];
+      }
     }
-    removeRowsWithValue(matchdata,removeidx);
-    hMat mat=matchfiletohMat(matchdata,nref-npop,nsnp);
-    vector<double> cl=chunklength_each(gd,mat,rho,npop,refindex);
-    for(int j=0;j<npop;++j){
-      chunklength[i][j]=cl[j];
-    }
+    nhap_left=nhap_left-nsamples_use;
+    
   }
   
   
-  ofstream outputFile(chunklengthfile);
-  if (outputFile.is_open()) {
+  
+
+  
+  
+  ofstream outputFile(chunklengthfile.c_str());
+  if (outputFile) {
     outputFile << "indnames" << " ";
     //the first row is the SNP's physical position
     for (int i = 0; i < npop; ++i) {
@@ -1838,7 +1799,7 @@ vector<vector<double>> chunklengthall(const double paintfrac=0.2,
     
     if(haploid){
       for(int ii=0;ii<nrefpaint;++ii){
-        outputFile << indnames[samples_idx[ii]] << " ";
+        outputFile << indnames[ii] << " ";
         for(int j=0;j<npop;++j){
           outputFile << fixed << setprecision(5) << chunklength[ii][j];
           if(j!=npop-1) outputFile << " ";
@@ -1847,14 +1808,14 @@ vector<vector<double>> chunklengthall(const double paintfrac=0.2,
       }
     }else{
       for(int ii=0;ii<nrefpaint/2;++ii){
-        outputFile << indnames[samples_idx[ii]] <<"_0 ";
+        outputFile << indnames[ii] <<"_0 ";
         for(int j=0;j<npop;++j){
           outputFile << fixed << setprecision(5) << chunklength[2*ii][j];
           if(j!=npop-1) outputFile << " ";
         }
         outputFile << "\n";
         
-        outputFile << indnames[samples_idx[ii]] <<"_1 ";
+        outputFile << indnames[ii] <<"_1 ";
         for(int j=0;j<npop;++j){
           outputFile << fixed << setprecision(5) << chunklength[2*ii+1][j];
           if(j!=npop-1) outputFile << " ";
@@ -1874,226 +1835,168 @@ vector<vector<double>> chunklengthall(const double paintfrac=0.2,
 }
 
 
-void LDA(const vector<vector<vector<double>>> &painting_all,
-         const vector<double>& gd,
-         const vector<double>& pd,
-         const string LDAfile, 
-         const bool outputLDAS,
-         const string LDASfile,
-         const double window){
-  
-  int nhap=painting_all.size();
-  int npop=painting_all[0].size();
-  int nsnp=painting_all[0][0].size();
-  
-  // calculate the number of SNPs in the left and right window of each SNP
-  vector<int> nsnp_left(nsnp);
-  vector<int> nsnp_right(nsnp);
-  
-  for (int j = 0; j < nsnp; ++j) {
-    int left_ptr = j - 1;
-    int right_ptr = j + 1;
-    nsnp_left[j] = 0;
-    nsnp_right[j] = 0;
-    // Count SNPs in the left window
-    while (left_ptr >= 0 && gd[j] - gd[left_ptr] <= window) {
-      nsnp_left[j]++;
-      left_ptr--;
-    }
-    // Count SNPs in the right window
-    while (right_ptr < nsnp && gd[right_ptr] - gd[j] <= window) {
-      nsnp_right[j]++;
-      right_ptr++;
-    }
-  }
-  
-  // then we calculate LDA and store in LDA_result (hMat)
-  hMat LDA_result(nsnp,nsnp,0.0);
-  
-  //resample haplotypes
-  vector<int> allhaps_idx;
-  for(int i=0;i<nhap;++i){
-    allhaps_idx.push_back(i);
-  }
-  vector<int> resample_idx = randomsample(allhaps_idx,nhap);
-  
-  //begin calculating LDA
+void LDAS(hMat &LDA_result,
+          const string LDASfile,
+          const double window,
+          const vector<double> gd,
+          const vector<double> pd,
+          const vector<int> nsnp_left,
+          const vector<int> nsnp_right,
+          const int nsnp){
+    
+    // calculate LDA score
+    vector<double> LDAS(nsnp);
+    vector<double> LDAS_upper(nsnp);
+    vector<double> LDAS_lower(nsnp);
 #pragma omp parallel for
-  for(int i=0;i<nsnp;++i){
-    cout<<"Computing LDA for SNP "<<i<<endl;
-    for(int j=i-nsnp_left[i];j<=i+nsnp_right[i];++j){
-      if(j==i){
-        LDA_result.m[i].set(i,1.0);
-      }else{
-        double distance=0;
-        double theo_distance=0;
-        for (int ii=0; ii<nhap; ii++){
-          double sum_squared_diff=0;
-          double sum_squared_diff_theo=0;
-          for (int k=0; k<npop; k++){
-            sum_squared_diff+= pow(painting_all[ii][k][i]-painting_all[ii][k][j],2);
-            sum_squared_diff_theo+= pow(painting_all[resample_idx[ii]][k][i]-painting_all[ii][k][j],2);
-          }
-          distance += sqrt(sum_squared_diff/npop);
-          theo_distance += sqrt(sum_squared_diff_theo/npop);
-        }
-        double LDA_value=abs(theo_distance-distance)/theo_distance;
-        if(LDA_value>=0.001) LDA_result.m[i].set(j,LDA_value);
+    for(int i=0;i<nsnp;++i){
+      //cout<<"Computing LDAS for SNP "<<i<<endl;
+      vector<double> gdgap;
+      vector<double> LDA_ave;
+      vector<double> LDA_upper;
+      vector<double> LDA_lower;
+      for(int j=i-nsnp_left[i];j<=i+nsnp_right[i]-1;++j){
+        gdgap.push_back(gd[j+1]-gd[j]);
+        LDA_ave.push_back((LDA_result.m[min(i,j)].get(max(i,j))+LDA_result.m[min(i,j+1)].get(max(i,j+1)))/2);
+        LDA_upper.push_back(max(LDA_result.m[min(i,j)].get(max(i,j)),LDA_result.m[min(i,j+1)].get(max(i,j+1))));
+        LDA_lower.push_back(min(LDA_result.m[min(i,j)].get(max(i,j)),LDA_result.m[min(i,j+1)].get(max(i,j+1))));
       }
-    }
-  }
-  
-  //output the LDA results into LDAfile
-  ofstream outputFile(LDAfile);
-  if (outputFile.is_open()) {
-    for (int i = 0; i < nsnp; ++i) {
-      vector<int> keys = LDA_result.m[i].k;
-      for (int j = 0; j < keys.size(); ++j) {
-        if(i < keys[j]){
-          outputFile << fixed << setprecision(0) << pd[i];
-          outputFile << " " << fixed << setprecision(0) << pd[keys[j]];
-          outputFile << " " << fixed << setprecision(3) << LDA_result.m[i].get(keys[j]);
-          outputFile << "\n";
-        }
+      double left_distance=gd[i]-gd[i-nsnp_left[i]];
+      double right_distance=gd[i+nsnp_right[i]]-gd[i];
+      if(i-nsnp_left[i]>0 && i+nsnp_right[i]<nsnp){
+        gdgap.push_back(window-left_distance);
+        gdgap.push_back(window-right_distance);
+        LDA_ave.push_back((LDA_result.m[i-nsnp_left[i]].get(i)+LDA_result.m[i-nsnp_left[i]-1].get(i))/2);
+        LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
+        LDA_upper.push_back(max(LDA_result.m[i-nsnp_left[i]].get(i),LDA_result.m[i-nsnp_left[i]-1].get(i)));
+        LDA_upper.push_back(max(LDA_result.m[i].get(i+nsnp_right[i]),LDA_result.m[i].get(i+nsnp_right[i]+1)));
+        LDA_lower.push_back(min(LDA_result.m[i-nsnp_left[i]].get(i),LDA_result.m[i-nsnp_left[i]-1].get(i)));
+        LDA_lower.push_back(min(LDA_result.m[i].get(i+nsnp_right[i]),LDA_result.m[i].get(i+nsnp_right[i]+1)));
       }
-    }
-    
-    outputFile.close();
-  } else {
-    cerr << "Unable to open file" << LDAfile;
-  }
-  
-  
-  // calculate LDA score
-  vector<double> LDAS(nsnp);
-#pragma omp parallel for
-  for(int i=0;i<nsnp;++i){
-    cout<<"Computing LDAS for SNP "<<i<<endl;
-    vector<double> gdgap;
-    vector<double> LDA_ave;
-    for(int j=i-nsnp_left[i];j<=i+nsnp_right[i]-1;++j){
-      gdgap.push_back(gd[j+1]-gd[j]);
-      LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j+1))/2);
-    }
-    double left_distance=gd[i]-gd[i-nsnp_left[i]];
-    double right_distance=gd[i+nsnp_right[i]]-gd[i];
-    if(i-nsnp_left[i]>0 && i+nsnp_right[i]<nsnp){
-      gdgap.push_back(window-left_distance);
-      gdgap.push_back(window-right_distance);
-      LDA_ave.push_back((LDA_result.m[i].get(i-nsnp_left[i])+LDA_result.m[i].get(i-nsnp_left[i]-1))/2);
-      LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
-    }
-    
-    if(i-nsnp_left[i]==0 && i+nsnp_right[i]<nsnp){
-      // right window
-      gdgap.push_back(window-right_distance);
-      LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
-      // use the right window to estimate the left window
-      // window-left_distance is the distance to be estimated from the right window
-      double gdright_add=0;
-      int j=i+nsnp_right[i];
       
-      while(gdright_add < window-left_distance){
-        // how long distance from enough
-        double distance_from_enough = window-left_distance-gdright_add;
-        gdright_add=window+gd[i]-gd[j];
-        if(gdright_add <= window-left_distance){
-          // estimated distance still not enough or just enough
-          if(j==i+nsnp_right[i]){
-            gdgap.push_back(window-right_distance);
+      if(i-nsnp_left[i]==0 && i+nsnp_right[i]<nsnp){
+        // right window
+        gdgap.push_back(window-right_distance);
+        LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
+        LDA_upper.push_back(max(LDA_result.m[i].get(i+nsnp_right[i]),LDA_result.m[i].get(i+nsnp_right[i]+1)));
+        LDA_lower.push_back(min(LDA_result.m[i].get(i+nsnp_right[i]),LDA_result.m[i].get(i+nsnp_right[i]+1)));
+        // use the right window to estimate the left window
+        // window-left_distance is the distance to be estimated from the right window
+        double gdright_add=0;
+        int j=i+nsnp_right[i];
+        
+        while(gdright_add < window-left_distance){
+          // how long distance from enough
+          double distance_from_enough = window-left_distance-gdright_add;
+          gdright_add=window+gd[i]-gd[j];
+          if(gdright_add <= window-left_distance){
+            // estimated distance still not enough or just enough
+            if(j==i+nsnp_right[i]){
+              gdgap.push_back(window-right_distance);
+            }else{
+              gdgap.push_back(gd[j+1]-gd[j]);
+            }
           }else{
-            gdgap.push_back(gd[j+1]-gd[j]);
+            // estimated distance is enough
+            gdgap.push_back(distance_from_enough);
           }
-        }else{
-          // estimated distance is enough
-          gdgap.push_back(distance_from_enough);
+          LDA_ave.push_back((LDA_result.m[min(i,j)].get(max(i,j))+LDA_result.m[min(i,j+1)].get(max(i,j+1)))/2);
+          LDA_upper.push_back(max(LDA_result.m[min(i,j)].get(max(i,j)),LDA_result.m[min(i,j+1)].get(max(i,j+1))));
+          LDA_lower.push_back(min(LDA_result.m[min(i,j)].get(max(i,j)),LDA_result.m[min(i,j+1)].get(max(i,j+1))));
+          j=j-1;
+          //endwhile
         }
-        LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j+1))/2);
-        j=j-1;
-        //endwhile
+        //endif
       }
-      //endif
-    }
-    
-    
-    if(i-nsnp_left[i]>0 && i+nsnp_right[i]==nsnp){
-      // left window
-      gdgap.push_back(window-left_distance);
-      LDA_ave.push_back((LDA_result.m[i].get(i-nsnp_left[i])+LDA_result.m[i].get(i-nsnp_left[i]-1))/2);
-      // use the left window to estimate the right window
-      // window-right_distance is the distance to be estimated from the left window
-      double gdleft_add=0;
-      int j=i-nsnp_left[i];
       
-      while(gdleft_add < window-right_distance){
-        // how long distance from enough
-        double distance_from_enough = window-right_distance-gdleft_add;
-        gdleft_add=gd[j]-(gd[i]-window);
-        if(gdleft_add <= window-right_distance){
-          // estimated distance still not enough or just enough
-          if(j==i-nsnp_left[i]){
-            gdgap.push_back(window-left_distance);
+      
+      if(i-nsnp_left[i]>0 && i+nsnp_right[i]==nsnp){
+        // left window
+        gdgap.push_back(window-left_distance);
+        LDA_ave.push_back((LDA_result.m[i-nsnp_left[i]].get(i)+LDA_result.m[i-nsnp_left[i]-1].get(i))/2);
+        LDA_upper.push_back(max(LDA_result.m[i-nsnp_left[i]].get(i),LDA_result.m[i-nsnp_left[i]-1].get(i)));
+        LDA_lower.push_back(min(LDA_result.m[i-nsnp_left[i]].get(i),LDA_result.m[i-nsnp_left[i]-1].get(i)));
+        // use the left window to estimate the right window
+        // window-right_distance is the distance to be estimated from the left window
+        double gdleft_add=0;
+        int j=i-nsnp_left[i];
+        
+        while(gdleft_add < window-right_distance){
+          // how long distance from enough
+          double distance_from_enough = window-right_distance-gdleft_add;
+          gdleft_add=gd[j]-(gd[i]-window);
+          if(gdleft_add <= window-right_distance){
+            // estimated distance still not enough or just enough
+            if(j==i-nsnp_left[i]){
+              gdgap.push_back(window-left_distance);
+            }else{
+              gdgap.push_back(gd[j]-gd[j-1]);
+            }
           }else{
-            gdgap.push_back(gd[j]-gd[j-1]);
+            // estimated distance is enough
+            gdgap.push_back(distance_from_enough);
           }
-        }else{
-          // estimated distance is enough
-          gdgap.push_back(distance_from_enough);
+          LDA_ave.push_back((LDA_result.m[min(i,j)].get(max(i,j))+LDA_result.m[min(i,j-1)].get(max(i,j-1)))/2);
+          LDA_upper.push_back(max(LDA_result.m[min(i,j)].get(max(i,j)),LDA_result.m[min(i,j-1)].get(max(i,j-1))));
+          LDA_lower.push_back(min(LDA_result.m[min(i,j)].get(max(i,j)),LDA_result.m[min(i,j-1)].get(max(i,j-1))));
+          j=j+1;
+          //endwhile
         }
-        LDA_ave.push_back((LDA_result.m[i].get(j)+LDA_result.m[i].get(j-1))/2);
-        j=j+1;
-        //endwhile
+        //endif
       }
-      //endif
+      for(int q=0;q<gdgap.size();++q){
+        LDAS[i]+=LDA_ave[q]*gdgap[q];
+        LDAS_upper[i]+=LDA_upper[q]*gdgap[q];
+        LDAS_lower[i]+=LDA_lower[q]*gdgap[q];
+      }
     }
-    for(int q=0;q<gdgap.size();++q){
-      LDAS[i]+=LDA_ave[q]*gdgap[q];
+    
+    //output the LDAS results into LDASfile
+    ofstream outputFile(LDASfile);
+    if (outputFile.is_open()) {
+      outputFile.precision(15);
+      outputFile << "physical_position" << " " << "LDAS" << " " << "LDAS_lower" << " " << "LDAS_upper" << "\n";
+      for (int i = 0; i < nsnp; ++i) {
+        outputFile << fixed<< setprecision(0) << pd[i];
+        outputFile << " " << fixed << setprecision(4) << LDAS[i] <<" "<< LDAS_lower[i] <<" " << LDAS_upper[i] << "\n";
+      }
+      outputFile.close();
+    } else {
+      cerr << "Unable to open file" << LDASfile;
     }
+    
   }
-  
-  //output the LDAS results into LDASfile
-  ofstream outputFile2(LDASfile);
-  if (outputFile2.is_open()) {
-    outputFile2.precision(15);
-    for (int i = 0; i < nsnp; ++i) {
-      outputFile2 << fixed<< setprecision(0) << pd[i];
-      outputFile2 << " " << fixed << setprecision(3) << LDAS[i] << "\n";
-    }
-    outputFile2.close();
-  } else {
-    cerr << "Unable to open file" << LDASfile;
+
+
+
+void paintingalldense(const string method="Viterbi",
+                      bool fixrho=false,
+                      const int ite_time=10,
+                      const double indfrac=0.1,
+                      const int minsnpEM=10000, 
+                      const double EMsnpfrac=0.1,
+                      int L_initial=200,
+                      double minmatchfrac=0.002,
+                      int L_minmatch=25,
+                      bool haploid=false,
+                      const string donorfile="donor.phase.gz",
+                      const string targetfile="target.phase.gz",
+                      const string mapfile="map.txt",
+                      const string popfile="popnames.txt",
+                      const string targetname="targetname.txt",
+                      bool outputpainting=true,
+                      bool outputLDA=true,
+                      bool outputLDAS=true,
+                      const string paintingfile="painting.txt.gz",
+                      const string LDAfile="LDA.txt.gz",
+                      const string LDASfile="LDAS.txt",
+                      const double window=0.04,
+                      const int LDAfactor=1,
+                      int ncores=0){
+  //detect cores
+  if(ncores==0){
+    ncores = omp_get_num_procs();
   }
-  
-}
-
-
-
-// [[Rcpp::export]]
-vector<vector<vector<double>>> paintingalldense(const int nind,
-                                                const double targetfrac=0.1,
-                                                const string method="Viterbi",
-                                                bool fixrho=true,
-                                                const int ite_time=10,
-                                                const double indfrac=0.1,
-                                                const int minsnpEM=10000, 
-                                                const double EMsnpfrac=0.1,
-                                                int L_initial=500,
-                                                double minmatchfrac=0.001,
-                                                int L_minmatch=20,
-                                                int L_min_for_score=50,
-                                                bool haploid=false,
-                                                const string donorfile="donor.vcf",
-                                                const string targetfile="target.vcf",
-                                                const string mapfile="map.txt",
-                                                const string popfile="popnames.txt",
-                                                const string targetname="targetname.txt",
-                                                bool outputpainting=true,
-                                                bool outputLDA=true,
-                                                bool outputLDAS=true,
-                                                const string paintingfile="painting.txt",
-                                                const string LDAfile="LDA.txt",
-                                                const string LDASfile="LDAS.txt",
-                                                const double window=0.05){
   
   // read the map data to get the genetic distance in Morgans
   tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);
@@ -2106,7 +2009,7 @@ vector<vector<vector<double>>> paintingalldense(const int nind,
   
   vector<string> indnames = readtargetname(targetname);
   
-  vector<int> queryidx_temp;
+  int nind=indnames.size();
   
   //adjust refindex
   if(!haploid){
@@ -2122,47 +2025,28 @@ vector<vector<vector<double>>> paintingalldense(const int nind,
   for(int i=0;i<nind;++i){
     allind.push_back(i);
   }
-  int nind_use=static_cast<int>(ceil(nind*targetfrac));
-  // we want to guarantee both copies of an individual are sampled
   int nhap_use;
   vector<int> queryidx;
   
-  if(nind_use==nind){
-    if(haploid){
-      for(int i=0;i<nind;++i){
-        queryidx.push_back(i);
-      }
-      nhap_use=nind;
-      queryidx_temp=queryidx;
-    }else{
-      for(int i=0;i<nind;++i){
-        queryidx.push_back(2*i);
-        queryidx.push_back(2*i+1);
-        queryidx_temp.push_back(i);
-      }
-      nhap_use=nind*2;
+  if(haploid){
+    for(int i=0;i<nind;++i){
+      queryidx.push_back(i);
     }
+    nhap_use=nind;
   }else{
-    if(haploid){
-      queryidx=randomsample(allind,nind_use);
-      queryidx_temp=queryidx;
-      nhap_use=nind_use;
-    }else{
-      queryidx_temp=randomsample(allind,nind_use);
-      for(int i : queryidx_temp){
-        queryidx.push_back(2*i);
-        queryidx.push_back(2*i+1);
-      }
-      nhap_use=nind_use*2;
+    for(int i=0;i<nind;++i){
+      queryidx.push_back(2*i);
+      queryidx.push_back(2*i+1);
     }
+    nhap_use=nind*2;
   }
+  
   
   //compute painting for all target individuals
   const int nsnp=gd.size();
   const int nref=refindex.size();
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
-  vector<vector<vector<double>>> painting_all(nhap_use, vector<vector<double>>(npop, vector<double>(nsnp)));
   double rho_use;
   double gdall=gd[nsnp-1]-gd[0];
   int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
@@ -2170,8 +2054,8 @@ vector<vector<vector<double>>> paintingalldense(const int nind,
   if(fixrho){
     
     cout<<"Begin estimating fixed rho"<<endl;
-    rho_use=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,indfrac,ite_time,
-                            method,minsnpEM,EMsnpfrac,haploid,donorfile);
+    rho_use=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,
+                            indfrac,ite_time,method,minsnpEM,EMsnpfrac,haploid,donorfile);
   }
   
   
@@ -2181,12 +2065,21 @@ vector<vector<vector<double>>> paintingalldense(const int nind,
   
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_target;
   
+  int qM;
+  
   if(donorfile==targetfile){
-    loo=true;
-    dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,"donor",minmatch,L_minmatch,haploid,donorfile);
+    loo = true;
+    qM=0;
   }else{
-    dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,"target",minmatch,L_minmatch,haploid,donorfile,targetfile);
+    if(haploid){
+      qM=nind;
+    }else{
+      qM=2*nind;
+    }
   }
+  
+  dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,ncores,nref+qM,nsnp,qM,minmatch,
+                           L_minmatch,haploid,donorfile,targetfile);
   
   vector<int> queryidall_target=get<0>(dpbwtall_target);
   vector<int> donorid_target=get<1>(dpbwtall_target);
@@ -2194,63 +2087,187 @@ vector<vector<vector<double>>> paintingalldense(const int nind,
   vector<int> endpos_target=get<3>(dpbwtall_target);
   cout<<"dPBWT works successfully"<<endl;
   
-  #pragma omp parallel for
-  for(int ii=0;ii<nhap_use;++ii){
-    cout<<"Calculating painting for haplotype "<<ii+1<<endl;
+  // begin painting
+  // we only store ncores*2 samples in memory and directly output
+  
+  omp_set_num_threads(ncores);
+  
+  int nsamples_use;
+  int nhap_left=nhap_use;
+
+  
+  //store data in hMat if want to compute LDA
+  //vector<hMat> painting_all_hmat(nhap_use, hMat(npop, nsnp));
+  
+  
+  vector<int> nsnp_left(nsnp);
+  vector<int> nsnp_right(nsnp);
+  
+  if(outputLDA || outputLDAS){
+    // calculate the number of SNPs in the left and right window of each SNP
     
-    // leave one out if the donor file is the same as the target file
-    
-    vector<vector<int>> targetmatchdata=get_matchdata(queryidall_target,
-                                                      donorid_target,
-                                                      startpos_target,
-                                                      endpos_target,
-                                                      ii,loo);
-    
-    hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
-    if(fixrho){
-      hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
-      vector<vector<double>> pind_dense=hMatrix2matrix(pind);
-      for(int j=0;j<npop;++j){
-        for(int k=0;k<nsnp;++k){
-          painting_all[ii][j][k]=pind_dense[j][k];
-        }
+    for (int j = 0; j < nsnp; ++j) {
+      int left_ptr = j - 1;
+      int right_ptr = j + 1;
+      nsnp_left[j] = 0;
+      nsnp_right[j] = 0;
+      // Count SNPs in the left window
+      while (left_ptr >= 0 && gd[j] - gd[left_ptr] <= window) {
+        nsnp_left[j]++;
+        left_ptr--;
       }
-    }else{
-      vector<int> startpos, endpos;
-      for (const auto& row : targetmatchdata) {
-        startpos.push_back(row[1]);
-        endpos.push_back(row[2]);
-      }
-      rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
-      cout<<"Estimated rho is "<<rho_use<<endl;
-      hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
-      vector<vector<double>> pind_dense=hMatrix2matrix(pind);
-      for(int j=0;j<npop;++j){
-        for(int k=0;k<nsnp;++k){
-          painting_all[ii][j][k]=pind_dense[j][k];
-        }
+      // Count SNPs in the right window
+      while (right_ptr < nsnp && gd[right_ptr] - gd[j] <= window) {
+        nsnp_right[j]++;
+        right_ptr++;
       }
     }
+    
+  }
+  
+  // calculate LDA and store in LDA_result (hMat)
+  // should be defined outside of the if command
+  //hMat LDA_result(nsnp,nsnp,0.0);
+  //hMat Dprime(nsnp,nsnp,0.0);
+  
+  vector<vector<double>> Dscore(nsnp - 1); // Create a vector of vectors with size nsnp - 1
+  vector<vector<double>> Dprime(nsnp - 1);
+  for(int i = 0; i < nsnp - 1; ++i) {
+    Dscore[i].resize(nsnp_right[i], 0.0); // Resize the inner vector to nsnp_right[i] and initialize with 0.0
+    Dprime[i].resize(nsnp_right[i], 0.0);
   }
   
   if(outputpainting){
-    //output the LDA results into LDAfile
-    ofstream outputFile(paintingfile);
-    if (outputFile.is_open()) {
-      outputFile << "indnames" << " ";
-      //the first row is the SNP's physical position
-      for (int i = 0; i < nsnp; ++i) {
-        outputFile << fixed << setprecision(0) << pd[i];
-        if(i != nsnp-1) outputFile << " ";
-      }
-      outputFile << "\n";
+    //output the painting into paintingfile
+    //ofstream outputFile(paintingfile);
+    ogzstream outputFile(paintingfile.c_str());
+    outputFile << "indnames" << " ";
+    //the first row is the SNP's physical position
+    for (int i = 0; i < nsnp; ++i) {
+      outputFile << fixed << setprecision(0) << pd[i];
+      if(i != nsnp-1) outputFile << " ";
+    }
+    outputFile << "\n";
+    
+    int looptime=0;
+    
+    while(nhap_left>0){
+      nsamples_use = (ncores*2*LDAfactor < nhap_left) ? ncores*2*LDAfactor : nhap_left; //ensure both copies are included
       
+      vector<vector<vector<double>>> painting_all(nsamples_use, 
+                                                  vector<vector<double>>(npop, vector<double>(nsnp)));
+      
+      // get the matches before the loop
+      vector<vector<vector<int>>> targetmatch_use(nsamples_use);
+      
+      for (int ii = nhap_use - nhap_left; ii < nhap_use - nhap_left + nsamples_use; ++ii) {
+        // leave one out if the donor file is the same as the target file
+        vector<vector<int>> match_data = get_matchdata(queryidall_target,
+                                                       donorid_target,
+                                                       startpos_target,
+                                                       endpos_target,
+                                                       ii, loo);
+        
+        targetmatch_use[ii - (nhap_use - nhap_left)] = match_data;
+      }
+      
+      cout<<"Calculating painting for samples "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+#pragma omp parallel for
+      for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+        
+        
+        vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
+        
+        hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
+        if(fixrho){
+          hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+          
+          
+          //if want to compute LDA
+          //painting_all_hmat[ii]=pind;
+          
+          
+          vector<vector<double>> pind_dense=hMatrix2matrix(pind);
+          for(int j=0;j<npop;++j){
+            for(int k=0;k<nsnp;++k){
+              painting_all[ii-nhap_use+nhap_left][j][k]=pind_dense[j][k];
+            }
+          }
+        }else{
+          vector<int> startpos, endpos;
+          for (const auto& row : targetmatchdata) {
+            startpos.push_back(row[1]);
+            endpos.push_back(row[2]);
+          }
+          rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
+          //cout<<"Estimated rho is "<<rho_use<<endl;
+          hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+          
+          
+          //if want to compute LDA
+          //painting_all_hmat[ii]=pind;
+          
+          
+          vector<vector<double>> pind_dense=hMatrix2matrix(pind);
+          for(int j=0;j<npop;++j){
+            for(int k=0;k<nsnp;++k){
+              painting_all[ii-nhap_use+nhap_left][j][k]=pind_dense[j][k];
+            }
+          }
+        }
+      }
+      
+      //compute LDA
+      cout<<"Calculating LDA for samples "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+      if(outputLDA || outputLDAS){
+        vector<int> allhaps_idx;
+        for(int i=0;i<nsamples_use;++i){
+          allhaps_idx.push_back(i);
+        }
+        vector<int> resample_idx = randomsample(allhaps_idx,nsamples_use);
+#pragma omp parallel for
+        for(int i=0;i<nsnp-1;++i){
+          //LDA_result.m[i].set(i,1.0);
+          //Dprime.m[i].set(i,1.0);
+          //cout<<"Computing LDA for SNP "<<i<<endl;
+          if(nsnp_right[i]!=0){
+            for(int j=i+1;j<=i+nsnp_right[i];++j){
+              double distance=0;
+              double theo_distance=0;
+              for (int nn=0; nn<nsamples_use; nn++){
+                double sum_squared_diff=0;
+                double sum_squared_diff_theo=0;
+                for (int k=0; k<npop; k++){
+                  sum_squared_diff+= pow(painting_all[nn][k][i]-painting_all[nn][k][j],2);
+                  sum_squared_diff_theo+= pow(painting_all[resample_idx[nn]][k][i]-painting_all[nn][k][j],2);
+                }
+                distance += sqrt(sum_squared_diff/npop);
+                theo_distance += sqrt(sum_squared_diff_theo/npop);
+              }
+              if(looptime==0){
+                //LDA_result.m[i].set(j,distance);
+                //Dprime.m[i].set(j,theo_distance);
+                Dscore[i][j-i-1]=distance;
+                Dprime[i][j-i-1]=theo_distance;
+              }else{
+                //LDA_result.m[i].set(j,distance+LDA_result.m[i].get(j));
+                //Dprime.m[i].set(j,theo_distance+Dprime.m[i].get(j));
+                Dscore[i][j-i-1]+=distance;
+                Dprime[i][j-i-1]+=theo_distance;
+              }
+            }
+          }
+        }
+      }
+      
+      
+      //output painting
       if(haploid){
-        for(int ii=0;ii<nhap_use;++ii){
-          outputFile << indnames[queryidx_temp[ii]] << " ";
+        for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+          outputFile << indnames[ii] << " ";
           for (int j = 0; j < nsnp; ++j) {
             for(int k=0;k<npop;++k){
-              outputFile << fixed << setprecision(3) << painting_all[ii][k][j];
+              outputFile << fixed << setprecision(2) << painting_all[ii-nhap_use+nhap_left][k][j];
               if(k!=npop-1) outputFile << ",";
             }
             if(j!=nsnp-1) outputFile << " ";
@@ -2258,16 +2275,16 @@ vector<vector<vector<double>>> paintingalldense(const int nind,
           outputFile << "\n";
         }
       }else{
-        for(int ii=0;ii<nhap_use/2;++ii){
-          outputFile << indnames[queryidx_temp[ii]] << " ";
+        for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+          outputFile << indnames[ii] << " ";
           for (int j = 0; j < nsnp; ++j) {
             for(int k=0;k<npop;++k){
-              outputFile << fixed << setprecision(3) << painting_all[2*ii][k][j];
+              outputFile << fixed << setprecision(2) << painting_all[2*ii-nhap_use+nhap_left][k][j];
               if(k!=npop-1) outputFile << ",";
             }
             outputFile << "|";
             for(int k=0;k<npop;++k){
-              outputFile << fixed << setprecision(3) << painting_all[2*ii+1][k][j];
+              outputFile << fixed << setprecision(2) << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
               if(k!=npop-1) outputFile << ",";
             }
             if(j!=nsnp-1) outputFile << " ";
@@ -2275,127 +2292,291 @@ vector<vector<vector<double>>> paintingalldense(const int nind,
           outputFile << "\n";
         }
       }
+      vector<vector<vector<double>>>().swap(painting_all);
+      nhap_left=nhap_left-nsamples_use;
+      looptime++;
+    }
+    
+    outputFile.close();
+  }else{
+    //don't output the painting into paintingfile
+    
+    int looptime=0;
+    
+    while(nhap_left>0){
+      nsamples_use = (ncores*2*LDAfactor < nhap_left) ? ncores*2*LDAfactor : nhap_left; //ensure both copies are included
       
-      outputFile.close();
-    } else {
-      cerr << "Unable to open file" << paintingfile;
+      vector<vector<vector<double>>> painting_all(nsamples_use, 
+                                                  vector<vector<double>>(npop, vector<double>(nsnp)));
+      
+      // get the matches before the loop
+      vector<vector<vector<int>>> targetmatch_use(nsamples_use);
+      
+      for (int ii = nhap_use - nhap_left; ii < nhap_use - nhap_left + nsamples_use; ++ii) {
+        // leave one out if the donor file is the same as the target file
+        vector<vector<int>> match_data = get_matchdata(queryidall_target,
+                                                       donorid_target,
+                                                       startpos_target,
+                                                       endpos_target,
+                                                       ii, loo);
+        
+        targetmatch_use[ii - (nhap_use - nhap_left)] = match_data;
+      }
+      
+      cout<<"Calculating painting for samples "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+#pragma omp parallel for
+      
+      for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+        
+        vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
+        
+        hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
+        if(fixrho){
+          hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+          
+          
+          //if want to compute LDA
+          //painting_all_hmat[ii]=pind;
+          
+          
+          vector<vector<double>> pind_dense=hMatrix2matrix(pind);
+          for(int j=0;j<npop;++j){
+            for(int k=0;k<nsnp;++k){
+              painting_all[ii-nhap_use+nhap_left][j][k]=pind_dense[j][k];
+            }
+          }
+        }else{
+          vector<int> startpos, endpos;
+          for (const auto& row : targetmatchdata) {
+            startpos.push_back(row[1]);
+            endpos.push_back(row[2]);
+          }
+          rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
+          //cout<<"Estimated rho is "<<rho_use<<endl;
+          hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+          
+          
+          //if want to compute LDA
+          //painting_all_hmat[ii]=pind;
+          
+          
+          vector<vector<double>> pind_dense=hMatrix2matrix(pind);
+          for(int j=0;j<npop;++j){
+            for(int k=0;k<nsnp;++k){
+              painting_all[ii-nhap_use+nhap_left][j][k]=pind_dense[j][k];
+            }
+          }
+        }
+      }
+      
+      //compute LDA
+      cout<<"Calculating LDA for samples "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+      if(outputLDA || outputLDAS){
+        vector<int> allhaps_idx;
+        for(int i=0;i<nsamples_use;++i){
+          allhaps_idx.push_back(i);
+        }
+        vector<int> resample_idx = randomsample(allhaps_idx,nsamples_use);
+#pragma omp parallel for
+        for(int i=0;i<nsnp-1;++i){
+          //LDA_result.m[i].set(i,1.0);
+          //Dprime.m[i].set(i,1.0);
+          //cout<<"Computing LDA for SNP "<<i<<endl;
+          if(nsnp_right[i]!=0){
+            for(int j=i+1;j<=i+nsnp_right[i];++j){
+              double distance=0;
+              double theo_distance=0;
+              for (int nn=0; nn<nsamples_use; nn++){
+                double sum_squared_diff=0;
+                double sum_squared_diff_theo=0;
+                for (int k=0; k<npop; k++){
+                  sum_squared_diff+= pow(painting_all[nn][k][i]-painting_all[nn][k][j],2);
+                  sum_squared_diff_theo+= pow(painting_all[resample_idx[nn]][k][i]-painting_all[nn][k][j],2);
+                }
+                distance += sqrt(sum_squared_diff/npop);
+                theo_distance += sqrt(sum_squared_diff_theo/npop);
+              }
+              if(looptime==0){
+                //LDA_result.m[i].set(j,distance);
+                //Dprime.m[i].set(j,theo_distance);
+                Dscore[i][j-i-1]=distance;
+                Dprime[i][j-i-1]=theo_distance;
+              }else{
+                //LDA_result.m[i].set(j,distance+LDA_result.m[i].get(j));
+                //Dprime.m[i].set(j,theo_distance+Dprime.m[i].get(j));
+                Dscore[i][j-i-1]+=distance;
+                Dprime[i][j-i-1]+=theo_distance;
+              }
+            }
+          }
+        }
+      }
+
+      vector<vector<vector<double>>>().swap(painting_all);
+      nhap_left=nhap_left-nsamples_use;
+      looptime++;
+    }
+    
+  }
+  
+  
+  // arrange results in hMat LDA_result
+  hMat LDA_result(nsnp,nsnp,0.0);
+  if(outputLDA || outputLDAS){
+    for(int i=0; i<nsnp; ++i){
+      LDA_result.m[i].set(i,1.0);
+      if(nsnp_right[i]!=0){
+        for(int j=i+1;j<=i+nsnp_right[i];++j){
+          LDA_result.m[i].set(j,1-Dscore[i][j-i-1]/Dprime[i][j-i-1]);
+        }
+      }
     }
   }
   
+  
   if(outputLDA){
-    LDA(painting_all,gd,pd,LDAfile,outputLDAS,LDASfile,window);
+    //output the LDA results into LDAfile
+    ogzstream outputFile(LDAfile.c_str());
+    if (outputFile) {
+      for (int i = 0; i < nsnp; ++i) {
+        vector<int> keys = LDA_result.m[i].k;
+        for (int j = 0; j < keys.size(); ++j) {
+          //LDA_result.m[i].set(keys[j],1-LDA_result.m[i].get(keys[j])/Dprime.m[i].get(keys[j]));
+          if(i < keys[j] && LDA_result.m[i].get(keys[j])>=0.005){
+            outputFile << fixed << setprecision(0) << pd[i];
+            outputFile << " " << fixed << setprecision(0) << pd[keys[j]];
+            outputFile << " " << fixed << setprecision(2) << LDA_result.m[i].get(keys[j]);
+            outputFile << "\n";
+          }
+        }
+      }
+      
+      outputFile.close();
+    } else {
+      cerr << "Unable to open file" << LDAfile;
+    }
   }
   
-  return(painting_all);
+  if(outputLDAS){
+    hMat Dprime(0,0,0.0);
+    cout << "Begin calculating LDA score"<<endl;
+    LDAS(LDA_result,LDASfile,window,gd,pd,nsnp_left,nsnp_right,nsnp);
+    cout << "Finish calculating LDA score"<<endl;
+  }
+  
 }
-
-
-
-
-
-
-
-//vector<vector<int>> read_data(string type, int idx) {
-//read the data from disc
-//  string filename = type + "_match" + to_string(idx) + ".txt";
-//  ifstream infile(filename);
-//  vector<vector<string>> data;
-
-//  if (infile) {
-//    string line;
-//    while (getline(infile, line)) {
-//      vector<string> row;
-//      size_t pos = 0;
-//      string token;
-
-//      for (int i = 0; i < 6; i++) {
-//        if (i == 4) {
-//          token = line.substr(pos + 1, line.find(",", pos) - pos - 1); // Remove most left and most right characters
-//          pos += token.length() + 2; // 2 represents the length of the left and right characters to remove
-//        }
-//        else if (i == 5) {
-//          token = line.substr(pos, line.length() - pos - 1); // Remove most right character
-//          pos += 4;
-//        }
-//        else {
-//          token = line.substr(pos, line.find(" ", pos) - pos);
-//          pos += token.length() + 1;
-//        }
-//        if (i == 0 || i == 4 || i == 5) {
-//          row.push_back(token);
-//        }
-//      }
-//      data.push_back(row);
-//    }
-//    infile.close();
-//  }
-
-//  vector<vector<int>> data_int(data.size(), vector<int>(3));
-//  for (int i = 0; i < data.size(); i++) {
-//    for (int j = 0; j < 3; j++) {
-//      data_int[i][j] = stoi(data[i][j]);
-//      if(j==2) data_int[i][j]=data_int[i][j]-1;
-//    }
-//  }
-//  return data_int;
-//}
-
-
-
-//vector<hMat> paintingall(vector<double>& gd,const vector<int>& refindex, 
-//                         const int nind,const string method="Viterbi", 
-//                         bool fixrho=true,const int ite_time=10,
-//                         const double indfrac=0.1){
-//compute painting for all target individuals
-//  const int nsnp=gd.size();
-//  const int nref=refindex.size();
-//  hAnc refidx(refindex);
-//  const int npop=refidx.pos.size();
-// vector<hMat> painting_all(nind, hMat(npop, nsnp));
-//  double rho_use;
-//  if(fixrho){
-//    cout<<"estimating fixed rho"<<endl;
-//    rho_use=est_rho_average(refidx,nref,nsnp,gd,indfrac,ite_time,method);
-//  }
-//  for(int ii=0;ii<nind;++ii){
-//    cout<<"calculating painting for target sample "<<ii<<endl;
-//   vector<vector<int>> targetmatchdata=read_data("target",ii);
-//   hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
-//    if(fixrho){
-//      painting_all[ii]=indpainting(mat,gd,rho_use,npop,refindex);
-//   }else{
-//      vector<int> startpos, endpos;
-//      for (const auto& row : targetmatchdata) {
-//        startpos.push_back(row[1]);
-//        endpos.push_back(row[2]);
-//      }
-//      rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gd[nsnp-1]-gd[0]);
-//      painting_all[ii]=indpainting(mat,gd,rho_use,npop,refindex);
-//    }
-//  }
-//  return(painting_all);
-//}
-
-
-
-//hMat forwardBackward(vector<vector<bool>> matchmat,
-//                                                 vector<double> sameprob,
-//                                                 vector<double> otherprob){
-//  hMat mat = matchmat2hMatrix(matchmat);
-//  hMat forward_prob=forwardProb(mat,sameprob,otherprob);
-//  hMat backward_prob=backwardProb(mat,sameprob,otherprob);
-//  hMat marginal_prob=marginalProb(forward_prob,backward_prob);
-//  return(marginal_prob);
-//}
-
-
-//Rcpp::XPtr<hMat> forwardBackwardR(vector<vector<bool>> matchmat,
-//                                  vector<double> sameprob,
-//                                  vector<double> otherprob){
-//  hMat tmp=forwardBackward(matchmat,sameprob,otherprob);
-//  hMat* pd = new hMat()
-//}
-
-
-
-//}
+  
+  
+int main(int argc, char *argv[]){
+    std::string run="paint";
+    std::string method="Viterbi";
+    bool fixrho=false;
+    int ite_time=10;
+    double indfrac=0.1;
+    int minsnpEM=10000;
+    double EMsnpfrac=0.1;
+    int L_initial=320;
+    double minmatchfrac=0.002;
+    int L_minmatch=40;
+    bool haploid=false;
+    std::string donorfile="donor.phase.gz";
+    std::string targetfile="target.phase.gz";
+    std::string mapfile="map.txt";
+    std::string popfile="popnames.txt";
+    std::string targetname="targetname.txt";
+    bool outputpainting=true;
+    bool outputLDA=true;
+    bool outputLDAS=true;
+    std::string paintingfile="painting.txt.gz";
+    std::string LDAfile="LDA.txt.gz";
+    std::string LDASfile="LDAS.txt";
+    double window=0.04;
+    int LDAfactor=1;
+    int ncores=0;
+    std::string chunklengthfile="chunklength.txt";
+    
+    for (int i = 1; i < argc; i+=2) {
+        std::string param = argv[i];
+        if (param[0] != '-') {
+            std::cerr << "Invalid argument format. Expected -param value\n";
+            return 1;
+        }
+        param = param.substr(1);  // Remove the -
+        
+        if (param == "run") {
+          run = argv[i+1];
+        }else if (param == "method") {
+            method = argv[i+1];
+        } else if (param == "fixrho") {
+            fixrho = std::stoi(argv[i+1]);
+        } else if (param == "ite_time") {
+            ite_time = std::stoi(argv[i+1]);
+        } else if (param == "indfrac") {
+            indfrac = std::stod(argv[i+1]);
+        } else if (param == "minsnpEM") {
+            minsnpEM = std::stoi(argv[i+1]);
+        } else if (param == "EMsnpfrac") {
+            EMsnpfrac = std::stod(argv[i+1]);
+        } else if (param == "L_initial") {
+            L_initial = std::stoi(argv[i+1]);
+        } else if (param == "minmatchfrac") {
+            minmatchfrac = std::stod(argv[i+1]);
+        } else if (param == "L_minmatch") {
+            L_minmatch = std::stoi(argv[i+1]);
+        } else if (param == "haploid") {
+            haploid = std::stoi(argv[i+1]);
+        } else if (param == "donorfile") {
+            donorfile = argv[i+1];
+        } else if (param == "targetfile") {
+            targetfile = argv[i+1];
+        } else if (param == "mapfile") {
+            mapfile = argv[i+1];
+        } else if (param == "popfile") {
+            popfile = argv[i+1];
+        } else if (param == "targetname") {
+            targetname = argv[i+1];
+        } else if (param == "outputpainting") {
+            outputpainting = std::stoi(argv[i+1]);
+        } else if (param == "outputLDA") {
+            outputLDA = std::stoi(argv[i+1]);
+        } else if (param == "outputLDAS") {
+            outputLDAS = std::stoi(argv[i+1]);
+        } else if (param == "paintingfile") {
+            paintingfile = argv[i+1];
+        } else if (param == "LDAfile") {
+          LDAfile = argv[i+1];
+        } else if (param == "LDASfile") {
+          LDASfile = argv[i+1];
+        } else if (param == "window") {
+          window = std::stod(argv[i+1]);
+        } else if (param == "LDAfactor") {
+          LDAfactor = std::stoi(argv[i+1]);
+        } else if (param == "ncores") {
+          ncores = std::stoi(argv[i+1]);
+        } else if (param == "chunklengthfile") {
+          chunklengthfile = argv[i+1];
+        } else {
+          std::cerr << "Unknown parameter: " << param << "\n";
+          return 1;
+        }
+    }
+    if(run=="paint"){
+      paintingalldense(method, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
+                       L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
+                       outputLDA, outputLDAS, paintingfile, LDAfile, LDASfile, window, LDAfactor, ncores);
+    }else if (run=="chunklength"){
+      chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
+                     L_initial,minmatchfrac,L_minmatch,haploid,
+                     donorfile,mapfile,popfile,chunklengthfile,ncores);
+    }else if (run=="both"){
+      paintingalldense(method, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
+                       L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
+                       outputLDA, outputLDAS, paintingfile, LDAfile, LDASfile, window, LDAfactor, ncores);
+      chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
+                     L_initial,minmatchfrac,L_minmatch,haploid,
+                     donorfile,mapfile,popfile,chunklengthfile,ncores);
+    }else{
+      std::cerr << "Unknown argument given to run" << "\n";
+    }
+    return 0;
+} 

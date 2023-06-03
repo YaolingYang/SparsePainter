@@ -3,7 +3,7 @@ This is the location for painting with d-PBWT.
 
 The main code is in devel/hashmap.cpp.
 
-To run the code, you should load the [Armadillo package](https://arma.sourceforge.net/download.html), and then compile with:
+To run the code, you should load the [Armadillo](https://arma.sourceforge.net/download.html) package, and then compile with:
 
 ``
 g++ hashmap.cpp -o test.exe -lz -fopenmp -lpthread -L/mnt/storage/software/libraries/gnu/12.4.0/lib64 -larmadillo

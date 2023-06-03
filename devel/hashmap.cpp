@@ -2,7 +2,14 @@
 //[[Rcpp::plugins(openmp)]]
 // Compile with:
 // module load languages/gcc/10.4.0
-// g++ hashmap2.cpp -o test.exe -lz -fopenmp -lpthread
+// g++ hashmap.cpp -o test.exe -lz -fopenmp -lpthread -larmadillo -lopenblas
+// on HPC
+// module load libs/armadillo/12.4.0
+// g++ hashmap.cpp -o test3.exe -lz -fopenmp -lpthread -L/mnt/storage/software/libraries/gnu/12.4.0/lib64 -larmadillo
+// if the module load isn't available, please install armadillo on their official website
+// using cmake . and make to install, and then
+// g++ -I/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1/include hashmap.cpp -o test2.exe -lz -fopenmp -lpthread -L/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1 -larmadillo  -lopenblas
+// export LD_LIBRARY_PATH=/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1:$LD_LIBRARY_PATH
 #ifdef _OPENMP
 #include <omp.h>
 #else
@@ -23,6 +30,8 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
+#include <armadillo>
+#include <boost/math/distributions/chi_squared.hpp>
 
 #include "gzstream.h"
 #include "gzstream.C"
@@ -1838,10 +1847,10 @@ vector<vector<double>> chunklengthall(const string method="Viterbi",
 void LDAS(hMat &LDA_result,
           const string LDASfile,
           const double window,
-          const vector<double> gd,
-          const vector<double> pd,
-          const vector<int> nsnp_left,
-          const vector<int> nsnp_right,
+          const vector<double> &gd,
+          const vector<double> &pd,
+          const vector<int> &nsnp_left,
+          const vector<int> &nsnp_right,
           const int nsnp){
     
     // calculate LDA score
@@ -1965,7 +1974,166 @@ void LDAS(hMat &LDA_result,
       cerr << "Unable to open file" << LDASfile;
     }
     
+}
+  
+double median(vector<double>& v) {
+  size_t n = v.size() / 2;
+  nth_element(v.begin(), v.begin() + n, v.end());
+  double med = v[n];
+  if(v.size() % 2 == 0) {
+    nth_element(v.begin(), v.begin() + n - 1, v.end());
+    med = (v[n] + v[n - 1]) / 2.0;
   }
+  return med;
+}
+  
+vector<double> rowMeans(const vector<vector<double>>& data) {
+  vector<double> means;
+  for (const auto& row : data) {
+    double sum = 0;
+    for (double num : row) {
+      sum += num;
+    }
+    means.push_back(sum / row.size());
+  }
+  return means;
+}
+  
+vector<double> rowStdDev(const vector<vector<double>>& matrix) {
+  vector<double> std_devs(matrix.size());
+    
+  for (size_t i = 0; i < matrix.size(); ++i) {
+    double mean = accumulate(matrix[i].begin(), matrix[i].end(), 0.0) / matrix[i].size();
+      
+    double accum = 0.0;
+    for_each(matrix[i].begin(), matrix[i].end(), [&](const double d) {
+      accum += (d - mean) * (d - mean);
+    });
+      
+    std_devs[i] = sqrt(accum / (matrix[i].size() - 1));  // Bessel's correction: use n-1 instead of n
+  }
+    
+  return std_devs;
+}
+  
+  
+double chiSquaredCDF(double x, int df) {
+  boost::math::chi_squared chiSq(df);
+  return boost::math::cdf(chiSq, x);
+}
+
+
+void AAS(vector<double>& pd, 
+         double AASblocksize,
+         vector<vector<double>>& avepainting,
+         const string AASfile) {
+  
+  int nsnp = pd.size();
+  int npop = avepainting.size();
+  
+  //double block_size = AASblocksize * 1000000; // size of each block in b
+  //int nblock = static_cast<int>(ceil((pd.back() - pd.front()) / block_size)); // number of blocks
+  
+  std::vector<double> p_values(nsnp, 1.0); // initialize p_values with 1
+  std::vector<double> test_statistic(nsnp, 1.0); 
+  
+  //vector<double> mu(npop, 0.0);
+  //vector<vector<double>> mu_block(npop);
+  
+
+  //for (int b = 0; b < nblock; ++b) {
+    // find the start and end index for SNPs in the current block
+    //int start_index = std::lower_bound(pd.begin(), pd.end(), pd.front() + b * block_size) - pd.begin();
+    //int end_index = std::lower_bound(pd.begin(), pd.end(), pd.front() + (b+1) * block_size) - pd.begin();
+    
+    //if (start_index >= end_index) {
+    //  continue;
+    //}
+    
+    //int nsnps_in_block = end_index - start_index;
+    
+    //vector<double> block_all(npop,0.0);
+    
+    
+    //for (int i = 0; i < npop; ++i) {
+      //double sum = 0.0;
+//#pragma omp parallel for reduction(+:sum)
+      //for (int j = 0; j < nsnps_in_block; ++j) {
+        //sum += avepainting[i][start_index + j];
+      //}
+      //block_all[i] += sum;
+    //}
+    
+    //for (int i = 0; i < npop; ++i) {
+    //  mu_block[i].push_back(block_all[i]/nsnps_in_block);
+    //}
+  //}
+  
+  //for (int i = 0; i < npop; ++i){
+   // mu[i] = median(mu_block[i]);
+  //}
+  
+  vector<double> mu=rowMeans(avepainting);
+  //vector<double> sd=rowStdDev(avepainting);
+  
+  arma::mat Astar(nsnp, npop);
+  for (int i = 0; i < npop; ++i) {
+#pragma omp parallel for
+    for (int j = 0; j < nsnp; ++j) {
+      Astar(j, i) = avepainting[i][j] - mu[i]; // compute A*(j,k) for all j,k and store it in Astar
+      //Astar(j, i) = avepainting[i][j] - median(avepainting[i]);
+    }
+  }
+  
+  // compute covariance matrix 
+  arma::mat C = arma::cov(Astar);
+  
+  arma::mat C_inv = arma::inv(C);  // compute the inverse of the covariance matrix
+  
+  // Compute the SVD of the inverse covariance matrix
+  arma::mat U;
+  arma::vec s;
+  arma::mat V;
+  arma::svd(U, s, V, C_inv);
+  
+  // Compute the whitening matrix W
+  arma::mat W = U * arma::diagmat(arma::sqrt(s));
+  
+  // Compute Z = Astar * W
+  arma::mat Z = Astar * W;
+  
+  //arma::mat Z(nsnp, npop);
+  //for (int i = 0; i < npop; ++i) {
+//#pragma omp parallel for
+    //for (int j = 0; j < nsnp; ++j) {
+     // Z(j, i) = (avepainting[i][j] - mu[i])/sd[i];
+      //Astar(j, i) = avepainting[i][j] - median(avepainting[i]);
+    //}
+  //}
+  
+#pragma omp parallel for
+  for (int j = 0; j < nsnp; ++j) {
+    double t = arma::norm(Z.row(j), "fro");
+    test_statistic[j]=t*t; // square of Frobenius norm
+    p_values[j] = 1 - chiSquaredCDF(test_statistic[j], npop);
+  }
+
+  //output the AAS results into AASfile
+  ofstream outputFile(AASfile);
+  if (outputFile.is_open()) {
+    outputFile.precision(15);
+    outputFile << "physical_position" << " " << "test_statistic"<< " " << "p-value" << "\n";
+    for (int j = 0; j < nsnp; ++j) {
+      outputFile << fixed<< setprecision(0) << pd[j];
+      outputFile << " " << fixed<< setprecision(3) << test_statistic[j];
+      if(p_values[j]<1e-16) p_values[j]=1e-16;
+      outputFile << " " << fixed<< setprecision(16) << p_values[j]<< "\n";
+    }
+    outputFile.close();
+  } else {
+    cerr << "Unable to open file" << AASfile;
+  }
+}
 
 
 
@@ -1985,13 +2153,18 @@ void paintingalldense(const string method="Viterbi",
                       const string popfile="popnames.txt",
                       const string targetname="targetname.txt",
                       bool outputpainting=true,
+                      bool outputavepainting=true,
                       bool outputLDA=true,
                       bool outputLDAS=true,
+                      bool outputAAS=true,
                       const string paintingfile="painting.txt.gz",
+                      const string avepaintingfile="avepainting.txt.gz",
                       const string LDAfile="LDA.txt.gz",
                       const string LDASfile="LDAS.txt",
+                      const string AASfile="AAS.txt",
                       const double window=0.04,
                       const int LDAfactor=1,
+                      const double AASblocksize=0.5,
                       int ncores=0){
   //detect cores
   if(ncores==0){
@@ -2125,16 +2298,20 @@ void paintingalldense(const string method="Viterbi",
     
   }
   
-  // calculate LDA and store in LDA_result (hMat)
-  // should be defined outside of the if command
-  //hMat LDA_result(nsnp,nsnp,0.0);
-  //hMat Dprime(nsnp,nsnp,0.0);
   
   vector<vector<double>> Dscore(nsnp - 1); // Create a vector of vectors with size nsnp - 1
   vector<vector<double>> Dprime(nsnp - 1);
   for(int i = 0; i < nsnp - 1; ++i) {
     Dscore[i].resize(nsnp_right[i], 0.0); // Resize the inner vector to nsnp_right[i] and initialize with 0.0
     Dprime[i].resize(nsnp_right[i], 0.0);
+  }
+  
+  // the average painting for all individuals
+  vector<vector<double>> avepainting(npop, vector<double>(nsnp));
+  for(int j=0;j<npop;++j){
+    for(int k=0;k<nsnp;++k){
+      avepainting[j][k]=0;
+    }
   }
   
   if(outputpainting){
@@ -2217,9 +2394,23 @@ void paintingalldense(const string method="Viterbi",
         }
       }
       
+      //compute average painting for each SNP
+      if(outputavepainting||outputAAS){
+        for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+          for(int j=0;j<npop;++j){
+#pragma omp parallel for
+            for(int k=0;k<nsnp;++k){
+              avepainting[j][k]+=painting_all[ii-nhap_use+nhap_left][j][k];
+            }
+          }
+        }
+      }
+
+      
       //compute LDA
-      cout<<"Calculating LDA for samples "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+      
       if(outputLDA || outputLDAS){
+        cout<<"Calculating LDA for samples "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
         vector<int> allhaps_idx;
         for(int i=0;i<nsamples_use;++i){
           allhaps_idx.push_back(i);
@@ -2369,9 +2560,22 @@ void paintingalldense(const string method="Viterbi",
         }
       }
       
+      //compute average painting for each SNP
+      if(outputavepainting||outputAAS){
+        for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+          for(int j=0;j<npop;++j){
+#pragma omp parallel for
+            for(int k=0;k<nsnp;++k){
+              avepainting[j][k]+=painting_all[ii-nhap_use+nhap_left][j][k];
+            }
+          }
+        }
+      }
+      
       //compute LDA
-      cout<<"Calculating LDA for samples "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+      
       if(outputLDA || outputLDAS){
+        cout<<"Calculating LDA for samples "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
         vector<int> allhaps_idx;
         for(int i=0;i<nsamples_use;++i){
           allhaps_idx.push_back(i);
@@ -2415,6 +2619,44 @@ void paintingalldense(const string method="Viterbi",
       vector<vector<vector<double>>>().swap(painting_all);
       nhap_left=nhap_left-nsamples_use;
       looptime++;
+    }
+    
+  }
+  
+  // get the average of painting and output
+  if(outputavepainting||outputAAS){
+    for(int j=0;j<npop;++j){
+#pragma omp parallel for
+      for(int k=0;k<nsnp;++k){
+        avepainting[j][k]=avepainting[j][k]/nhap_use;
+      }
+    }
+    
+    if(outputavepainting){
+      //output the LDA results into LDAfile
+      ogzstream outputFile(avepaintingfile.c_str());
+      if (outputFile) {
+        outputFile << "population" << " ";
+        //the first row is the SNP's physical position
+        for (int k = 0; k < nsnp; ++k) {
+          outputFile << fixed << setprecision(0) << pd[k];
+          if(k != nsnp-1) outputFile << " ";
+        }
+        outputFile << "\n";
+        
+        for (int j = 0; j < npop; ++j) {
+          outputFile << "pop"<<j << " ";
+          for (int k = 0; k < nsnp; ++k) {
+            outputFile << fixed << setprecision(4) <<avepainting[j][k];
+            if(k != nsnp-1) outputFile << " ";
+          }
+          if(j != npop-1) outputFile<< "\n";
+        }
+        
+        outputFile.close();
+      } else {
+        cerr << "Unable to open file" << LDAfile;
+      }
     }
     
   }
@@ -2464,6 +2706,12 @@ void paintingalldense(const string method="Viterbi",
     cout << "Finish calculating LDA score"<<endl;
   }
   
+  if(outputAAS){
+    cout << "Begin calculating Ancestry Anomaly Score"<<endl;
+    AAS(pd,AASblocksize,avepainting,AASfile);
+    cout << "Finish calculating Ancestry Anomaly Score"<<endl;
+  }
+  
 }
   
   
@@ -2484,14 +2732,19 @@ int main(int argc, char *argv[]){
     std::string mapfile="map.txt";
     std::string popfile="popnames.txt";
     std::string targetname="targetname.txt";
-    bool outputpainting=true;
+    bool outputpainting=false;
+    bool outputavepainting=true;
     bool outputLDA=true;
     bool outputLDAS=true;
+    bool outputAAS=true;
     std::string paintingfile="painting.txt.gz";
+    std::string avepaintingfile="avepainting.txt.gz";
     std::string LDAfile="LDA.txt.gz";
     std::string LDASfile="LDAS.txt";
+    std::string AASfile="AAS.txt";
     double window=0.04;
     int LDAfactor=1;
+    double AASblocksize=0.5;
     int ncores=0;
     std::string chunklengthfile="chunklength.txt";
     
@@ -2537,20 +2790,30 @@ int main(int argc, char *argv[]){
             targetname = argv[i+1];
         } else if (param == "outputpainting") {
             outputpainting = std::stoi(argv[i+1]);
+        } else if (param == "outputavepainting") {
+          outputavepainting = std::stoi(argv[i+1]);
         } else if (param == "outputLDA") {
             outputLDA = std::stoi(argv[i+1]);
         } else if (param == "outputLDAS") {
             outputLDAS = std::stoi(argv[i+1]);
+        } else if (param == "outputAAS") {
+          outputAAS = std::stoi(argv[i+1]);
         } else if (param == "paintingfile") {
             paintingfile = argv[i+1];
+        } else if (param == "avepaintingfile") {
+          avepaintingfile = argv[i+1];
         } else if (param == "LDAfile") {
           LDAfile = argv[i+1];
         } else if (param == "LDASfile") {
           LDASfile = argv[i+1];
+        } else if (param == "AASfile") {
+          AASfile = argv[i+1];
         } else if (param == "window") {
           window = std::stod(argv[i+1]);
         } else if (param == "LDAfactor") {
           LDAfactor = std::stoi(argv[i+1]);
+        } else if (param == "AASblocksize") {
+          AASblocksize = std::stoi(argv[i+1]);
         } else if (param == "ncores") {
           ncores = std::stoi(argv[i+1]);
         } else if (param == "chunklengthfile") {
@@ -2563,7 +2826,8 @@ int main(int argc, char *argv[]){
     if(run=="paint"){
       paintingalldense(method, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
                        L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
-                       outputLDA, outputLDAS, paintingfile, LDAfile, LDASfile, window, LDAfactor, ncores);
+                       outputavepainting,outputLDA, outputLDAS, outputAAS,paintingfile, avepaintingfile,
+                       LDAfile, LDASfile, AASfile,window, LDAfactor, AASblocksize, ncores);
     }else if (run=="chunklength"){
       chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
                      L_initial,minmatchfrac,L_minmatch,haploid,
@@ -2571,7 +2835,8 @@ int main(int argc, char *argv[]){
     }else if (run=="both"){
       paintingalldense(method, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
                        L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
-                       outputLDA, outputLDAS, paintingfile, LDAfile, LDASfile, window, LDAfactor, ncores);
+                       outputavepainting,outputLDA, outputLDAS, outputAAS,paintingfile, avepaintingfile,
+                       LDAfile, LDASfile, AASfile,window, LDAfactor, AASblocksize, ncores);
       chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
                      L_initial,minmatchfrac,L_minmatch,haploid,
                      donorfile,mapfile,popfile,chunklengthfile,ncores);

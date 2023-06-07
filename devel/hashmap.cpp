@@ -2025,11 +2025,11 @@ double chiSquaredCDF(double x, int df) {
 
 void AAS(vector<double>& pd, 
          double AASblocksize,
-         vector<vector<double>>& avepainting,
+         vector<vector<double>>& aveSNPpainting,
          const string AASfile) {
   
   int nsnp = pd.size();
-  int npop = avepainting.size();
+  int npop = aveSNPpainting.size();
   
   //double block_size = AASblocksize * 1000000; // size of each block in b
   //int nblock = static_cast<int>(ceil((pd.back() - pd.front()) / block_size)); // number of blocks
@@ -2059,7 +2059,7 @@ void AAS(vector<double>& pd,
       //double sum = 0.0;
 //#pragma omp parallel for reduction(+:sum)
       //for (int j = 0; j < nsnps_in_block; ++j) {
-        //sum += avepainting[i][start_index + j];
+        //sum += aveSNPpainting[i][start_index + j];
       //}
       //block_all[i] += sum;
     //}
@@ -2073,15 +2073,15 @@ void AAS(vector<double>& pd,
    // mu[i] = median(mu_block[i]);
   //}
   
-  vector<double> mu=rowMeans(avepainting);
-  //vector<double> sd=rowStdDev(avepainting);
+  vector<double> mu=rowMeans(aveSNPpainting);
+  //vector<double> sd=rowStdDev(aveSNPpainting);
   
   arma::mat Astar(nsnp, npop);
   for (int i = 0; i < npop; ++i) {
 #pragma omp parallel for
     for (int j = 0; j < nsnp; ++j) {
-      Astar(j, i) = avepainting[i][j] - mu[i]; // compute A*(j,k) for all j,k and store it in Astar
-      //Astar(j, i) = avepainting[i][j] - median(avepainting[i]);
+      Astar(j, i) = aveSNPpainting[i][j] - mu[i]; // compute A*(j,k) for all j,k and store it in Astar
+      //Astar(j, i) = aveSNPpainting[i][j] - median(aveSNPpainting[i]);
     }
   }
   
@@ -2106,8 +2106,8 @@ void AAS(vector<double>& pd,
   //for (int i = 0; i < npop; ++i) {
 //#pragma omp parallel for
     //for (int j = 0; j < nsnp; ++j) {
-     // Z(j, i) = (avepainting[i][j] - mu[i])/sd[i];
-      //Astar(j, i) = avepainting[i][j] - median(avepainting[i]);
+     // Z(j, i) = (aveSNPpainting[i][j] - mu[i])/sd[i];
+      //Astar(j, i) = aveSNPpainting[i][j] - median(aveSNPpainting[i]);
     //}
   //}
   
@@ -2153,12 +2153,14 @@ void paintingalldense(const string method="Viterbi",
                       const string popfile="popnames.txt",
                       const string targetname="targetname.txt",
                       bool outputpainting=true,
-                      bool outputavepainting=true,
+                      bool outputaveSNPpainting=true,
+                      bool outputaveindpainting=true,
                       bool outputLDA=true,
                       bool outputLDAS=true,
                       bool outputAAS=true,
                       const string paintingfile="painting.txt.gz",
-                      const string avepaintingfile="avepainting.txt.gz",
+                      const string aveSNPpaintingfile="aveSNPpainting.txt.gz",
+                      const string aveindpaintingfile="aveindpainting.txt.gz",
                       const string LDAfile="LDA.txt.gz",
                       const string LDASfile="LDAS.txt",
                       const string AASfile="AAS.txt",
@@ -2306,11 +2308,19 @@ void paintingalldense(const string method="Viterbi",
     Dprime[i].resize(nsnp_right[i], 0.0);
   }
   
-  // the average painting for all individuals
-  vector<vector<double>> avepainting(npop, vector<double>(nsnp));
+  // the average painting for each SNP
+  vector<vector<double>> aveSNPpainting(npop, vector<double>(nsnp));
   for(int j=0;j<npop;++j){
     for(int k=0;k<nsnp;++k){
-      avepainting[j][k]=0;
+      aveSNPpainting[j][k]=0;
+    }
+  }
+  
+  // the average painting for each individual
+  vector<vector<double>> aveindpainting(nind, vector<double>(npop));
+  for(int j=0;j<nind;++j){
+    for(int k=0;k<npop;++k){
+      aveindpainting[j][k]=0;
     }
   }
   
@@ -2395,12 +2405,38 @@ void paintingalldense(const string method="Viterbi",
       }
       
       //compute average painting for each SNP
-      if(outputavepainting||outputAAS){
+      if(outputaveSNPpainting||outputAAS){
         for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
           for(int j=0;j<npop;++j){
 #pragma omp parallel for
             for(int k=0;k<nsnp;++k){
-              avepainting[j][k]+=painting_all[ii-nhap_use+nhap_left][j][k];
+              aveSNPpainting[j][k]+=painting_all[ii-nhap_use+nhap_left][j][k];
+            }
+          }
+        }
+      }
+      
+      // compute the average painting for each individual and output.
+      if(outputaveindpainting){
+        if(haploid){
+          for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+            for(int j=0;j<npop;++j){
+              double sumpaint=0;
+#pragma omp parallel for
+              for(int k=0;k<nsnp;++k){
+                sumpaint+=painting_all[ii-nhap_use+nhap_left][j][k];
+              }
+              aveindpainting[ii][j] = sumpaint/nsnp;
+            }
+          }
+        }else{
+          for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+            for (int j = 0; j < npop; ++j) {
+              double sumpaint=0;
+              for(int k=0;k<nsnp;++k){
+                sumpaint+=painting_all[2*ii-nhap_use+nhap_left][j][k]+painting_all[2*ii-nhap_use+nhap_left+1][j][k];
+              }
+              aveindpainting[ii][j] = sumpaint/(2*nsnp);
             }
           }
         }
@@ -2561,12 +2597,38 @@ void paintingalldense(const string method="Viterbi",
       }
       
       //compute average painting for each SNP
-      if(outputavepainting||outputAAS){
+      if(outputaveSNPpainting||outputAAS){
         for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
           for(int j=0;j<npop;++j){
 #pragma omp parallel for
             for(int k=0;k<nsnp;++k){
-              avepainting[j][k]+=painting_all[ii-nhap_use+nhap_left][j][k];
+              aveSNPpainting[j][k]+=painting_all[ii-nhap_use+nhap_left][j][k];
+            }
+          }
+        }
+      }
+      
+      // compute the average painting for each individual and output.
+      if(outputaveindpainting){
+        if(haploid){
+          for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+            for(int j=0;j<npop;++j){
+              double sumpaint=0;
+#pragma omp parallel for
+              for(int k=0;k<nsnp;++k){
+                sumpaint+=painting_all[ii-nhap_use+nhap_left][j][k];
+              }
+              aveindpainting[ii][j] = sumpaint/nsnp;
+            }
+          }
+        }else{
+          for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+            for (int j = 0; j < npop; ++j) {
+              double sumpaint=0;
+              for(int k=0;k<nsnp;++k){
+                sumpaint+=painting_all[2*ii-nhap_use+nhap_left][j][k]+painting_all[2*ii-nhap_use+nhap_left+1][j][k];
+              }
+              aveindpainting[ii][j] = sumpaint/(2*nsnp);
             }
           }
         }
@@ -2623,18 +2685,18 @@ void paintingalldense(const string method="Viterbi",
     
   }
   
-  // get the average of painting and output
-  if(outputavepainting||outputAAS){
+  // get the average painting for each SNP and output
+  if(outputaveSNPpainting||outputAAS){
     for(int j=0;j<npop;++j){
 #pragma omp parallel for
       for(int k=0;k<nsnp;++k){
-        avepainting[j][k]=avepainting[j][k]/nhap_use;
+        aveSNPpainting[j][k]=aveSNPpainting[j][k]/nhap_use;
       }
     }
     
-    if(outputavepainting){
-      //output the LDA results into LDAfile
-      ogzstream outputFile(avepaintingfile.c_str());
+    if(outputaveSNPpainting){
+      //output the average painting for each SNP
+      ogzstream outputFile(aveSNPpaintingfile.c_str());
       if (outputFile) {
         outputFile << "population" << " ";
         //the first row is the SNP's physical position
@@ -2647,7 +2709,7 @@ void paintingalldense(const string method="Viterbi",
         for (int j = 0; j < npop; ++j) {
           outputFile << "pop"<<j << " ";
           for (int k = 0; k < nsnp; ++k) {
-            outputFile << fixed << setprecision(4) <<avepainting[j][k];
+            outputFile << fixed << setprecision(4) <<aveSNPpainting[j][k];
             if(k != nsnp-1) outputFile << " ";
           }
           if(j != npop-1) outputFile<< "\n";
@@ -2655,11 +2717,41 @@ void paintingalldense(const string method="Viterbi",
         
         outputFile.close();
       } else {
-        cerr << "Unable to open file" << LDAfile;
+        cerr << "Unable to open file" << aveSNPpaintingfile;
       }
     }
     
   }
+  
+  
+  //output the average painting for each individual
+  if(outputaveindpainting){
+    //output the average painting for each SNP
+    ogzstream outputFile(aveindpaintingfile.c_str());
+    if (outputFile) {
+      outputFile << "individual" << " ";
+      //the first row is the SNP's populations
+      for (int k = 0; k < npop; ++k) {
+        outputFile << "pop" << k;
+        if(k != npop-1) outputFile << " ";
+      }
+      outputFile << "\n";
+      
+      for (int i = 0; i < nind; ++i) {
+        outputFile << indnames[i] << " ";
+        for (int k = 0; k < npop; ++k) {
+          outputFile << fixed << setprecision(4) <<aveindpainting[i][k];
+          if(k != npop-1) outputFile << " ";
+        }
+        if(i != nind-1) outputFile<< "\n";
+      }
+      
+      outputFile.close();
+    } else {
+      cerr << "Unable to open file" << aveindpaintingfile;
+    }
+  }
+  
   
   
   // arrange results in hMat LDA_result
@@ -2708,14 +2800,14 @@ void paintingalldense(const string method="Viterbi",
   
   if(outputAAS){
     cout << "Begin calculating Ancestry Anomaly Score"<<endl;
-    AAS(pd,AASblocksize,avepainting,AASfile);
+    AAS(pd,AASblocksize,aveSNPpainting,AASfile);
     cout << "Finish calculating Ancestry Anomaly Score"<<endl;
   }
   
 }
   
   
-int main(int argc, char *argv[]){
+  int main(int argc, char *argv[]){
     std::string run="paint";
     std::string method="Viterbi";
     bool fixrho=false;
@@ -2733,12 +2825,14 @@ int main(int argc, char *argv[]){
     std::string popfile="popnames.txt";
     std::string targetname="targetname.txt";
     bool outputpainting=false;
-    bool outputavepainting=true;
+    bool outputaveSNPpainting=true;
+    bool outputaveindpainting=true;
     bool outputLDA=true;
     bool outputLDAS=true;
     bool outputAAS=true;
     std::string paintingfile="painting.txt.gz";
-    std::string avepaintingfile="avepainting.txt.gz";
+    std::string aveSNPpaintingfile="aveSNPpainting.txt.gz";
+    std::string aveindpaintingfile="aveindpainting.txt.gz";
     std::string LDAfile="LDA.txt.gz";
     std::string LDASfile="LDAS.txt";
     std::string AASfile="AAS.txt";
@@ -2749,84 +2843,89 @@ int main(int argc, char *argv[]){
     std::string chunklengthfile="chunklength.txt";
     
     for (int i = 1; i < argc; i+=2) {
-        std::string param = argv[i];
-        if (param[0] != '-') {
-            std::cerr << "Invalid argument format. Expected -param value\n";
-            return 1;
-        }
-        param = param.substr(1);  // Remove the -
-        
-        if (param == "run") {
-          run = argv[i+1];
-        }else if (param == "method") {
-            method = argv[i+1];
-        } else if (param == "fixrho") {
-            fixrho = std::stoi(argv[i+1]);
-        } else if (param == "ite_time") {
-            ite_time = std::stoi(argv[i+1]);
-        } else if (param == "indfrac") {
-            indfrac = std::stod(argv[i+1]);
-        } else if (param == "minsnpEM") {
-            minsnpEM = std::stoi(argv[i+1]);
-        } else if (param == "EMsnpfrac") {
-            EMsnpfrac = std::stod(argv[i+1]);
-        } else if (param == "L_initial") {
-            L_initial = std::stoi(argv[i+1]);
-        } else if (param == "minmatchfrac") {
-            minmatchfrac = std::stod(argv[i+1]);
-        } else if (param == "L_minmatch") {
-            L_minmatch = std::stoi(argv[i+1]);
-        } else if (param == "haploid") {
-            haploid = std::stoi(argv[i+1]);
-        } else if (param == "donorfile") {
-            donorfile = argv[i+1];
-        } else if (param == "targetfile") {
-            targetfile = argv[i+1];
-        } else if (param == "mapfile") {
-            mapfile = argv[i+1];
-        } else if (param == "popfile") {
-            popfile = argv[i+1];
-        } else if (param == "targetname") {
-            targetname = argv[i+1];
-        } else if (param == "outputpainting") {
-            outputpainting = std::stoi(argv[i+1]);
-        } else if (param == "outputavepainting") {
-          outputavepainting = std::stoi(argv[i+1]);
-        } else if (param == "outputLDA") {
-            outputLDA = std::stoi(argv[i+1]);
-        } else if (param == "outputLDAS") {
-            outputLDAS = std::stoi(argv[i+1]);
-        } else if (param == "outputAAS") {
-          outputAAS = std::stoi(argv[i+1]);
-        } else if (param == "paintingfile") {
-            paintingfile = argv[i+1];
-        } else if (param == "avepaintingfile") {
-          avepaintingfile = argv[i+1];
-        } else if (param == "LDAfile") {
-          LDAfile = argv[i+1];
-        } else if (param == "LDASfile") {
-          LDASfile = argv[i+1];
-        } else if (param == "AASfile") {
-          AASfile = argv[i+1];
-        } else if (param == "window") {
-          window = std::stod(argv[i+1]);
-        } else if (param == "LDAfactor") {
-          LDAfactor = std::stoi(argv[i+1]);
-        } else if (param == "AASblocksize") {
-          AASblocksize = std::stoi(argv[i+1]);
-        } else if (param == "ncores") {
-          ncores = std::stoi(argv[i+1]);
-        } else if (param == "chunklengthfile") {
-          chunklengthfile = argv[i+1];
-        } else {
-          std::cerr << "Unknown parameter: " << param << "\n";
-          return 1;
-        }
+      std::string param = argv[i];
+      if (param[0] != '-') {
+        std::cerr << "Invalid argument format. Expected -param value\n";
+        return 1;
+      }
+      param = param.substr(1);  // Remove the -
+      
+      if (param == "run") {
+        run = argv[i+1];
+      }else if (param == "method") {
+        method = argv[i+1];
+      } else if (param == "fixrho") {
+        fixrho = std::stoi(argv[i+1]);
+      } else if (param == "ite_time") {
+        ite_time = std::stoi(argv[i+1]);
+      } else if (param == "indfrac") {
+        indfrac = std::stod(argv[i+1]);
+      } else if (param == "minsnpEM") {
+        minsnpEM = std::stoi(argv[i+1]);
+      } else if (param == "EMsnpfrac") {
+        EMsnpfrac = std::stod(argv[i+1]);
+      } else if (param == "L_initial") {
+        L_initial = std::stoi(argv[i+1]);
+      } else if (param == "minmatchfrac") {
+        minmatchfrac = std::stod(argv[i+1]);
+      } else if (param == "L_minmatch") {
+        L_minmatch = std::stoi(argv[i+1]);
+      } else if (param == "haploid") {
+        haploid = std::stoi(argv[i+1]);
+      } else if (param == "donorfile") {
+        donorfile = argv[i+1];
+      } else if (param == "targetfile") {
+        targetfile = argv[i+1];
+      } else if (param == "mapfile") {
+        mapfile = argv[i+1];
+      } else if (param == "popfile") {
+        popfile = argv[i+1];
+      } else if (param == "targetname") {
+        targetname = argv[i+1];
+      } else if (param == "outputpainting") {
+        outputpainting = std::stoi(argv[i+1]);
+      } else if (param == "outputaveSNPpainting") {
+        outputaveSNPpainting = std::stoi(argv[i+1]);
+      } else if (param == "outputaveindpainting") {
+        outputaveindpainting = std::stoi(argv[i+1]);
+      } else if (param == "outputLDA") {
+        outputLDA = std::stoi(argv[i+1]);
+      } else if (param == "outputLDAS") {
+        outputLDAS = std::stoi(argv[i+1]);
+      } else if (param == "outputAAS") {
+        outputAAS = std::stoi(argv[i+1]);
+      } else if (param == "paintingfile") {
+        paintingfile = argv[i+1];
+      } else if (param == "aveSNPpaintingfile") {
+        aveSNPpaintingfile = argv[i+1];
+      } else if (param == "aveindpaintingfile") {
+        aveindpaintingfile = argv[i+1];
+      } else if (param == "LDAfile") {
+        LDAfile = argv[i+1];
+      } else if (param == "LDASfile") {
+        LDASfile = argv[i+1];
+      } else if (param == "AASfile") {
+        AASfile = argv[i+1];
+      } else if (param == "window") {
+        window = std::stod(argv[i+1]);
+      } else if (param == "LDAfactor") {
+        LDAfactor = std::stoi(argv[i+1]);
+      } else if (param == "AASblocksize") {
+        AASblocksize = std::stoi(argv[i+1]);
+      } else if (param == "ncores") {
+        ncores = std::stoi(argv[i+1]);
+      } else if (param == "chunklengthfile") {
+        chunklengthfile = argv[i+1];
+      } else {
+        std::cerr << "Unknown parameter: " << param << "\n";
+        return 1;
+      }
     }
     if(run=="paint"){
       paintingalldense(method, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
                        L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
-                       outputavepainting,outputLDA, outputLDAS, outputAAS,paintingfile, avepaintingfile,
+                       outputaveSNPpainting,outputaveindpainting,outputLDA, outputLDAS, 
+                       outputAAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
                        LDAfile, LDASfile, AASfile,window, LDAfactor, AASblocksize, ncores);
     }else if (run=="chunklength"){
       chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
@@ -2835,7 +2934,8 @@ int main(int argc, char *argv[]){
     }else if (run=="both"){
       paintingalldense(method, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
                        L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
-                       outputavepainting,outputLDA, outputLDAS, outputAAS,paintingfile, avepaintingfile,
+                       outputaveSNPpainting,outputaveindpainting,outputLDA, outputLDAS, 
+                       outputAAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
                        LDAfile, LDASfile, AASfile,window, LDAfactor, AASblocksize, ncores);
       chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
                      L_initial,minmatchfrac,L_minmatch,haploid,
@@ -2844,4 +2944,6 @@ int main(int argc, char *argv[]){
       std::cerr << "Unknown argument given to run" << "\n";
     }
     return 0;
-} 
+  } 
+  
+

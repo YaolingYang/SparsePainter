@@ -2,7 +2,7 @@
 //[[Rcpp::plugins(openmp)]]
 // Compile with:
 // module load languages/gcc/10.4.0
-// g++ hashmap.cpp -o test.exe -lz -fopenmp -lpthread -larmadillo -lopenblas
+// g++ hashmap.cpp -o test.exe -lz -fopenmp -lpthread -larmadillo
 // on HPC
 // module load libs/armadillo/12.4.0
 // g++ hashmap.cpp -o test3.exe -lz -fopenmp -lpthread -L/mnt/storage/software/libraries/gnu/12.4.0/lib64 -larmadillo
@@ -1032,16 +1032,20 @@ vector<int> randomsample(const vector<int>& popidx,
   return random_sample;
 }
 
-vector<double> cal_sameprob(const int nsnp, 
-                            const double rho, 
-                            vector<double>& gd){
-  //compute the sameprob
-  vector<double> sameprob(nsnp);
-  for(int j=0;j<nsnp-1;++j){
-    sameprob[j]=exp(-rho*(gd[j+1]-gd[j]));
+  vector<double> cal_sameprob(const int nsnp, 
+                              const double rho, 
+                              vector<double>& gd,
+                              const int nref){
+    //compute the sameprob
+    vector<double> sameprob(nsnp);
+    for(int j=0;j<nsnp-1;++j){
+      sameprob[j]=exp(-rho*(gd[j+1]-gd[j]));
+      if(sameprob[j]>1-nref*0.000000000000002){
+        sameprob[j]=1-nref*0.000000000000002;
+      } 
+    }
+    return(sameprob);
   }
-  return(sameprob);
-}
 
 vector<double> cal_otherprob(const int nref, 
                              const vector<double>& sameprob){
@@ -1176,7 +1180,7 @@ tuple<hMat, vector<double>> backwardProb(const hMat& mat,
 
 
 hMat marginalProb(hMat& f, hMat& b){
-  //compute normalised backward probability and store in hMat
+  //compute normalised marginal probability and store in hMat
   int nrow=f.d1;
   int ncol=f.d2;
   hMat marginal_prob(nrow,ncol,1.0/nrow);
@@ -1343,7 +1347,7 @@ double est_rho_EM(hMat& mat,
   }
   double totalgd=gd[nsnp-1]-gd[0];
   for(int t=0;t<ite_time;++t){
-    sameprob=cal_sameprob(nsnp,rho_ite,gd);
+    sameprob=cal_sameprob(nsnp,rho_ite,gd,nref);
     otherprob=cal_otherprob(nref,sameprob);
     
     tuple<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
@@ -1581,7 +1585,7 @@ hMat indpainting(const hMat& mat,
   // return individual painting
   int nref=mat.d1;
   int nsnp=mat.d2;
-  vector<double> sameprob=cal_sameprob(nsnp,rho,gd);
+  vector<double> sameprob=cal_sameprob(nsnp,rho,gd,nref);
   vector<double> otherprob=cal_otherprob(nref,sameprob);
   hMat marginal_prob=forwardBackward(mat,sameprob,otherprob);
   // compute individual painting in terms of different populations
@@ -1602,7 +1606,7 @@ hMat indpainting(const hMat& mat,
       popprob[popidx]=popprob[popidx]+marginal_prob.m[j].get(refnumberidx);
     }
     for(int i=0; i<npop; ++i){
-      if(popprob[i]>=0.01){
+      if(popprob[i]>=0.005){
         marginal_prob_pop.m[j].set(i,popprob[i]);
       }
     }
@@ -1626,7 +1630,7 @@ vector<double> chunklength_each(vector<double>& gd,
   for(int j=0;j<nsnp-1;++j){
     gl[j]=gd[j+1]-gd[j];
   }
-  sameprob=cal_sameprob(nsnp,rho,gd);
+  sameprob=cal_sameprob(nsnp,rho,gd,nref);
   otherprob=cal_otherprob(nref,sameprob);
   
   tuple<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
@@ -2558,6 +2562,7 @@ void paintingalldense(const string method="Viterbi",
         vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
         
         hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
+
         if(fixrho){
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
           
@@ -2578,10 +2583,12 @@ void paintingalldense(const string method="Viterbi",
             startpos.push_back(row[1]);
             endpos.push_back(row[2]);
           }
+
           rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
+
           //cout<<"Estimated rho is "<<rho_use<<endl;
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
-          
+
           
           //if want to compute LDA
           //painting_all_hmat[ii]=pind;
@@ -2595,6 +2602,7 @@ void paintingalldense(const string method="Viterbi",
           }
         }
       }
+
       
       //compute average painting for each SNP
       if(outputaveSNPpainting||outputAAS){
@@ -2607,6 +2615,7 @@ void paintingalldense(const string method="Viterbi",
           }
         }
       }
+
       
       // compute the average painting for each individual and output.
       if(outputaveindpainting){
@@ -2633,6 +2642,7 @@ void paintingalldense(const string method="Viterbi",
           }
         }
       }
+
       
       //compute LDA
       

@@ -1096,7 +1096,11 @@ tuple<hMat, vector<double>> forwardProb(const hMat& mat,
       twj=forward_prob.m[j-1].k;
       fprev=forward_prob.m[j-1].getall(twj);
       for(int i=0;i<twj.size();++i){
-        forward_prob.m[j].set(twj[i],(sameprobuse*fprev[i]+otherprobuse)*mu);
+        if(log(sameprobuse*fprev[i]+otherprobuse)+log(mu)>-34.53){
+          forward_prob.m[j].set(twj[i],(sameprobuse*fprev[i]+otherprobuse)*mu);
+        }else{
+          forward_prob.m[j].set(twj[i],exp(-34.53));
+        }
       }
     }else{
       fprev=forward_prob.m[j-1].getall(twj);
@@ -1145,7 +1149,11 @@ tuple<hMat, vector<double>> backwardProb(const hMat& mat,
       twj=backward_prob.m[j+1].k;
       Bjp1=backward_prob.m[j+1].getall(twj);
       for(int i=0;i<Bjp1.size();++i){
-        Bjp1[i]=Bjp1[i]*mu;
+        if(log(Bjp1[i])+log(mu)>-34.53){
+          Bjp1[i]=Bjp1[i]*mu;
+        }else{
+          Bjp1[i]=exp(-34.53);
+        }
       }
       double default_val=backward_prob.m[j+1].x0;
       sumBjp1=vec_sum(Bjp1)+default_val*mu*(nrow-Bjp1.size());

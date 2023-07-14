@@ -31,7 +31,6 @@
 #include <sstream>
 #include <utility>
 #include <armadillo>
-#include <boost/math/distributions/chi_squared.hpp>
 
 #include "gzstream.h"
 #include "gzstream.C"
@@ -225,7 +224,7 @@ void Readphase_donor(const string inFile,
                      const int N, 
                      const int M, 
                      const int qM, 
-                     bool haploid=false) {
+                     bool haploid) {
   
   cout << "Read data and do dpbwt for reference panel" << endl;
   
@@ -664,37 +663,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
           }
           
           if(L<=L_minmatch){
-            // we don't need to check whether we have all positions with minmatch matches
-            // if L is already the minimum value allowed
-            //if(times==0){
-              // find which SNPs don't have minmatch matches
-              //for(int j=0;j<N;++j){
-               //if (nmatch[j] ==0) {
-                  //nomatchsnp.push_back(j);
-                //}
-              //}
-            //}else{
-              //cout<<"here"<<endl;
-              //vector<int> nomatchsnptemp=nomatchsnp;
-              //nomatchsnp.clear();
-              // find which SNPs still don't have any matches
-             //for(int j=0;j<nomatchsnptemp.size();++j){
-              //  if (nmatch[nomatchsnptemp[j]] ==0) {
-              //    nomatchsnp.push_back(nomatchsnptemp[j]);
-              //  }
-              //}
-            //}
-            //cout<<L<<" and "<<nomatchsnp.size()<<endl;
-            //if(nomatchsnp.size()==0){
-              // stop when all SNPs have at least one match
               allsnpmatches = true;
-            //}else{
-              // update L
-             // prevL=L;
-              //L=(prevL+1)/2; // this is equal to ceil(L/2) when L is double type
-              //if(L==1) allsnpmatches = true;
-              //times++;
-            //}
           }else{
             if(times==0){
               // find which SNPs don't have minmatch matches
@@ -767,29 +736,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
           }
         }
         
-        
-        
-       // vector<int> fullidx; // record which SNP has only minmatch matches
-       // for(int q=0;q<N;++q){
-       //   if(nmatch[q]<=minmatch) fullidx.push_back(q);
-       // }
-       // for(int mi=0;mi<length_order.size();++mi){
-          
-        //  int starttemp=startpostemp[length_order[mi]];
-       //   int endtemp=endpostemp[length_order[mi]];
-          
-       //   if(!containsIndex(fullidx,starttemp,endtemp)){
-       //     for(int q=starttemp;q<=endtemp;++q){
-       //       nmatch[q]--;
-        //      if(nmatch[q]==minmatch) fullidx.push_back(q);
-       //     }
-       //   }else{
-       //     local_startpos.push_back(starttemp);
-       //     local_endpos.push_back(endtemp);
-       //     local_donorid.push_back(donoridtemp[length_order[mi]]);
-       //   }
-       // }
-        
         LoopResult result;
         result.donorid = local_donorid;
         result.startpos = local_startpos;
@@ -799,7 +745,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
         
         //record the position of the next start position of query haplotype
         //such that we know how many matches are there for this query haplotype
-        //queryidall.push_back(startpos.size());
     }
     
     nind_left=nind_left-ncores_use;
@@ -824,14 +769,14 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial,
                                                                 vector<double> gd,
                                                                 vector<int>& queryidx,
                                                                 int ncores,
-                                                                const int M=0,
-                                                                const int N=0,
-                                                                const int qM=0,
-                                                                int minmatch=100,
-                                                                int L_minmatch=20,
-                                                                bool haploid=false,
-                                                                const string donorfile="donor.phase.gz",
-                                                                const string targetfile="target.phase.gz"){
+                                                                const int M,
+                                                                const int N,
+                                                                const int qM,
+                                                                int minmatch,
+                                                                int L_minmatch,
+                                                                bool haploid,
+                                                                const string donorfile,
+                                                                const string targetfile){
   
   dpbwt x;
   
@@ -1341,7 +1286,7 @@ vector<string> readtargetname(const string& targetname) {
 
 double est_rho_EM(hMat& mat, 
                   vector<double>& gd,
-                  const int ite_time=10){
+                  const int ite_time){
   //estimate \rho using EM algorithm
   int nref=mat.d1;
   int nsnp=mat.d2;
@@ -1387,7 +1332,6 @@ double est_rho_EM(hMat& mat,
   return(rho_ite);
 }
 
-// [[Rcpp::export]]
 double est_rho_Viterbi(const vector<int>& startpos, 
                        const vector<int>& endpos,
                        const int nsnp, 
@@ -1447,13 +1391,13 @@ double est_rho_average(const hAnc& refidx,
                        int minmatch,
                        int L_minmatch,
                        int ncores,
-                       const double indfrac=0.1,
-                       const int ite_time=10, 
-                       const string method="Viterbi",
-                       const int minsnpEM=10000, 
-                       const double EMsnpfrac=0.1,
-                       bool haploid=false,
-                       const string donorfile="donor.vcf",
+                       const double indfrac,
+                       const int ite_time, 
+                       const string method,
+                       const int minsnpEM, 
+                       const double EMsnpfrac,
+                       bool haploid,
+                       const string donorfile,
                        tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=
                          make_tuple(vector<int>(), vector<int>(), vector<int>(), vector<int>()))
   {
@@ -1680,20 +1624,20 @@ vector<double> chunklength_each(vector<double>& gd,
 
 
 // [[Rcpp::export]]
-vector<vector<double>> chunklengthall(const string method="Viterbi", 
-                                      const int ite_time=10,
-                                      const double indfrac=0.1,
-                                      const int minsnpEM=10000, 
-                                      const double EMsnpfrac=0.1,
-                                      int L_initial=200,
-                                      double minmatchfrac=0.002,
-                                      int L_minmatch=25,
-                                      bool haploid=false,
-                                      const string donorfile="donor.phase.gz",
-                                      const string mapfile="map.txt",
-                                      const string popfile="popnames.txt",
-                                      const string chunklengthfile="chunklength.txt",
-                                      int ncores=0){
+vector<vector<double>> chunklengthall(const string method, 
+                                      const int ite_time,
+                                      const double indfrac,
+                                      const int minsnpEM, 
+                                      const double EMsnpfrac,
+                                      int L_initial,
+                                      double minmatchfrac,
+                                      int L_minmatch,
+                                      bool haploid,
+                                      const string donorfile,
+                                      const string mapfile,
+                                      const string popfile,
+                                      const string chunklengthfile,
+                                      int ncores){
   
   //detect cores
   if(ncores==0){
@@ -2027,12 +1971,6 @@ vector<double> rowStdDev(const vector<vector<double>>& matrix) {
     
   return std_devs;
 }
-  
-  
-double chiSquaredCDF(double x, int df) {
-  boost::math::chi_squared chiSq(df);
-  return boost::math::cdf(chiSq, x);
-}
 
 
 void AAS(vector<double>& pd, 
@@ -2043,47 +1981,8 @@ void AAS(vector<double>& pd,
   int nsnp = pd.size();
   int npop = aveSNPpainting.size();
   
-  //double block_size = AASblocksize * 1000000; // size of each block in b
-  //int nblock = static_cast<int>(ceil((pd.back() - pd.front()) / block_size)); // number of blocks
-  
   std::vector<double> p_values(nsnp, 1.0); // initialize p_values with 1
   std::vector<double> test_statistic(nsnp, 1.0); 
-  
-  //vector<double> mu(npop, 0.0);
-  //vector<vector<double>> mu_block(npop);
-  
-
-  //for (int b = 0; b < nblock; ++b) {
-    // find the start and end index for SNPs in the current block
-    //int start_index = std::lower_bound(pd.begin(), pd.end(), pd.front() + b * block_size) - pd.begin();
-    //int end_index = std::lower_bound(pd.begin(), pd.end(), pd.front() + (b+1) * block_size) - pd.begin();
-    
-    //if (start_index >= end_index) {
-    //  continue;
-    //}
-    
-    //int nsnps_in_block = end_index - start_index;
-    
-    //vector<double> block_all(npop,0.0);
-    
-    
-    //for (int i = 0; i < npop; ++i) {
-      //double sum = 0.0;
-//#pragma omp parallel for reduction(+:sum)
-      //for (int j = 0; j < nsnps_in_block; ++j) {
-        //sum += aveSNPpainting[i][start_index + j];
-      //}
-      //block_all[i] += sum;
-    //}
-    
-    //for (int i = 0; i < npop; ++i) {
-    //  mu_block[i].push_back(block_all[i]/nsnps_in_block);
-    //}
-  //}
-  
-  //for (int i = 0; i < npop; ++i){
-   // mu[i] = median(mu_block[i]);
-  //}
   
   vector<double> mu=rowMeans(aveSNPpainting);
   //vector<double> sd=rowStdDev(aveSNPpainting);
@@ -2114,32 +2013,20 @@ void AAS(vector<double>& pd,
   // Compute Z = Astar * W
   arma::mat Z = Astar * W;
   
-  //arma::mat Z(nsnp, npop);
-  //for (int i = 0; i < npop; ++i) {
-//#pragma omp parallel for
-    //for (int j = 0; j < nsnp; ++j) {
-     // Z(j, i) = (aveSNPpainting[i][j] - mu[i])/sd[i];
-      //Astar(j, i) = aveSNPpainting[i][j] - median(aveSNPpainting[i]);
-    //}
-  //}
-  
 #pragma omp parallel for
   for (int j = 0; j < nsnp; ++j) {
     double t = arma::norm(Z.row(j), "fro");
     test_statistic[j]=t*t; // square of Frobenius norm
-    p_values[j] = 1 - chiSquaredCDF(test_statistic[j], npop);
   }
 
   //output the AAS results into AASfile
   ofstream outputFile(AASfile);
   if (outputFile.is_open()) {
     outputFile.precision(15);
-    outputFile << "physical_position" << " " << "test_statistic"<< " " << "p-value" << "\n";
+    outputFile << "physical_position" << " " << "test_statistic"<< "\n";
     for (int j = 0; j < nsnp; ++j) {
       outputFile << fixed<< setprecision(0) << pd[j];
-      outputFile << " " << fixed<< setprecision(3) << test_statistic[j];
-      if(p_values[j]<1e-16) p_values[j]=1e-16;
-      outputFile << " " << fixed<< setprecision(16) << p_values[j]<< "\n";
+      outputFile << " " << fixed<< setprecision(3) << test_statistic[j]<< "\n";
     }
     outputFile.close();
   } else {
@@ -2149,37 +2036,38 @@ void AAS(vector<double>& pd,
 
 
 
-void paintingalldense(const string method="Viterbi",
-                      bool fixrho=false,
-                      const int ite_time=10,
-                      const double indfrac=0.1,
-                      const int minsnpEM=10000, 
-                      const double EMsnpfrac=0.1,
-                      int L_initial=200,
-                      double minmatchfrac=0.002,
-                      int L_minmatch=25,
-                      bool haploid=false,
-                      const string donorfile="donor.phase.gz",
-                      const string targetfile="target.phase.gz",
-                      const string mapfile="map.txt",
-                      const string popfile="popnames.txt",
-                      const string targetname="targetname.txt",
-                      bool outputpainting=true,
-                      bool outputaveSNPpainting=true,
-                      bool outputaveindpainting=true,
-                      bool outputLDA=true,
-                      bool outputLDAS=true,
-                      bool outputAAS=true,
-                      const string paintingfile="painting.txt.gz",
-                      const string aveSNPpaintingfile="aveSNPpainting.txt.gz",
-                      const string aveindpaintingfile="aveindpainting.txt.gz",
-                      const string LDAfile="LDA.txt.gz",
-                      const string LDASfile="LDAS.txt",
-                      const string AASfile="AAS.txt",
-                      const double window=0.04,
-                      const int LDAfactor=1,
-                      const double AASblocksize=0.5,
-                      int ncores=0){
+void paintingalldense(const string method,
+                      bool estrho,
+                      const double fixrho,
+                      const int ite_time,
+                      const double indfrac,
+                      const int minsnpEM, 
+                      const double EMsnpfrac,
+                      int L_initial,
+                      double minmatchfrac,
+                      int L_minmatch,
+                      bool haploid,
+                      const string donorfile,
+                      const string targetfile,
+                      const string mapfile,
+                      const string popfile,
+                      const string targetname,
+                      bool outputpainting,
+                      bool outputaveSNPpainting,
+                      bool outputaveindpainting,
+                      bool outputLDA,
+                      bool outputLDAS,
+                      bool outputAAS,
+                      const string paintingfile,
+                      const string aveSNPpaintingfile,
+                      const string aveindpaintingfile,
+                      const string LDAfile,
+                      const string LDASfile,
+                      const string AASfile,
+                      const double window,
+                      const int LDAfactor,
+                      const double AASblocksize,
+                      int ncores){
   //detect cores
   if(ncores==0){
     ncores = omp_get_num_procs();
@@ -2238,13 +2126,6 @@ void paintingalldense(const string method="Viterbi",
   double gdall=gd[nsnp-1]-gd[0];
   int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
   
-  if(fixrho){
-    
-    cout<<"Begin estimating fixed rho"<<endl;
-    rho_use=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,
-                            indfrac,ite_time,method,minsnpEM,EMsnpfrac,haploid,donorfile);
-  }
-  
   
   cout<<"Do dPBWT for target haplotypes"<<endl;
   
@@ -2273,6 +2154,61 @@ void paintingalldense(const string method="Viterbi",
   vector<int> startpos_target=get<2>(dpbwtall_target);
   vector<int> endpos_target=get<3>(dpbwtall_target);
   cout<<"dPBWT works successfully"<<endl;
+  
+  // estimate rho
+  
+  if(!estrho){
+    if(fixrho!=0){
+      rho_use=fixrho;
+      cout << "Using fixed rho "<<rho_use<<endl;
+    }else{
+      cout<<"Begin estimating fixed rho"<<endl;
+      if(method=="EM"){
+        rho_use=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,
+                                indfrac,ite_time,method,minsnpEM,EMsnpfrac,haploid,donorfile);
+      }else{
+        //estimate rho as the average of v_nsamples target individuals
+        int v_nsamples=static_cast<int>(ceil(queryidx.size()*indfrac));
+        vector<int> v_samples=randomsample(queryidx,v_nsamples);
+        double rho_sum = 0.0;
+        
+        // get the matches before the loop
+        int v_nhap_left=v_nsamples;
+        while(v_nhap_left>0){
+          int v_nsamples_use = (ncores < v_nhap_left) ? ncores : v_nhap_left;
+          vector<vector<vector<int>>> v_targetmatch_use(v_nsamples_use);
+          
+          for (int ii = v_nsamples - v_nhap_left; ii < v_nsamples - v_nhap_left + v_nsamples_use; ++ii) {
+            // leave one out if the donor file is the same as the target file
+            vector<vector<int>> match_data = get_matchdata(queryidall_target,
+                                                           donorid_target,
+                                                           startpos_target,
+                                                           endpos_target,
+                                                           v_samples[ii], loo);
+
+            v_targetmatch_use[ii - (v_nsamples - v_nhap_left)] = match_data;
+          }
+          
+#pragma omp parallel for reduction(+:rho_sum)
+          for(int ii = v_nsamples - v_nhap_left; ii < v_nsamples - v_nhap_left + v_nsamples_use; ++ii){
+            vector<vector<int>> v_targetmatchdata=v_targetmatch_use[ii - (v_nsamples - v_nhap_left)];
+            
+            vector<int> v_startpos, v_endpos;
+            for (const auto& row : v_targetmatchdata) {
+              v_startpos.push_back(row[1]);
+              v_endpos.push_back(row[2]);
+            }
+            double rho_estimated=est_rho_Viterbi(v_startpos,v_endpos,nsnp,gdall);
+            rho_sum += rho_estimated;
+          }
+          v_nhap_left=v_nhap_left-v_nsamples_use;
+        }
+        
+        rho_use=rho_sum/v_nsamples;
+      }
+      cout << "Using fixed rho "<<rho_use<<endl;
+    }
+  }
   
   // begin painting
   // we only store ncores*2 samples in memory and directly output
@@ -2378,7 +2314,7 @@ void paintingalldense(const string method="Viterbi",
         vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
         
         hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
-        if(fixrho){
+        if(!estrho){
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
           
           
@@ -2571,7 +2507,7 @@ void paintingalldense(const string method="Viterbi",
         
         hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
 
-        if(fixrho){
+        if(!estrho){
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
           
           
@@ -2828,7 +2764,8 @@ void paintingalldense(const string method="Viterbi",
   int main(int argc, char *argv[]){
     std::string run="paint";
     std::string method="Viterbi";
-    bool fixrho=false;
+    bool estrho=false;
+    double fixrho=0;
     int ite_time=10;
     double indfrac=0.1;
     int minsnpEM=10000;
@@ -2842,7 +2779,7 @@ void paintingalldense(const string method="Viterbi",
     std::string mapfile="map.txt";
     std::string popfile="popnames.txt";
     std::string targetname="targetname.txt";
-    bool outputpainting=false;
+    bool outputpainting=true;
     bool outputaveSNPpainting=true;
     bool outputaveindpainting=true;
     bool outputLDA=true;
@@ -2872,6 +2809,8 @@ void paintingalldense(const string method="Viterbi",
         run = argv[i+1];
       }else if (param == "method") {
         method = argv[i+1];
+      } else if (param == "estrho") {
+        estrho = std::stoi(argv[i+1]);
       } else if (param == "fixrho") {
         fixrho = std::stoi(argv[i+1]);
       } else if (param == "ite_time") {
@@ -2940,7 +2879,7 @@ void paintingalldense(const string method="Viterbi",
       }
     }
     if(run=="paint"){
-      paintingalldense(method, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
+      paintingalldense(method, estrho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
                        L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
                        outputaveSNPpainting,outputaveindpainting,outputLDA, outputLDAS, 
                        outputAAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
@@ -2950,7 +2889,7 @@ void paintingalldense(const string method="Viterbi",
                      L_initial,minmatchfrac,L_minmatch,haploid,
                      donorfile,mapfile,popfile,chunklengthfile,ncores);
     }else if (run=="both"){
-      paintingalldense(method, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
+      paintingalldense(method, estrho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
                        L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
                        outputaveSNPpainting,outputaveindpainting,outputLDA, outputLDAS, 
                        outputAAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,

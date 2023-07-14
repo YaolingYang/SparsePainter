@@ -1,4 +1,4 @@
-# Paintingwithpbwt
+# HMPaint
 This is the location for painting with d-PBWT.
 
 The main code is in devel/hashmap.cpp.

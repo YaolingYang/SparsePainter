@@ -43,28 +43,28 @@ To run **HMPaint**, enter the following command:
 
 ## Optional Parameters
 
-* **-out `<string>`** (**default=HMPaint**)
+* **-out [string]** (**default=HMPaint**)
 
-* **-run `<string>`** (**default=paint**)
+* **-run [string]** (**default=paint**)
 
-* **-outputpainting <1/0>** (**default=1**)
+* **-outputpainting [1/0]** (**default=1**)
 
-* **-outputaveSNPpainting <1/0>** (**default=1**)
+* **-outputaveSNPpainting [1/0]** (**default=1**)
 
-* **-outputaveindpainting <1/0>** (**default=1**)
+* **-outputaveindpainting [1/0]** (**default=1**)
 
-* **-outputLDA <1/0>** (**default=1**)
+* **-outputLDA [1/0]** (**default=1**)
 
-* **-outputLDAS <1/0>** (**default=1**)
+* **-outputLDAS [1/0]** (**default=1**)
 
-* **-outputAAS <1/0>** (**default=1**)
+* **-outputAAS [1/0]** (**default=1**)
 
-* **-haploid <1/0>** (**default=0**)
+* **-haploid [1/0]** (**default=0**)
 
-* **-method `<string>`** (**default=Viterbi**)
+* **-method [string]** (**default=Viterbi**)
 
-* **-diff_rho <1/0>** (**default=0**)
+* **-diff_rho [1/0]** (**default=0**)
 
-* **-fixrho <number&gt;0>** (**default=0**)
+* **-fixrho [number&gt;0]** (**default=0**)
 
-* **-indfrac <number&isin;(0,1)>** (**default=0.1**)
+* **-indfrac [number&isin;(0,1)]** (**default=0.1**)

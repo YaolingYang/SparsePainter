@@ -43,9 +43,9 @@ To run **HMPaint**, enter the following command:
 
 ## Optional Parameters
 
-* **-out <string>** (**default=HMPaint**)
+* **-out `<string>`** (**default=HMPaint**)
 
-* **-run <string>** (**default=paint**)
+* **-run `<string>`** (**default=paint**)
 
 * **-outputpainting <1/0>** (**default=1**)
 
@@ -61,7 +61,7 @@ To run **HMPaint**, enter the following command:
 
 * **-haploid <1/0>** (**default=0**)
 
-* **-method <string>** (**default=Viterbi**)
+* **-method `<string>`** (**default=Viterbi**)
 
 * **-diff_rho <1/0>** (**default=0**)
 

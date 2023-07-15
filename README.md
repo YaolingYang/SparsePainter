@@ -43,3 +43,26 @@ To run **HMPaint**, enter the following command:
 
 ## Optional Parameters
 
+* **-out <string>** (**default=HMPaint**)
+
+* **-run <string>** (**default=paint**)
+
+* **-outputpainting <1/0>** (**default=1**)
+
+* **-outputaveSNPpainting <1/0>** (**default=1**)
+
+* **-outputaveindpainting <1/0>** (**default=1**)
+
+* **-outputLDA <1/0>** (**default=1**)
+
+* **-outputLDAS <1/0>** (**default=1**)
+
+* **-outputAAS <1/0>** (**default=1**)
+
+* **-haploid <1/0>** (**default=0**)
+
+* **-method <string>** (**default=Viterbi**)
+
+* **-diff_rho <1/0>** (**default=0**)
+
+* **-fixrho <number>0>** (**default=0**)

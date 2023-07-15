@@ -29,13 +29,17 @@ To run **HMPaint**, enter the following command:
 
 ## Required Parameters
 
-**HMPaint** has below 5 required parameters.
+**HMPaint** has below 5 required parameters, all of which are files.
 
-* **-donorfile <file>** reference phase (or gzipped phase) file that contains the genotype data for each reference (donor) sample.
+* **-donorfile <file>** Reference phase (or gzipped phase) file that contains the genotype data for each reference (donor) sample.
 
-* **-targetfile <file>** target phase (or gzipped phase) file that contains the genotype data for each target sample.
+* **-targetfile <file>** Target phase (or gzipped phase) file that contains the genotype data for each target sample.
 
-* **-mapfile <file>** recombination file which contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile.
+* **-mapfile <file>** Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile.
 
-*  **-popfile <file>** 
+* **-popfile <file>** Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as donorfile. The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel.
+
+* **-targetname <file>** Target name file that contains the names of target samples. This parameter is necessary because the phase file doesn't contain the sample names.
+
+## Optional Parameters
 

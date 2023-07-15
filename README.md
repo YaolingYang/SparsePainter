@@ -29,5 +29,13 @@ To run **HMPaint**, enter the following command:
 
 ## Required Parameters
 
-**HMPaint** has 5 required parameters. Two of the required parameters required the phase format, which can be easily converted from the 
+**HMPaint** has below 5 required parameters.
+
+* **-donorfile <file>** reference phase (or gzipped phase) file that contains the genotype data for each reference (donor) sample.
+
+* **-targetfile <file>** target phase (or gzipped phase) file that contains the genotype data for each target sample.
+
+* **-mapfile <file>** recombination file which contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile.
+
+*  **-popfile <file>** 
 

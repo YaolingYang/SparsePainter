@@ -1974,7 +1974,6 @@ vector<double> rowStdDev(const vector<vector<double>>& matrix) {
 
 
 void AAS(vector<double>& pd, 
-         double AASblocksize,
          vector<vector<double>>& aveSNPpainting,
          const string AASfile) {
   
@@ -2037,7 +2036,7 @@ void AAS(vector<double>& pd,
 
 
 void paintingalldense(const string method,
-                      bool estrho,
+                      bool diff_rho,
                       const double fixrho,
                       const int ite_time,
                       const double indfrac,
@@ -2066,7 +2065,6 @@ void paintingalldense(const string method,
                       const string AASfile,
                       const double window,
                       const int LDAfactor,
-                      const double AASblocksize,
                       int ncores){
   //detect cores
   if(ncores==0){
@@ -2157,7 +2155,7 @@ void paintingalldense(const string method,
   
   // estimate rho
   
-  if(!estrho){
+  if(!diff_rho){
     if(fixrho!=0){
       rho_use=fixrho;
       cout << "Using fixed rho "<<rho_use<<endl;
@@ -2314,7 +2312,7 @@ void paintingalldense(const string method,
         vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
         
         hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
-        if(!estrho){
+        if(!diff_rho){
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
           
           
@@ -2507,7 +2505,7 @@ void paintingalldense(const string method,
         
         hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
 
-        if(!estrho){
+        if(!diff_rho){
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
           
           
@@ -2754,7 +2752,7 @@ void paintingalldense(const string method,
   
   if(outputAAS){
     cout << "Begin calculating Ancestry Anomaly Score"<<endl;
-    AAS(pd,AASblocksize,aveSNPpainting,AASfile);
+    AAS(pd,aveSNPpainting,AASfile);
     cout << "Finish calculating Ancestry Anomaly Score"<<endl;
   }
   
@@ -2764,16 +2762,16 @@ void paintingalldense(const string method,
   int main(int argc, char *argv[]){
     std::string run="paint";
     std::string method="Viterbi";
-    bool estrho=false;
+    bool haploid=false;
+    bool diff_rho=false;
     double fixrho=0;
-    int ite_time=10;
     double indfrac=0.1;
     int minsnpEM=10000;
     double EMsnpfrac=0.1;
     int L_initial=320;
     double minmatchfrac=0.002;
     int L_minmatch=40;
-    bool haploid=false;
+    int ite_time=10;
     std::string donorfile="donor.phase.gz";
     std::string targetfile="target.phase.gz";
     std::string mapfile="map.txt";
@@ -2785,17 +2783,10 @@ void paintingalldense(const string method,
     bool outputLDA=true;
     bool outputLDAS=true;
     bool outputAAS=true;
-    std::string paintingfile="painting.txt.gz";
-    std::string aveSNPpaintingfile="aveSNPpainting.txt.gz";
-    std::string aveindpaintingfile="aveindpainting.txt.gz";
-    std::string LDAfile="LDA.txt.gz";
-    std::string LDASfile="LDAS.txt";
-    std::string AASfile="AAS.txt";
+    std::string out="HMPaint";
     double window=0.04;
     int LDAfactor=1;
-    double AASblocksize=0.5;
     int ncores=0;
-    std::string chunklengthfile="chunklength.txt";
     
     for (int i = 1; i < argc; i+=2) {
       std::string param = argv[i];
@@ -2809,8 +2800,8 @@ void paintingalldense(const string method,
         run = argv[i+1];
       }else if (param == "method") {
         method = argv[i+1];
-      } else if (param == "estrho") {
-        estrho = std::stoi(argv[i+1]);
+      } else if (param == "diff_rho") {
+        diff_rho = std::stoi(argv[i+1]);
       } else if (param == "fixrho") {
         fixrho = std::stoi(argv[i+1]);
       } else if (param == "ite_time") {
@@ -2851,49 +2842,44 @@ void paintingalldense(const string method,
         outputLDAS = std::stoi(argv[i+1]);
       } else if (param == "outputAAS") {
         outputAAS = std::stoi(argv[i+1]);
-      } else if (param == "paintingfile") {
-        paintingfile = argv[i+1];
-      } else if (param == "aveSNPpaintingfile") {
-        aveSNPpaintingfile = argv[i+1];
-      } else if (param == "aveindpaintingfile") {
-        aveindpaintingfile = argv[i+1];
-      } else if (param == "LDAfile") {
-        LDAfile = argv[i+1];
-      } else if (param == "LDASfile") {
-        LDASfile = argv[i+1];
-      } else if (param == "AASfile") {
-        AASfile = argv[i+1];
+      } else if (param == "out") {
+        out = argv[i+1];
       } else if (param == "window") {
         window = std::stod(argv[i+1]);
       } else if (param == "LDAfactor") {
         LDAfactor = std::stoi(argv[i+1]);
-      } else if (param == "AASblocksize") {
-        AASblocksize = std::stoi(argv[i+1]);
       } else if (param == "ncores") {
         ncores = std::stoi(argv[i+1]);
-      } else if (param == "chunklengthfile") {
-        chunklengthfile = argv[i+1];
       } else {
         std::cerr << "Unknown parameter: " << param << "\n";
         return 1;
       }
     }
+    
+    std::string paintingfile = out + "_painting.txt.gz";
+    std::string aveSNPpaintingfile = out + "_aveSNPpainting.txt.gz";
+    std::string aveindpaintingfile = out + "_aveindpainting.txt.gz";
+    std::string LDAfile = out + "_LDA.txt.gz";
+    std::string LDASfile = out + "_LDAS.txt";
+    std::string AASfile = out + "_AAS.txt";
+    std::string chunklengthfile = out+ "chunklength.txt";
+    
     if(run=="paint"){
-      paintingalldense(method, estrho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
+      paintingalldense(method, diff_rho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
                        L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
                        outputaveSNPpainting,outputaveindpainting,outputLDA, outputLDAS, 
                        outputAAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
-                       LDAfile, LDASfile, AASfile,window, LDAfactor, AASblocksize, ncores);
+                       LDAfile, LDASfile, AASfile,window, LDAfactor, ncores);
     }else if (run=="chunklength"){
       chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
                      L_initial,minmatchfrac,L_minmatch,haploid,
                      donorfile,mapfile,popfile,chunklengthfile,ncores);
     }else if (run=="both"){
-      paintingalldense(method, estrho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
+      paintingalldense(method, diff_rho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
                        L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
                        outputaveSNPpainting,outputaveindpainting,outputLDA, outputLDAS, 
                        outputAAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
-                       LDAfile, LDASfile, AASfile,window, LDAfactor, AASblocksize, ncores);
+                       LDAfile, LDASfile, AASfile,window, LDAfactor, ncores);
       chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
                      L_initial,minmatchfrac,L_minmatch,haploid,
                      donorfile,mapfile,popfile,chunklengthfile,ncores);

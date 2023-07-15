@@ -61,7 +61,7 @@ To run **HMPaint**, enter the following command:
 
 * **-haploid <1/0>** (**default=0**)
 
-* **-method <string2>** (**default=Viterbi**)
+* **-method <string>** (**default=Viterbi**)
 
 * **-diff_rho <1/0>** (**default=0**)
 

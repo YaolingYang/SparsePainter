@@ -43,7 +43,7 @@ To run **HMPaint**, enter the following command:
 
 ## Optional Parameters
 
-* **-out [string]** (**default=HMPaint**)
+* **-out [string]** Prefix of the output file names (**default=HMPaint**).
 
 * **-run [string]** (**default=paint**)
 

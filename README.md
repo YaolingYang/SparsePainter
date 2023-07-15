@@ -7,11 +7,10 @@ The main code is in **devel/hashmap.cpp**.
 
 You should load the [Armadillo](https://arma.sourceforge.net/download.html) library, and also have ["gzstream.h" and "gzstream.C"](https://www.cs.unc.edu/Research/compgeom/gzstream/) in your directory. 
 
-To prepare the input files (phase format) for **HMPaint**, you should also get [PBWT](https://github.com/richarddurbin/pbwt) installed, which converts Variant Call Format (VCF) or gzipped VCF to phase format by the following command:
+To prepare the input files (phase format) for **HMPaint**, you should also get [PBWT](https://github.com/richarddurbin/pbwt) installed, which converts Variant Call Format (VCF) to phase format by the following command:
 
 ``
 pbwt -readVcfGT XXX.vcf -writePhase XXX.phase
-pbwt -readVcfGT XXX.vcf.gz -writePhase XXX.phase
 ``
 
 When the above requirements are met, you can compile with:

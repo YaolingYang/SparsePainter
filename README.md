@@ -10,7 +10,13 @@ To run the code, you should load the [Armadillo](https://arma.sourceforge.net/do
 When the above requirements are met, you can compile with:
 
 ``
-g++ hashmap.cpp -o test.exe -lz -fopenmp -lpthread -larmadillo
+g++ hashmap.cpp -o HMPaint.exe -lz -fopenmp -lpthread -larmadillo
+``
+
+To run HMPaint, type
+
+``
+./HMPaint.exe [-parameter1 value1 -parameter2 value2 ......]
 ``
 
 # Parameters

@@ -59,6 +59,8 @@ To run **HMPaint**, enter the following command:
 
 * **-outputAAS [1/0]** (**default=1**)
 
+* **-ncores [integer&ge;0]** (**default=0**)
+
 * **-haploid [1/0]** (**default=0**)
 
 * **-method [string]** (**default=Viterbi**)
@@ -67,4 +69,20 @@ To run **HMPaint**, enter the following command:
 
 * **-fixrho [number>0]** (**default=0**)
 
+* **-L_initial [integer>0]** (**default=320**)
+
+* **-minmatchfrac [number&isin;(0,1)]** (**default=0.002**)
+
+* **-L_minmatch [integer>0]** (**default=40**)
+
 * **-indfrac [number&isin;(0,1)]** (**default=0.1**)
+
+* **-minsnpEM [integer>0]** (**default=10000**)
+
+* **-EMsnpfrac [number&isin;(0,1)]** (**default=0.1**)
+
+* **-ite_time [integer>0]** (**default=10**)
+
+* **-window [number>0]** (**default=0.04**)
+
+* **-LDAfactor [integer&ge;1]** (**default=1**)

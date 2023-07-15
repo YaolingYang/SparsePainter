@@ -1,5 +1,5 @@
 # HMPaint
-This is the location for painting with d-PBWT.
+HMPaint is an efficient tool for local ancestry inference (LAI). It uses d-PBWT algorithm to find K longest matches at each position, and uses the Hash Map strategy to implement the forward and backward algorithm in the Hidden Markov Model because of the sparsity of haplotype matches. HMPaint incorporates the function for efficiently calculating [Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)](https://github.com/YaolingYang/LDAandLDAscore) and [Ancestry Anomaly Score (AAS)](https://github.com/danjlawson/ms_paper).
 
 The main code is in devel/hashmap.cpp.
 

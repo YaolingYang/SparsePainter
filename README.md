@@ -65,6 +65,6 @@ To run **HMPaint**, enter the following command:
 
 * **-diff_rho [1/0]** (**default=0**)
 
-* **-fixrho [number&gt;0]** (**default=0**)
+* **-fixrho [number>0]** (**default=0**)
 
 * **-indfrac [number&isin;(0,1)]** (**default=0.1**)

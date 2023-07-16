@@ -63,17 +63,17 @@ To run **HMPaint**, enter the following command:
 
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
 
+* **-L_initial [integer>0]** The initial length of matches (the number of SNPs) that **HMPaint** searches for (**default=320**). **L_initial** must be bigger than **L_minmatch** and should be a power of 2 of **L_minmatch** for computational efficiency.
+
+* **-matchfrac [number&isin;(0,1)]** The proportion of matches of at least **L_minmatch** SNPs that **HMPaint** searches for (**default=0.002**). Positions with more than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain at least the longest **matchfrac** proportion of matches. A larger **matchfrac** increases both the accuracy and the computational time.
+
+* **-L_minmatch [integer>0]** The minimal length of matches that **HMPaint** searches for (**default=40**). Positions with fewer than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain all the matches of at least **L_minmatch**. A larger **L_minmatch** increases both the accuracy and the computational time.
+
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
 * **-diff_rho [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**).
 
 * **-fixrho [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **HMPaint** will estimate rho as the average recombination scaling constant of **indfrac** target samples under the default **fixrho** and **diff_rho**.
-
-* **-L_initial [integer>0]** The initial length of matches (the number of SNPs) that **HMPaint** searches for (**default=320**). **L_initial** is suggested to vary by the density of SNPs in the genome.
-
-* **-matchfrac [number&isin;(0,1)]** The proportion of matches of at least **L_minmatch** SNPs that **HMPaint** searches for (**default=0.002**). A larger **matchfrac** increases both the accuracy and the computational time.
-
-* **-L_minmatch [integer>0]** The minimal length of matches that **HMPaint** searches for (**default=40**). A larger **L_minmatch** increases both the accuracy and the computational time. Positions with fewer than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain all the matches of at least **L_minmatch**.
 
 * **-indfrac [number&isin;(0,1)]** (**default=0.1**)
 

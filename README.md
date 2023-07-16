@@ -81,8 +81,6 @@ To run **HMPaint**, enter the following command:
 
 * **-EMsnpfrac [number&isin;(0,1)]** The proportion of SNPs used for EM algorithm if **-method EM** is specified (**default=0.1**). Note that if nsnp***EMsnpfrac** < **minsnpEM**, **minsnpEM** SNPs will be used for EM algorithm.
 
-* **-ite_time [integer>0]** (**default=10**)
+* **-ite_time [integer>0]** The iteration times for EM algorithm if **-method EM** is specified (**default=10**).
 
-* **-window [number>0]** (**default=0.04**)
-
-* **-LDAfactor [integer&ge;1]** (**default=1**)
+* **-window [number>0]** The window for calculating LDA score (LDAS) in Morgan (**default=0.04**).

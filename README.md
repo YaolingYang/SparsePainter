@@ -49,17 +49,17 @@ To run **HMPaint**, enter the following command:
 
 * **-run [paint/chunklength/both]** Run painting and/or LDAS and AAS (**paint**), chunk length of reference panel (**chunklength**) or both analysis (**both**) (**default=paint**).
 
-* **-painting [1/0]** Output the painting results (probabilities) for each individual at each SNP (**1**) or not (**0**) (**default=1**).
+* **-painting [1/0]** Output the painting results (probabilities) for each individual at each SNP (**1**) or not (**0**) (**default=1**). The output file format is a gzipped text file (.txt.gz).
 
-* **-aveSNPpainting [1/0]** Output the average painting probabilities for each SNP (**1**) or not (**0**) (**default=1**).
+* **-aveSNPpainting [1/0]** Output the average painting probabilities for each SNP (**1**) or not (**0**) (**default=1**). The output file format is a gzipped text file (.txt.gz).
 
-* **-aveindpainting [1/0]** Output the average painting probabilities for each individual (**1**) or not (**0**) (**default=1**).
+* **-aveindpainting [1/0]** Output the average painting probabilities for each individual (**1**) or not (**0**) (**default=1**). The output file format is a gzipped text file (.txt.gz).
 
-* **-LDA [1/0]** (**default=1**) Output the LDA results (**1**) or not (**0**) (**default=0**). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the chromosome.
+* **-LDA [1/0]** (**default=1**) Output the LDA results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the chromosome.
 
-* **-LDAS [1/0]** (**default=1**) Output the LDAS results (**1**) or not (**0**) (**default=0**). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the genome.
+* **-LDAS [1/0]** (**default=1**) Output the LDAS results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the genome.
 
-* **-AAS [1/0]** (**default=1**) Output the AAS results (**1**) or not (**0**) (**default=1**).
+* **-AAS [1/0]** (**default=1**) Output the AAS results (**1**) or not (**0**) (**default=1**). The output file format is a text file (.txt).
 
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
 

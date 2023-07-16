@@ -45,6 +45,8 @@ To run **HMPaint**, enter the following command:
 
 * **-out [string]** Prefix of the output file names (**default=HMPaint**).
 
+* **-haploid [1/0]** The individuals are haploid (**1**) or diploid (**0**) (**default=0**).
+
 * **-run [paint/chunklength/both]** Run painting and/or LDAS and AAS (**paint**), chunk length of reference panel (**chunklength**) or both analysis (**both**) (**default=paint**).
 
 * **-painting [1/0]** Output the painting results (probabilities) for each individual at each SNP (**1**) or not (**0**) (**default=1**).
@@ -53,27 +55,25 @@ To run **HMPaint**, enter the following command:
 
 * **-aveindpainting [1/0]** Output the average painting probabilities for each individual (**1**) or not (**0**) (**default=1**).
 
-* **-LDA [1/0]** (**default=1**) Output the LDA results (**1**) or not (**0**) (**default=0**). This might be slow if there are large numbers of reference populations.
+* **-LDA [1/0]** (**default=1**) Output the LDA results (**1**) or not (**0**) (**default=0**). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the chromosome.
 
-* **-LDAS [1/0]** (**default=1**) Output the LDAS results (**1**) or not (**0**) (**default=0**). This might be slow if there are larger numbers of reference populations.
+* **-LDAS [1/0]** (**default=1**) Output the LDAS results (**1**) or not (**0**) (**default=0**). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the genome.
 
 * **-AAS [1/0]** (**default=1**) Output the AAS results (**1**) or not (**0**) (**default=1**).
 
-* **-ncores [integer&ge;0]** (**default=0**)
+* **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
 
-* **-haploid [1/0]** (**default=0**)
+* **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
-* **-method [string]** (**default=Viterbi**)
+* **-diff_rho [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**).
 
-* **-diff_rho [1/0]** (**default=0**)
+* **-fixrho [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **HMPaint** will estimate rho as the average recombination scaling constant of **indfrac** target samples under the default **fixrho** and **diff_rho**.
 
-* **-fixrho [number&ge;0]** (**default=0**)
+* **-L_initial [integer>0]** The initial length of matches (the number of SNPs) that **HMPaint** searches for (**default=320**). **L_initial** is suggested to vary by the density of SNPs in the genome.
 
-* **-L_initial [integer>0]** (**default=320**)
+* **-matchfrac [number&isin;(0,1)]** The proportion of matches of at least **L_minmatch** SNPs that **HMPaint** searches for (**default=0.002**). A larger **matchfrac** increases both the accuracy and the computational time.
 
-* **-minmatchfrac [number&isin;(0,1)]** (**default=0.002**)
-
-* **-L_minmatch [integer>0]** (**default=40**)
+* **-L_minmatch [integer>0]** The minimal length of matches that **HMPaint** searches for (**default=40**). A larger **L_minmatch** increases both the accuracy and the computational time. Positions with fewer than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain all the matches of at least **L_minmatch**.
 
 * **-indfrac [number&isin;(0,1)]** (**default=0.1**)
 

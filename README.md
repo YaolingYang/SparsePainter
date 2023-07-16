@@ -31,7 +31,7 @@ To run **HMPaint**, enter the following command:
 
 **HMPaint** has below 5 required parameters, all of which are files.
 
-* **-donorfile [file]** Reference phase (or gzipped phase) file that contains the genotype data for each reference (donor) sample.
+* **-reffile [file]** Reference phase (or gzipped phase) file that contains the genotype data for each reference sample.
 
 * **-targetfile [file]** Target phase (or gzipped phase) file that contains the genotype data for each target sample.
 
@@ -45,19 +45,19 @@ To run **HMPaint**, enter the following command:
 
 * **-out [string]** Prefix of the output file names (**default=HMPaint**).
 
-* **-run [string]** (**default=paint**)
+* **-run [paint/chunklength/both]** Run painting and/or LDAS and AAS (**paint**), chunk length of reference panel (**chunklength**) or both analysis (**both**) (**default=paint**).
 
-* **-outputpainting [1/0]** (**default=1**)
+* **-painting [1/0]** Output the painting results (probabilities) for each individual at each SNP (**1**) or not (**0**) (**default=1**).
 
-* **-outputaveSNPpainting [1/0]** (**default=1**)
+* **-aveSNPpainting [1/0]** Output the average painting probabilities for each SNP (**1**) or not (**0**) (**default=1**).
 
-* **-outputaveindpainting [1/0]** (**default=1**)
+* **-aveindpainting [1/0]** Output the average painting probabilities for each individual (**1**) or not (**0**) (**default=1**).
 
-* **-outputLDA [1/0]** (**default=1**)
+* **-LDA [1/0]** (**default=1**) Output the LDA results (**1**) or not (**0**) (**default=0**). This might be slow if there are large numbers of reference populations.
 
-* **-outputLDAS [1/0]** (**default=1**)
+* **-LDAS [1/0]** (**default=1**) Output the LDAS results (**1**) or not (**0**) (**default=0**). This might be slow if there are larger numbers of reference populations.
 
-* **-outputAAS [1/0]** (**default=1**)
+* **-AAS [1/0]** (**default=1**) Output the AAS results (**1**) or not (**0**) (**default=1**).
 
 * **-ncores [integer&ge;0]** (**default=0**)
 

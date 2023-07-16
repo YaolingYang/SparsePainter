@@ -257,7 +257,6 @@ void Readphase_donor(const string inFile,
   // Read the remaining lines and store the binary data of each line in 'panel'
   for(int i=0; i<M-qM; ++i) {
     // i indicates which sample we are looking at
-    //cout <<"dpbwt for donor" <<i<<endl;
     getline(in, line);
     vector<bool> panelsnp;
     
@@ -525,7 +524,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
           bd[k] = bdtemp;
         }
         
-        
         // below using while loop to update L and ensure at least minmatch matches at each SNP
         
         vector<int> donoridtemp;
@@ -569,7 +567,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
             f = (panelsnp[Oid-nind+nind_left][k])? f->v : f->u;
             g = (panelsnp[Oid-nind+nind_left][k])? g->v : g->u;
             while (ftemp != gtemp){
-              //matchOut << ftemp->originalid << " = q" << i-M+qM << " at [" << dZ[ftemp->id] << ", " << k << ")\n";
               int end=k-1;
               if(times==0){
                 int start=dZ[ftemp->id];
@@ -628,8 +625,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
           }
           
           while (f != g){
-            //output match
-            //matchOut << f->originalid << " = q" << i-M+qM << " at [" << dZ[f->id] << ", " << N << ")\n";
             int end2=N-1;
             if(times==0){
               int start2=dZ[f->id];
@@ -775,12 +770,12 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_dpbwt(int& L_initial,
                                                                 int minmatch,
                                                                 int L_minmatch,
                                                                 bool haploid,
-                                                                const string donorfile,
+                                                                const string reffile,
                                                                 const string targetfile){
   
   dpbwt x;
   
-  Readphase_donor(donorfile,x,N,M,qM,haploid);
+  Readphase_donor(reffile,x,N,M,qM,haploid);
   
   while(L_initial>N){
     L_initial=ceil(L_initial/2);
@@ -1353,7 +1348,6 @@ double est_rho_Viterbi(const vector<int>& startpos,
   int maxkidx = 0;
   while (j < nsnp-1) {
     if(j>0){
-      //maxend = maxEndMap[j-1];
       maxkidx = maxend+1;
     }
     int maxendnew=maxend+1;
@@ -1397,7 +1391,7 @@ double est_rho_average(const hAnc& refidx,
                        const int minsnpEM, 
                        const double EMsnpfrac,
                        bool haploid,
-                       const string donorfile,
+                       const string reffile,
                        tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=
                          make_tuple(vector<int>(), vector<int>(), vector<int>(), vector<int>()))
   {
@@ -1442,7 +1436,7 @@ double est_rho_average(const hAnc& refidx,
     tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L_initial, gd,queryidx,
                                                                                  ncores,nref,nsnp,0,
                                                                                  minmatch,L_minmatch,
-                                                                                 haploid,donorfile,donorfile);
+                                                                                 haploid,reffile,reffile);
     
     cout<<"dPBWT works successfully"<<endl;
   }
@@ -1482,7 +1476,6 @@ double est_rho_average(const hAnc& refidx,
         }
         double rho_estimated=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
         count=count+1;
-        //cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
         rho_est.push_back(rho_estimated);
       }else{
         hMat mat=matchfiletohMat(matchdata,nref-npop,nsnp);
@@ -1511,20 +1504,17 @@ double est_rho_average(const hAnc& refidx,
           
           double rho_estimated=est_rho_EM(mat_use,gd_use,ite_time);
           count=count+1;
-          //cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
           rho_est.push_back(rho_estimated);
         }else{
           
           double rho_estimated=est_rho_EM(mat,gd,ite_time);
           count=count+1;
-          //cout<<"Estimated rho for sample "<<count<<" is "<<rho_estimated<<endl;
           rho_est.push_back(rho_estimated);
         }
       }
     }
   }
   double rho_ave=vec_sum(rho_est)/rho_est.size();
-  //cout<<"Average estimated rho is "<<rho_ave<<endl;
   return(rho_ave);
 }
 
@@ -1630,10 +1620,10 @@ vector<vector<double>> chunklengthall(const string method,
                                       const int minsnpEM, 
                                       const double EMsnpfrac,
                                       int L_initial,
-                                      double minmatchfrac,
+                                      double matchfrac,
                                       int L_minmatch,
                                       bool haploid,
-                                      const string donorfile,
+                                      const string reffile,
                                       const string mapfile,
                                       const string popfile,
                                       const string chunklengthfile,
@@ -1667,7 +1657,7 @@ vector<vector<double>> chunklengthall(const string method,
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
   double rho;
-  int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
+  int minmatch=static_cast<int>(ceil(nref*matchfrac));
   
   
   vector<int> queryidx;
@@ -1682,7 +1672,7 @@ vector<vector<double>> chunklengthall(const string method,
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=do_dpbwt(L_initial, gd,queryidx,
                                                                                ncores,nref,nsnp,0,
                                                                                minmatch,L_minmatch,
-                                                                               haploid,donorfile,donorfile);
+                                                                               haploid,reffile,reffile);
   vector<int> queryidall_ref=get<0>(dpbwtall_ref);
   vector<int> donorid_ref=get<1>(dpbwtall_ref);
   vector<int> startpos_ref=get<2>(dpbwtall_ref);
@@ -1692,7 +1682,7 @@ vector<vector<double>> chunklengthall(const string method,
   cout<<"Begin estimating fixed rho"<<endl;
   
   rho=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,indfrac,
-                      ite_time,method,minsnpEM,EMsnpfrac,haploid,donorfile,dpbwtall_ref);
+                      ite_time,method,minsnpEM,EMsnpfrac,haploid,reffile,dpbwtall_ref);
   
   int nrefpaint=queryidx.size();
   
@@ -1800,22 +1790,21 @@ vector<vector<double>> chunklengthall(const string method,
 }
 
 
-void LDAS(hMat &LDA_result,
-          const string LDASfile,
-          const double window,
-          const vector<double> &gd,
-          const vector<double> &pd,
-          const vector<int> &nsnp_left,
-          const vector<int> &nsnp_right,
-          const int nsnp){
+void doLDAS(hMat &LDA_result,
+            const string LDASfile,
+            const double window,
+            const vector<double> &gd,
+            const vector<double> &pd,
+            const vector<int> &nsnp_left,
+            const vector<int> &nsnp_right,
+            const int nsnp){
     
     // calculate LDA score
-    vector<double> LDAS(nsnp);
+    vector<double> LDAS_score(nsnp);
     vector<double> LDAS_upper(nsnp);
     vector<double> LDAS_lower(nsnp);
 #pragma omp parallel for
     for(int i=0;i<nsnp;++i){
-      //cout<<"Computing LDAS for SNP "<<i<<endl;
       vector<double> gdgap;
       vector<double> LDA_ave;
       vector<double> LDA_upper;
@@ -1910,7 +1899,7 @@ void LDAS(hMat &LDA_result,
         //endif
       }
       for(int q=0;q<gdgap.size();++q){
-        LDAS[i]+=LDA_ave[q]*gdgap[q];
+        LDAS_score[i]+=LDA_ave[q]*gdgap[q];
         LDAS_upper[i]+=LDA_upper[q]*gdgap[q];
         LDAS_lower[i]+=LDA_lower[q]*gdgap[q];
       }
@@ -1923,7 +1912,7 @@ void LDAS(hMat &LDA_result,
       outputFile << "physical_position" << " " << "LDAS" << " " << "LDAS_lower" << " " << "LDAS_upper" << "\n";
       for (int i = 0; i < nsnp; ++i) {
         outputFile << fixed<< setprecision(0) << pd[i];
-        outputFile << " " << fixed << setprecision(4) << LDAS[i] <<" "<< LDAS_lower[i] <<" " << LDAS_upper[i] << "\n";
+        outputFile << " " << fixed << setprecision(4) << LDAS_score[i] <<" "<< LDAS_lower[i] <<" " << LDAS_upper[i] << "\n";
       }
       outputFile.close();
     } else {
@@ -1973,9 +1962,9 @@ vector<double> rowStdDev(const vector<vector<double>>& matrix) {
 }
 
 
-void AAS(vector<double>& pd, 
-         vector<vector<double>>& aveSNPpainting,
-         const string AASfile) {
+void doAAS(vector<double>& pd, 
+           vector<vector<double>>& aveSNPpainting,
+           const string AASfile) {
   
   int nsnp = pd.size();
   int npop = aveSNPpainting.size();
@@ -2043,10 +2032,10 @@ void paintingalldense(const string method,
                       const int minsnpEM, 
                       const double EMsnpfrac,
                       int L_initial,
-                      double minmatchfrac,
+                      double matchfrac,
                       int L_minmatch,
                       bool haploid,
-                      const string donorfile,
+                      const string reffile,
                       const string targetfile,
                       const string mapfile,
                       const string popfile,
@@ -2064,12 +2053,13 @@ void paintingalldense(const string method,
                       const string LDASfile,
                       const string AASfile,
                       const double window,
-                      const int LDAfactor,
                       int ncores){
   //detect cores
   if(ncores==0){
     ncores = omp_get_num_procs();
   }
+  
+  int LDAfactor=24/ncores+1;
   
   // read the map data to get the genetic distance in Morgans
   tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);
@@ -2122,7 +2112,7 @@ void paintingalldense(const string method,
   const int npop=refidx.pos.size();
   double rho_use;
   double gdall=gd[nsnp-1]-gd[0];
-  int minmatch=static_cast<int>(ceil(nref*minmatchfrac));
+  int minmatch=static_cast<int>(ceil(nref*matchfrac));
   
   
   cout<<"Do dPBWT for target haplotypes"<<endl;
@@ -2133,7 +2123,7 @@ void paintingalldense(const string method,
   
   int qM;
   
-  if(donorfile==targetfile){
+  if(reffile==targetfile){
     loo = true;
     qM=0;
   }else{
@@ -2145,7 +2135,7 @@ void paintingalldense(const string method,
   }
   
   dpbwtall_target=do_dpbwt(L_initial, gd,queryidx,ncores,nref+qM,nsnp,qM,minmatch,
-                           L_minmatch,haploid,donorfile,targetfile);
+                           L_minmatch,haploid,reffile,targetfile);
   
   vector<int> queryidall_target=get<0>(dpbwtall_target);
   vector<int> donorid_target=get<1>(dpbwtall_target);
@@ -2163,7 +2153,7 @@ void paintingalldense(const string method,
       cout<<"Begin estimating fixed rho"<<endl;
       if(method=="EM"){
         rho_use=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,
-                                indfrac,ite_time,method,minsnpEM,EMsnpfrac,haploid,donorfile);
+                                indfrac,ite_time,method,minsnpEM,EMsnpfrac,haploid,reffile);
       }else{
         //estimate rho as the average of v_nsamples target individuals
         int v_nsamples=static_cast<int>(ceil(queryidx.size()*indfrac));
@@ -2272,7 +2262,6 @@ void paintingalldense(const string method,
   
   if(outputpainting){
     //output the painting into paintingfile
-    //ofstream outputFile(paintingfile);
     ogzstream outputFile(paintingfile.c_str());
     outputFile << "indnames" << " ";
     //the first row is the SNP's physical position
@@ -2314,11 +2303,6 @@ void paintingalldense(const string method,
         hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
         if(!diff_rho){
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
-          
-          
-          //if want to compute LDA
-          //painting_all_hmat[ii]=pind;
-          
           
           vector<vector<double>> pind_dense=hMatrix2matrix(pind);
           for(int j=0;j<npop;++j){
@@ -2400,9 +2384,6 @@ void paintingalldense(const string method,
         vector<int> resample_idx = randomsample(allhaps_idx,nsamples_use);
 #pragma omp parallel for
         for(int i=0;i<nsnp-1;++i){
-          //LDA_result.m[i].set(i,1.0);
-          //Dprime.m[i].set(i,1.0);
-          //cout<<"Computing LDA for SNP "<<i<<endl;
           if(nsnp_right[i]!=0){
             for(int j=i+1;j<=i+nsnp_right[i];++j){
               double distance=0;
@@ -2418,13 +2399,9 @@ void paintingalldense(const string method,
                 theo_distance += sqrt(sum_squared_diff_theo/npop);
               }
               if(looptime==0){
-                //LDA_result.m[i].set(j,distance);
-                //Dprime.m[i].set(j,theo_distance);
                 Dscore[i][j-i-1]=distance;
                 Dprime[i][j-i-1]=theo_distance;
               }else{
-                //LDA_result.m[i].set(j,distance+LDA_result.m[i].get(j));
-                //Dprime.m[i].set(j,theo_distance+Dprime.m[i].get(j));
                 Dscore[i][j-i-1]+=distance;
                 Dprime[i][j-i-1]+=theo_distance;
               }
@@ -2508,11 +2485,6 @@ void paintingalldense(const string method,
         if(!diff_rho){
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
           
-          
-          //if want to compute LDA
-          //painting_all_hmat[ii]=pind;
-          
-          
           vector<vector<double>> pind_dense=hMatrix2matrix(pind);
           for(int j=0;j<npop;++j){
             for(int k=0;k<nsnp;++k){
@@ -2531,11 +2503,6 @@ void paintingalldense(const string method,
           //cout<<"Estimated rho is "<<rho_use<<endl;
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
 
-          
-          //if want to compute LDA
-          //painting_all_hmat[ii]=pind;
-          
-          
           vector<vector<double>> pind_dense=hMatrix2matrix(pind);
           for(int j=0;j<npop;++j){
             for(int k=0;k<nsnp;++k){
@@ -2597,9 +2564,6 @@ void paintingalldense(const string method,
         vector<int> resample_idx = randomsample(allhaps_idx,nsamples_use);
 #pragma omp parallel for
         for(int i=0;i<nsnp-1;++i){
-          //LDA_result.m[i].set(i,1.0);
-          //Dprime.m[i].set(i,1.0);
-          //cout<<"Computing LDA for SNP "<<i<<endl;
           if(nsnp_right[i]!=0){
             for(int j=i+1;j<=i+nsnp_right[i];++j){
               double distance=0;
@@ -2615,13 +2579,9 @@ void paintingalldense(const string method,
                 theo_distance += sqrt(sum_squared_diff_theo/npop);
               }
               if(looptime==0){
-                //LDA_result.m[i].set(j,distance);
-                //Dprime.m[i].set(j,theo_distance);
                 Dscore[i][j-i-1]=distance;
                 Dprime[i][j-i-1]=theo_distance;
               }else{
-                //LDA_result.m[i].set(j,distance+LDA_result.m[i].get(j));
-                //Dprime.m[i].set(j,theo_distance+Dprime.m[i].get(j));
                 Dscore[i][j-i-1]+=distance;
                 Dprime[i][j-i-1]+=theo_distance;
               }
@@ -2727,7 +2687,6 @@ void paintingalldense(const string method,
       for (int i = 0; i < nsnp; ++i) {
         vector<int> keys = LDA_result.m[i].k;
         for (int j = 0; j < keys.size(); ++j) {
-          //LDA_result.m[i].set(keys[j],1-LDA_result.m[i].get(keys[j])/Dprime.m[i].get(keys[j]));
           if(i < keys[j] && LDA_result.m[i].get(keys[j])>=0.005){
             outputFile << fixed << setprecision(0) << pd[i];
             outputFile << " " << fixed << setprecision(0) << pd[keys[j]];
@@ -2746,13 +2705,13 @@ void paintingalldense(const string method,
   if(outputLDAS){
     hMat Dprime(0,0,0.0);
     cout << "Begin calculating LDA score"<<endl;
-    LDAS(LDA_result,LDASfile,window,gd,pd,nsnp_left,nsnp_right,nsnp);
+    doLDAS(LDA_result,LDASfile,window,gd,pd,nsnp_left,nsnp_right,nsnp);
     cout << "Finish calculating LDA score"<<endl;
   }
   
   if(outputAAS){
     cout << "Begin calculating Ancestry Anomaly Score"<<endl;
-    AAS(pd,aveSNPpainting,AASfile);
+    doAAS(pd,aveSNPpainting,AASfile);
     cout << "Finish calculating Ancestry Anomaly Score"<<endl;
   }
   
@@ -2766,26 +2725,25 @@ void paintingalldense(const string method,
     bool diff_rho=false;
     double fixrho=0;
     double indfrac=0.1;
-    int minsnpEM=10000;
+    int minsnpEM=2000;
     double EMsnpfrac=0.1;
     int L_initial=320;
-    double minmatchfrac=0.002;
+    double matchfrac=0.002;
     int L_minmatch=40;
     int ite_time=10;
-    std::string donorfile="donor.phase.gz";
+    std::string reffile="donor.phase.gz";
     std::string targetfile="target.phase.gz";
     std::string mapfile="map.txt";
     std::string popfile="popnames.txt";
     std::string targetname="targetname.txt";
-    bool outputpainting=true;
-    bool outputaveSNPpainting=true;
-    bool outputaveindpainting=true;
-    bool outputLDA=true;
-    bool outputLDAS=true;
-    bool outputAAS=true;
+    bool painting=true;
+    bool aveSNPpainting=true;
+    bool aveindpainting=true;
+    bool LDA=false;
+    bool LDAS=false;
+    bool AAS=true;
     std::string out="HMPaint";
     double window=0.04;
-    int LDAfactor=1;
     int ncores=0;
     
     for (int i = 1; i < argc; i+=2) {
@@ -2814,14 +2772,14 @@ void paintingalldense(const string method,
         EMsnpfrac = std::stod(argv[i+1]);
       } else if (param == "L_initial") {
         L_initial = std::stoi(argv[i+1]);
-      } else if (param == "minmatchfrac") {
-        minmatchfrac = std::stod(argv[i+1]);
+      } else if (param == "matchfrac") {
+        matchfrac = std::stod(argv[i+1]);
       } else if (param == "L_minmatch") {
         L_minmatch = std::stoi(argv[i+1]);
       } else if (param == "haploid") {
         haploid = std::stoi(argv[i+1]);
-      } else if (param == "donorfile") {
-        donorfile = argv[i+1];
+      } else if (param == "reffile") {
+        reffile = argv[i+1];
       } else if (param == "targetfile") {
         targetfile = argv[i+1];
       } else if (param == "mapfile") {
@@ -2830,24 +2788,22 @@ void paintingalldense(const string method,
         popfile = argv[i+1];
       } else if (param == "targetname") {
         targetname = argv[i+1];
-      } else if (param == "outputpainting") {
-        outputpainting = std::stoi(argv[i+1]);
-      } else if (param == "outputaveSNPpainting") {
-        outputaveSNPpainting = std::stoi(argv[i+1]);
-      } else if (param == "outputaveindpainting") {
-        outputaveindpainting = std::stoi(argv[i+1]);
-      } else if (param == "outputLDA") {
-        outputLDA = std::stoi(argv[i+1]);
-      } else if (param == "outputLDAS") {
-        outputLDAS = std::stoi(argv[i+1]);
-      } else if (param == "outputAAS") {
-        outputAAS = std::stoi(argv[i+1]);
+      } else if (param == "painting") {
+        painting = std::stoi(argv[i+1]);
+      } else if (param == "aveSNPpainting") {
+        aveSNPpainting = std::stoi(argv[i+1]);
+      } else if (param == "aveindpainting") {
+        aveindpainting = std::stoi(argv[i+1]);
+      } else if (param == "LDA") {
+        LDA = std::stoi(argv[i+1]);
+      } else if (param == "LDAS") {
+        LDAS = std::stoi(argv[i+1]);
+      } else if (param == "AAS") {
+        AAS = std::stoi(argv[i+1]);
       } else if (param == "out") {
         out = argv[i+1];
       } else if (param == "window") {
         window = std::stod(argv[i+1]);
-      } else if (param == "LDAfactor") {
-        LDAfactor = std::stoi(argv[i+1]);
       } else if (param == "ncores") {
         ncores = std::stoi(argv[i+1]);
       } else {
@@ -2865,24 +2821,24 @@ void paintingalldense(const string method,
     std::string chunklengthfile = out+ "chunklength.txt";
     
     if(run=="paint"){
-      paintingalldense(method, diff_rho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
-                       L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
-                       outputaveSNPpainting,outputaveindpainting,outputLDA, outputLDAS, 
-                       outputAAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
-                       LDAfile, LDASfile, AASfile,window, LDAfactor, ncores);
+      paintingalldense(method, diff_rho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, matchfrac, 
+                       L_minmatch, haploid, reffile, targetfile, mapfile, popfile, targetname, painting,
+                       aveSNPpainting,aveindpainting,LDA, LDAS, 
+                       AAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
+                       LDAfile, LDASfile, AASfile,window, ncores);
     }else if (run=="chunklength"){
       chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
-                     L_initial,minmatchfrac,L_minmatch,haploid,
-                     donorfile,mapfile,popfile,chunklengthfile,ncores);
+                     L_initial,matchfrac,L_minmatch,haploid,
+                     reffile,mapfile,popfile,chunklengthfile,ncores);
     }else if (run=="both"){
-      paintingalldense(method, diff_rho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, minmatchfrac, 
-                       L_minmatch, haploid, donorfile, targetfile, mapfile, popfile, targetname, outputpainting,
-                       outputaveSNPpainting,outputaveindpainting,outputLDA, outputLDAS, 
-                       outputAAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
-                       LDAfile, LDASfile, AASfile,window, LDAfactor, ncores);
+      paintingalldense(method, diff_rho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, matchfrac, 
+                       L_minmatch, haploid, reffile, targetfile, mapfile, popfile, targetname, painting,
+                       aveSNPpainting,aveindpainting,LDA, LDAS, 
+                       AAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
+                       LDAfile, LDASfile, AASfile,window, ncores);
       chunklengthall(method,ite_time,indfrac,minsnpEM,EMsnpfrac,
-                     L_initial,minmatchfrac,L_minmatch,haploid,
-                     donorfile,mapfile,popfile,chunklengthfile,ncores);
+                     L_initial,matchfrac,L_minmatch,haploid,
+                     reffile,mapfile,popfile,chunklengthfile,ncores);
     }else{
       std::cerr << "Unknown argument given to run" << "\n";
     }

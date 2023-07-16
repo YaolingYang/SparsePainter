@@ -75,11 +75,11 @@ To run **HMPaint**, enter the following command:
 
 * **-fixrho [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **HMPaint** will estimate rho as the average recombination scaling constant of **indfrac** target samples under the default **fixrho** and **diff_rho**.
 
-* **-indfrac [number&isin;(0,1)]** (**default=0.1**)
+* **-indfrac [number&isin;(0,1)]** The proportion of individuals used to estimate the recombination scaling constant (**default=0.1**).
 
-* **-minsnpEM [integer>0]** (**default=10000**)
+* **-minsnpEM [integer>0]** The minimum number of SNPs used for EM algorithm if **-method EM** is specified (**default=2000**).
 
-* **-EMsnpfrac [number&isin;(0,1)]** (**default=0.1**)
+* **-EMsnpfrac [number&isin;(0,1)]** The proportion of SNPs used for EM algorithm if **-method EM** is specified (**default=0.1**). Note that if nsnp***EMsnpfrac**<**minsnpEM**, **minsnpEM** SNPs will be used for EM algorithm.
 
 * **-ite_time [integer>0]** (**default=10**)
 

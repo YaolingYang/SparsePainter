@@ -21,7 +21,6 @@
 #include <vector>
 #include <string>
 #include <regex>
-//#include <Rcpp.h>
 #include <unordered_map>
 #include <algorithm>
 #include <random>
@@ -35,10 +34,8 @@
 #include "gzstream.h"
 #include "gzstream.C"
 
-//using namespace Rcpp;
 using namespace std;
 
-//namespace hMatRcpp {
 
 class hVec { // A sparse vector format
 public:
@@ -186,11 +183,7 @@ public:
 };
 
 
-
-
 /////////////////////beginning of dpbwt contents///////////////////////////
-
-
 
 struct dpbwtnode{
   dpbwtnode *below, *above, *u, *v;
@@ -277,16 +270,16 @@ void Readphase_donor(const string inFile,
       
       
       z[0].id = i;
-      z[0].originalid = Oid; //!!!! different from indel benchmark
+      z[0].originalid = Oid;
       z[0].divergence = 0;
       z[0].below = t;
       z[0].above = t->above;
       t->above = &z[0];
       if (z[0].above != nullptr)
         z[0].above->below = &z[0];
-      // open vcf as file handle
+
       for (int k = 0; k<N; ++k){
-        // read snpk from vcf file handle
+
         dpbwtnode* temp = z[k].above;
         while (temp != nullptr && x.panel[temp->id][k] != panelsnp[k]){
           if (!panelsnp[k])
@@ -344,7 +337,6 @@ void Readphase_donor(const string inFile,
         z[k].divergence = zdtemp;
         z[k].below->divergence = bdtemp;
       }
-      
       
   }
   
@@ -478,7 +470,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
       
       int i = queryidx[idx];
       
-      //cout<<i<<endl;
       int L=L_initial;
       int prevL=L;
       
@@ -489,7 +480,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
         *z = new dpbwtnode[N+1];
         
         z[0].id = i;
-        z[0].originalid = Oid; //!!!! different from indel benchmark
+        z[0].originalid = Oid;
         z[0].divergence = 0;
         z[0].below = t;
         z[0].above = t->above;
@@ -683,7 +674,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchdpbwt(const int 
             }else{
               // update L
               prevL=L;
-              L=(prevL+1)/2; // this is equal to ceil(L/2) when L is double type
+              L=(prevL+1)/2; 
               if(L<L_minmatch) L=L_minmatch;
               times++;
             }
@@ -1612,8 +1603,6 @@ vector<double> chunklength_each(vector<double>& gd,
   return(suml);
 }
 
-
-// [[Rcpp::export]]
 vector<vector<double>> chunklengthall(const string method, 
                                       const int ite_time,
                                       const double indfrac,
@@ -2041,7 +2030,7 @@ void paintingalldense(const string method,
   vector<double> pd = get<0>(mapinfo);
   
   tuple<vector<string>,vector<int>> popinfo = readpopfile(popfile);
-  //vector<string> indnames = get<0>(popinfo);
+
   vector<int> refindex = get<1>(popinfo);
   
   vector<string> indnames = readtargetname(targetname);
@@ -2179,11 +2168,8 @@ void paintingalldense(const string method,
   
   int nsamples_use;
   int nhap_left=nhap_use;
-
   
   //store data in hMat if want to compute LDA
-  //vector<hMat> painting_all_hmat(nhap_use, hMat(npop, nsnp));
-  
   
   vector<int> nsnp_left(nsnp);
   vector<int> nsnp_right(nsnp);
@@ -2207,9 +2193,7 @@ void paintingalldense(const string method,
         right_ptr++;
       }
     }
-    
   }
-  
   
   vector<vector<double>> Dscore(nsnp - 1); // Create a vector of vectors with size nsnp - 1
   vector<vector<double>> Dprime(nsnp - 1);
@@ -2291,13 +2275,8 @@ void paintingalldense(const string method,
             endpos.push_back(row[2]);
           }
           rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
-          //cout<<"Estimated rho is "<<rho_use<<endl;
+
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
-          
-          
-          //if want to compute LDA
-          //painting_all_hmat[ii]=pind;
-          
           
           vector<vector<double>> pind_dense=hMatrix2matrix(pind);
           for(int j=0;j<npop;++j){
@@ -2345,7 +2324,6 @@ void paintingalldense(const string method,
           }
         }
       }
-
       
       //compute LDA
       
@@ -2383,7 +2361,6 @@ void paintingalldense(const string method,
           }
         }
       }
-      
       
       //output painting
       if(haploid){
@@ -2474,7 +2451,6 @@ void paintingalldense(const string method,
 
           rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
 
-          //cout<<"Estimated rho is "<<rho_use<<endl;
           hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
 
           vector<vector<double>> pind_dense=hMatrix2matrix(pind);
@@ -2486,7 +2462,6 @@ void paintingalldense(const string method,
         }
       }
 
-      
       //compute average painting for each SNP
       if(outputaveSNPpainting||outputAAS){
         for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
@@ -2499,7 +2474,6 @@ void paintingalldense(const string method,
         }
       }
 
-      
       // compute the average painting for each individual and output.
       if(outputaveindpainting){
         if(haploid){
@@ -2568,7 +2542,6 @@ void paintingalldense(const string method,
       nhap_left=nhap_left-nsamples_use;
       looptime++;
     }
-    
   }
   
   // get the average painting for each SNP and output
@@ -2606,9 +2579,7 @@ void paintingalldense(const string method,
         cerr << "Unable to open file" << aveSNPpaintingfile;
       }
     }
-    
   }
-  
   
   //output the average painting for each individual
   if(outputaveindpainting){
@@ -2637,8 +2608,6 @@ void paintingalldense(const string method,
       cerr << "Unable to open file" << aveindpaintingfile;
     }
   }
-  
-  
   
   // arrange results in hMat LDA_result
   hMat LDA_result(nsnp,nsnp,0.0);

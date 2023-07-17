@@ -93,3 +93,5 @@ The example dataset is contained in the /example folder. This example includes 8
 ``
 ./HMPaint.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out HM
 ``
+
+The output file for this example includes ``HM_painting.txt.gz``, ``HM_aveSNPpainting.txt.gz``, ``HM_aveindpainting.txt.gz`` and ``HM_AAS.txt``.

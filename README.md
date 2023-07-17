@@ -25,7 +25,7 @@ To run **HMPaint**, enter the following command:
 ./HMPaint.exe [-parameter1 value1 -parameter2 value2 ......]
 ``
 
-An example can be found in the **example** section below.
+An example can be found in the **Example** section below.
 
 # Parameters
 

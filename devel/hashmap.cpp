@@ -2059,7 +2059,11 @@ void paintingalldense(const string method,
     ncores = omp_get_num_procs();
   }
   
-  int LDAfactor=24/ncores+1;
+  int LDAfactor=1;
+  
+  if(outputLDA||outputLDAS){
+    LDAfactor=24/ncores+1;
+  }
   
   // read the map data to get the genetic distance in Morgans
   tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);

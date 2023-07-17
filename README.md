@@ -88,7 +88,7 @@ An example can be found in the **Example** section below.
 * **-window [number>0]** The window for calculating LDA score (LDAS) in Morgan (**default=0.04**).
 
 # Example
-The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (*donor.phase.gz*), and the aim is to paint 500 target individuals (*target.phase.gz*). Remember we have compile HMPaint in *HMPaint.exe*, then we can paint with the following command:
+The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (``donor.phase.gz``), and the aim is to paint 500 target individuals (``target.phase.gz``). Remember we have compile HMPaint in ``HMPaint.exe``, then we can paint with the following command:
 
 ``
 ./HMPaint.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out HM

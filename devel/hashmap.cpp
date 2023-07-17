@@ -1921,17 +1921,6 @@ void doLDAS(hMat &LDA_result,
     
 }
   
-double median(vector<double>& v) {
-  size_t n = v.size() / 2;
-  nth_element(v.begin(), v.begin() + n, v.end());
-  double med = v[n];
-  if(v.size() % 2 == 0) {
-    nth_element(v.begin(), v.begin() + n - 1, v.end());
-    med = (v[n] + v[n - 1]) / 2.0;
-  }
-  return med;
-}
-  
 vector<double> rowMeans(const vector<vector<double>>& data) {
   vector<double> means;
   for (const auto& row : data) {
@@ -1942,23 +1931,6 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
     means.push_back(sum / row.size());
   }
   return means;
-}
-  
-vector<double> rowStdDev(const vector<vector<double>>& matrix) {
-  vector<double> std_devs(matrix.size());
-    
-  for (size_t i = 0; i < matrix.size(); ++i) {
-    double mean = accumulate(matrix[i].begin(), matrix[i].end(), 0.0) / matrix[i].size();
-      
-    double accum = 0.0;
-    for_each(matrix[i].begin(), matrix[i].end(), [&](const double d) {
-      accum += (d - mean) * (d - mean);
-    });
-      
-    std_devs[i] = sqrt(accum / (matrix[i].size() - 1));  // Bessel's correction: use n-1 instead of n
-  }
-    
-  return std_devs;
 }
 
 
@@ -1973,14 +1945,12 @@ void doAAS(vector<double>& pd,
   std::vector<double> test_statistic(nsnp, 1.0); 
   
   vector<double> mu=rowMeans(aveSNPpainting);
-  //vector<double> sd=rowStdDev(aveSNPpainting);
   
   arma::mat Astar(nsnp, npop);
   for (int i = 0; i < npop; ++i) {
 #pragma omp parallel for
     for (int j = 0; j < nsnp; ++j) {
       Astar(j, i) = aveSNPpainting[i][j] - mu[i]; // compute A*(j,k) for all j,k and store it in Astar
-      //Astar(j, i) = aveSNPpainting[i][j] - median(aveSNPpainting[i]);
     }
   }
   

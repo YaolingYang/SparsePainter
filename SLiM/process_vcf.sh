@@ -16,7 +16,7 @@ bcftools view -R output_dir/sites.txt -Ov -o p1_common.vcf p1.vcf.gz
 bcftools view -R output_dir/sites.txt -Ov -o sim_target.vcf p3.vcf.gz
 
 //change names of sim_target.vcf
-bcftools query -l sim_target.vcf.gz > sample_names.txt
+bcftools query -l sim_target.vcf > sample_names.txt
 sed 's/^/p/' sample_names.txt > new_sample_names.txt
 while read -r old new
 do

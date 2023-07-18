@@ -1,0 +1,52 @@
+initialize() {
+    initializeTreeSeq();
+    initializeMutationRate(2e-9);
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, 1e8-1);
+    initializeRecombinationRate(5e-8);
+}
+
+1 late() {
+    sim.addSubpop("p0", 1000);
+}
+
+1501 early() {
+    catn("Splitting p0 into p1");
+    sim.addSubpopSplit("p1", 1000, p0);
+}
+
+1501 late() {
+    p0.outputVCFSample(500, replace=F, filePath="p0.vcf"); 
+}
+
+2000 late() {
+    p1.outputVCFSample(500, replace=F, filePath="p1.vcf"); 
+}
+
+2008 early() {
+    catn("Splitting p1 into p2");
+    sim.addSubpopSplit("p2", 1000, p1);
+}
+
+2009 early() {
+    catn("Setting migration rates");
+    p2.setMigrationRates(0, 0.3);
+}
+
+2010 early() {
+    catn("Setting migration rates");
+    p2.setMigrationRates(0, 0);
+    //almost equivalent to moving 70% p1 to p2, and remove p1?
+}
+
+2020 early() {
+    catn("Sample an individual from p2 and output");
+    sim.addSubpopSplit("p3", 200, p2);
+}
+
+2020 late(){
+    p3.genomes.outputVCF(filePath="p3.vcf");
+    sim.treeSeqOutput("ts.trees");
+    sim.simulationFinished();
+}

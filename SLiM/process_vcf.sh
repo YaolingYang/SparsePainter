@@ -36,7 +36,7 @@ echo -e "pd\tgd" > sim_map.txt
 awk '{print $2"\t"5e-8*$2}' output_dir/sites.txt >> sim_map.txt
 
 //create sim_popnames.txt
-bcftools query -l sim_ref.vcf > refsamples.txt
+bcftools query -l sim_ref.vcf.gz > refsamples.txt
 awk '{if (NR <= 500) print $1"\t0"; else print $1"\t1"}' refsamples.txt > sim_popnames.txt
 
 //extract target samples and create sim_targetname.txt

@@ -1,5 +1,3 @@
-// [[Rcpp::plugins(cpp11)]]
-//[[Rcpp::plugins(openmp)]]
 // Compile with:
 // module load languages/gcc/10.4.0
 // g++ hashmap.cpp -o test.exe -lz -fopenmp -lpthread -larmadillo
@@ -10,6 +8,7 @@
 // using cmake . and make to install, and then
 // g++ -I/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1/include hashmap.cpp -o test2.exe -lz -fopenmp -lpthread -L/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1 -larmadillo  -lopenblas
 // export LD_LIBRARY_PATH=/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1:$LD_LIBRARY_PATH
+
 #ifdef _OPENMP
 #include <omp.h>
 #else
@@ -25,17 +24,13 @@
 #include <algorithm>
 #include <random>
 #include <cmath>
-
 #include <iomanip>
 #include <sstream>
 #include <utility>
 #include <armadillo>
-
 #include "gzstream.h"
 #include "gzstream.C"
-
 using namespace std;
-
 
 class hVec { // A sparse vector format
 public:

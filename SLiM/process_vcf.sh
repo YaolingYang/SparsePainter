@@ -29,7 +29,7 @@ bgzip p1_common.vcf
 bcftools index p0_common.vcf.gz
 bcftools index p1_common.vcf.gz
 
-bcftools merge p0_common.vcf.gz p1_common.vcf.gz -Oz -o sim_ref.vcf --force-samples
+bcftools merge p0_common.vcf.gz p1_common.vcf.gz -Oz -o sim_ref.vcf.gz --force-samples
 
 //create sim_map.txt with fixed recombination rate of 5e-8 Morgan/b
 echo -e "pd\tgd" > sim_map.txt
@@ -43,7 +43,7 @@ awk '{if (NR <= 500) print $1"\t0"; else print $1"\t1"}' refsamples.txt > sim_po
 bcftools query -l sim_target.vcf > sim_targetname.txt
 
 //convert vcf to phase format
-pbwt -readVcfGT sim_ref.vcf -writePhase sim_ref.phase
+pbwt -readVcfGT sim_ref.vcf.gz -writePhase sim_ref.phase
 pbwt -readVcfGT sim_target.vcf -writePhase sim_target.phase
 
 //run HNPaint

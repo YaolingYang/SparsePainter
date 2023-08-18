@@ -57,11 +57,11 @@ An example can be found in the **Example** section below.
 
 * **-aveindpainting [1/0]** Output the average painting probabilities for each individual (**1**) or not (**0**) (**default=1**). The output file format is a gzipped text file (.txt.gz).
 
-* **-LDA [1/0]** (**default=1**) Output the LDA results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the chromosome.
+* **-LDA [1/0]** Output the LDA results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the chromosome.
 
-* **-LDAS [1/0]** (**default=1**) Output the LDAS results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the genome.
+* **-LDAS [1/0]** Output the LDAS results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the genome.
 
-* **-AAS [1/0]** (**default=1**) Output the AAS results (**1**) or not (**0**) (**default=1**). The output file format is a text file (.txt).
+* **-AAS [1/0]** Output the AAS results (**1**) or not (**0**) (**default=1**). The output file format is a text file (.txt).
 
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
 

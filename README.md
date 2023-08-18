@@ -35,7 +35,7 @@ An example can be found in the **Example** section below.
 
 * **-reffile [file]** Reference phase (or gzipped phase) file that contains the genotype data for each reference sample.
 
-* **-targetfile [file]** Target phase (or gzipped phase) file that contains the genotype data for each target sample.
+* **-targetfile [file]** Target phase (or gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves using leave-one-out strategy, please just set ``targetfile`` to be the same as ``reffile``.
 
 * **-mapfile [file]** Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile.
 

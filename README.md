@@ -61,7 +61,7 @@ An example can be found in the **Example** section below.
 
 * **-LDAS [1/0]** Output the LDAS results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the genome.
 
-* **-AAS [1/0]** Output the AAS results (**1**) or not (**0**) (**default=1**). The output file format is a text file (.txt).
+* **-AAS [1/0]** Output the AAS results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt).
 
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
 
@@ -69,7 +69,7 @@ An example can be found in the **Example** section below.
 
 * **-matchfrac [number&isin;(0,1)]** The proportion of matches of at least **L_minmatch** SNPs that **HMPaint** searches for (**default=0.002**). Positions with more than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain at least the longest **matchfrac** proportion of matches. A larger **matchfrac** increases both the accuracy and the computational time.
 
-* **-L_minmatch [integer>0]** The minimal length of matches that **HMPaint** searches for (**default=40**). Positions with fewer than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain all the matches of at least **L_minmatch**. A larger **L_minmatch** increases both the accuracy and the computational time.
+* **-L_minmatch [integer>0]** The minimal length of matches that **HMPaint** searches for (**default=20**). Positions with fewer than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain all the matches of at least **L_minmatch**. A larger **L_minmatch** increases both the accuracy and the computational time.
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 

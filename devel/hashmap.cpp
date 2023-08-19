@@ -2667,7 +2667,7 @@ void paintingalldense(const string method,
     double EMsnpfrac=0.1;
     int L_initial=320;
     double matchfrac=0.002;
-    int L_minmatch=40;
+    int L_minmatch=20;
     int ite_time=10;
     std::string reffile="donor.phase.gz";
     std::string targetfile="target.phase.gz";
@@ -2679,7 +2679,7 @@ void paintingalldense(const string method,
     bool aveindpainting=true;
     bool LDA=false;
     bool LDAS=false;
-    bool AAS=true;
+    bool AAS=false;
     std::string out="HMPaint";
     double window=0.04;
     int ncores=0;

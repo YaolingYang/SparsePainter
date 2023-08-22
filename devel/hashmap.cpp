@@ -959,13 +959,13 @@ vector<int> randomsample(const vector<int>& popidx,
 }
 
   vector<double> cal_sameprob(const int nsnp, 
-                              const double rho, 
+                              const double lambda, 
                               vector<double>& gd,
                               const int nref){
     //compute the sameprob
     vector<double> sameprob(nsnp);
     for(int j=0;j<nsnp-1;++j){
-      sameprob[j]=exp(-rho*(gd[j+1]-gd[j]));
+      sameprob[j]=exp(-lambda*(gd[j+1]-gd[j]));
       if(sameprob[j]>1-nref*0.000000000000002){
         sameprob[j]=1-nref*0.000000000000002;
       } 
@@ -1265,23 +1265,23 @@ vector<string> readtargetname(const string& targetname) {
 
 
 
-double est_rho_EM(hMat& mat, 
+double est_lambda_EM(hMat& mat, 
                   vector<double>& gd,
                   const int ite_time){
-  //estimate \rho using EM algorithm
+  //estimate \lambda using EM algorithm
   int nref=mat.d1;
   int nsnp=mat.d2;
   vector<double> sameprob;
   vector<double> otherprob; 
-  double rho_ite=400000/nref;
+  double lambda_ite=400000/nref;
   vector<double> gl(nsnp-1);
-  vector<double> rho_each((nsnp-1));
+  vector<double> lambda_each((nsnp-1));
   for(int j=0;j<nsnp-1;++j){
     gl[j]=gd[j+1]-gd[j];
   }
   double totalgd=gd[nsnp-1]-gd[0];
   for(int t=0;t<ite_time;++t){
-    sameprob=cal_sameprob(nsnp,rho_ite,gd,nref);
+    sameprob=cal_sameprob(nsnp,lambda_ite,gd,nref);
     otherprob=cal_otherprob(nref,sameprob);
     
     tuple<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
@@ -1305,15 +1305,15 @@ double est_rho_EM(hMat& mat,
       }
     }
     for(int j=0;j<nsnp-1;++j){
-      rho_each[j]=u[j]*rho_ite*gl[j]/(1-sameprob[j]);
+      lambda_each[j]=u[j]*lambda_ite*gl[j]/(1-sameprob[j]);
     }
-    rho_ite=vec_sum(rho_each)/totalgd;
+    lambda_ite=vec_sum(lambda_each)/totalgd;
   }
-  if(isnan(rho_ite)) rho_ite=1/totalgd;
-  return(rho_ite);
+  if(isnan(lambda_ite)) lambda_ite=1/totalgd;
+  return(lambda_ite);
 }
 
-double est_rho_Viterbi(const vector<int>& startpos, 
+double est_lambda_Viterbi(const vector<int>& startpos, 
                        const vector<int>& endpos,
                        const int nsnp, 
                        const double gdtotal) {
@@ -1357,13 +1357,13 @@ double est_rho_Viterbi(const vector<int>& startpos,
     cout<<"There is a perfect match but our model assumes at least one match"<<endl;
     nrec=1;
   } 
-  double rho_est = nrec / static_cast<double>(gdtotal);
-  return rho_est;
+  double lambda_est = nrec / static_cast<double>(gdtotal);
+  return lambda_est;
 }
 
 
 
-double est_rho_average(const hAnc& refidx, 
+double est_lambda_average(const hAnc& refidx, 
                        const int nref, 
                        const int nsnp,
                        vector<double>& gd,
@@ -1381,9 +1381,9 @@ double est_rho_average(const hAnc& refidx,
                        tuple<vector<int>,vector<int>,vector<int>,vector<int>> dpbwtall_ref=
                          make_tuple(vector<int>(), vector<int>(), vector<int>(), vector<int>()))
   {
-  // estimate \rho from the reference panel
+  // estimate \lambda from the reference panel
   int npop=refidx.pos.size();
-  vector<double> rho_est;
+  vector<double> lambda_est;
   int count=0;
   double gdall=gd[nsnp-1]-gd[0];
   
@@ -1460,9 +1460,9 @@ double est_rho_average(const hAnc& refidx,
           startpos.push_back(row[1]);
           endpos.push_back(row[2]);
         }
-        double rho_estimated=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
+        double lambda_estimated=est_lambda_Viterbi(startpos,endpos,nsnp,gdall);
         count=count+1;
-        rho_est.push_back(rho_estimated);
+        lambda_est.push_back(lambda_estimated);
       }else{
         hMat mat=matchfiletohMat(matchdata,nref-npop,nsnp);
         int nsnp_use=nsnp;
@@ -1488,32 +1488,32 @@ double est_rho_average(const hAnc& refidx,
             mat_use.m[j].setall(non0idx,vector<double>(non0idx.size(),1.0));
           }
           
-          double rho_estimated=est_rho_EM(mat_use,gd_use,ite_time);
+          double lambda_estimated=est_lambda_EM(mat_use,gd_use,ite_time);
           count=count+1;
-          rho_est.push_back(rho_estimated);
+          lambda_est.push_back(lambda_estimated);
         }else{
           
-          double rho_estimated=est_rho_EM(mat,gd,ite_time);
+          double lambda_estimated=est_lambda_EM(mat,gd,ite_time);
           count=count+1;
-          rho_est.push_back(rho_estimated);
+          lambda_est.push_back(lambda_estimated);
         }
       }
     }
   }
-  double rho_ave=vec_sum(rho_est)/rho_est.size();
-  return(rho_ave);
+  double lambda_ave=vec_sum(lambda_est)/lambda_est.size();
+  return(lambda_ave);
 }
 
 
 hMat indpainting(const hMat& mat,
                  vector<double>& gd, 
-                 const double rho,
+                 const double lambda,
                  const int npop, 
                  const vector<int>& refindex){
   // return individual painting
   int nref=mat.d1;
   int nsnp=mat.d2;
-  vector<double> sameprob=cal_sameprob(nsnp,rho,gd,nref);
+  vector<double> sameprob=cal_sameprob(nsnp,lambda,gd,nref);
   vector<double> otherprob=cal_otherprob(nref,sameprob);
   hMat marginal_prob=forwardBackward(mat,sameprob,otherprob);
   // compute individual painting in terms of different populations
@@ -1545,7 +1545,7 @@ hMat indpainting(const hMat& mat,
 
 vector<double> chunklength_each(vector<double>& gd, 
                                 hMat& mat, 
-                                const double rho, 
+                                const double lambda, 
                                 const int npop,
                                 const vector<int>& refindex){
   //calculate chunk length for each reference sample
@@ -1558,7 +1558,7 @@ vector<double> chunklength_each(vector<double>& gd,
   for(int j=0;j<nsnp-1;++j){
     gl[j]=gd[j+1]-gd[j];
   }
-  sameprob=cal_sameprob(nsnp,rho,gd,nref);
+  sameprob=cal_sameprob(nsnp,lambda,gd,nref);
   otherprob=cal_otherprob(nref,sameprob);
   
   tuple<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
@@ -1640,7 +1640,7 @@ vector<vector<double>> chunklengthall(const string method,
   const int nref=refindex.size();
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
-  double rho;
+  double lambda;
   int minmatch=static_cast<int>(ceil(nref*matchfrac));
   
   
@@ -1663,9 +1663,9 @@ vector<vector<double>> chunklengthall(const string method,
   vector<int> endpos_ref=get<3>(dpbwtall_ref);
   cout<<"dPBWT works successfully"<<endl;
   
-  cout<<"Begin estimating fixed rho"<<endl;
+  cout<<"Begin estimating fixed lambda"<<endl;
   
-  rho=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,indfrac,
+  lambda=est_lambda_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,indfrac,
                       ite_time,method,minsnpEM,EMsnpfrac,haploid,reffile,dpbwtall_ref);
   
   int nrefpaint=queryidx.size();
@@ -1711,7 +1711,7 @@ vector<vector<double>> chunklengthall(const string method,
       }
       removeRowsWithValue(matchdata,removeidx);
       hMat mat=matchfiletohMat(matchdata,nref-npop,nsnp);
-      vector<double> cl=chunklength_each(gd,mat,rho,npop,refindex);
+      vector<double> cl=chunklength_each(gd,mat,lambda,npop,refindex);
       for(int j=0;j<npop;++j){
         chunklength[i][j]=cl[j];
       }
@@ -1979,8 +1979,8 @@ void doAAS(vector<double>& pd,
 
 
 void paintingalldense(const string method,
-                      bool diff_rho,
-                      const double fixrho,
+                      bool diff_lambda,
+                      const double fixlambda,
                       const int ite_time,
                       const double indfrac,
                       const int minsnpEM, 
@@ -2068,7 +2068,7 @@ void paintingalldense(const string method,
   const int nref=refindex.size();
   hAnc refidx(refindex);
   const int npop=refidx.pos.size();
-  double rho_use;
+  double lambda_use;
   double gdall=gd[nsnp-1]-gd[0];
   int minmatch=static_cast<int>(ceil(nref*matchfrac));
   
@@ -2101,22 +2101,22 @@ void paintingalldense(const string method,
   vector<int> endpos_target=get<3>(dpbwtall_target);
   cout<<"dPBWT works successfully"<<endl;
   
-  // estimate rho
+  // estimate lambda
   
-  if(!diff_rho){
-    if(fixrho!=0){
-      rho_use=fixrho;
-      cout << "Using fixed rho "<<rho_use<<endl;
+  if(!diff_lambda){
+    if(fixlambda!=0){
+      lambda_use=fixlambda;
+      cout << "Using fixed lambda "<<lambda_use<<endl;
     }else{
-      cout<<"Begin estimating fixed rho"<<endl;
+      cout<<"Begin estimating fixed lambda"<<endl;
       if(method=="EM"){
-        rho_use=est_rho_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,
+        lambda_use=est_lambda_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,
                                 indfrac,ite_time,method,minsnpEM,EMsnpfrac,haploid,reffile);
       }else{
-        //estimate rho as the average of v_nsamples target individuals
+        //estimate lambda as the average of v_nsamples target individuals
         int v_nsamples=static_cast<int>(ceil(queryidx.size()*indfrac));
         vector<int> v_samples=randomsample(queryidx,v_nsamples);
-        double rho_sum = 0.0;
+        double lambda_sum = 0.0;
         
         // get the matches before the loop
         int v_nhap_left=v_nsamples;
@@ -2135,7 +2135,7 @@ void paintingalldense(const string method,
             v_targetmatch_use[ii - (v_nsamples - v_nhap_left)] = match_data;
           }
           
-#pragma omp parallel for reduction(+:rho_sum)
+#pragma omp parallel for reduction(+:lambda_sum)
           for(int ii = v_nsamples - v_nhap_left; ii < v_nsamples - v_nhap_left + v_nsamples_use; ++ii){
             vector<vector<int>> v_targetmatchdata=v_targetmatch_use[ii - (v_nsamples - v_nhap_left)];
             
@@ -2144,15 +2144,15 @@ void paintingalldense(const string method,
               v_startpos.push_back(row[1]);
               v_endpos.push_back(row[2]);
             }
-            double rho_estimated=est_rho_Viterbi(v_startpos,v_endpos,nsnp,gdall);
-            rho_sum += rho_estimated;
+            double lambda_estimated=est_lambda_Viterbi(v_startpos,v_endpos,nsnp,gdall);
+            lambda_sum += lambda_estimated;
           }
           v_nhap_left=v_nhap_left-v_nsamples_use;
         }
         
-        rho_use=rho_sum/v_nsamples;
+        lambda_use=lambda_sum/v_nsamples;
       }
-      cout << "Using fixed rho "<<rho_use<<endl;
+      cout << "Using fixed lambda "<<lambda_use<<endl;
     }
   }
   
@@ -2254,8 +2254,8 @@ void paintingalldense(const string method,
         vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
         
         hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
-        if(!diff_rho){
-          hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+        if(!diff_lambda){
+          hMat pind=indpainting(mat,gd,lambda_use,npop,refindex);
           
           vector<vector<double>> pind_dense=hMatrix2matrix(pind);
           for(int j=0;j<npop;++j){
@@ -2269,9 +2269,9 @@ void paintingalldense(const string method,
             startpos.push_back(row[1]);
             endpos.push_back(row[2]);
           }
-          rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
+          lambda_use=est_lambda_Viterbi(startpos,endpos,nsnp,gdall);
 
-          hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+          hMat pind=indpainting(mat,gd,lambda_use,npop,refindex);
           
           vector<vector<double>> pind_dense=hMatrix2matrix(pind);
           for(int j=0;j<npop;++j){
@@ -2428,8 +2428,8 @@ void paintingalldense(const string method,
         
         hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp);
 
-        if(!diff_rho){
-          hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+        if(!diff_lambda){
+          hMat pind=indpainting(mat,gd,lambda_use,npop,refindex);
           
           vector<vector<double>> pind_dense=hMatrix2matrix(pind);
           for(int j=0;j<npop;++j){
@@ -2444,9 +2444,9 @@ void paintingalldense(const string method,
             endpos.push_back(row[2]);
           }
 
-          rho_use=est_rho_Viterbi(startpos,endpos,nsnp,gdall);
+          lambda_use=est_lambda_Viterbi(startpos,endpos,nsnp,gdall);
 
-          hMat pind=indpainting(mat,gd,rho_use,npop,refindex);
+          hMat pind=indpainting(mat,gd,lambda_use,npop,refindex);
 
           vector<vector<double>> pind_dense=hMatrix2matrix(pind);
           for(int j=0;j<npop;++j){
@@ -2660,8 +2660,8 @@ void paintingalldense(const string method,
     std::string run="paint";
     std::string method="Viterbi";
     bool haploid=false;
-    bool diff_rho=false;
-    double fixrho=0;
+    bool diff_lambda=false;
+    double fixlambda=0;
     double indfrac=0.1;
     int minsnpEM=2000;
     double EMsnpfrac=0.1;
@@ -2696,10 +2696,10 @@ void paintingalldense(const string method,
         run = argv[i+1];
       }else if (param == "method") {
         method = argv[i+1];
-      } else if (param == "diff_rho") {
-        diff_rho = std::stoi(argv[i+1]);
-      } else if (param == "fixrho") {
-        fixrho = std::stoi(argv[i+1]);
+      } else if (param == "diff_lambda") {
+        diff_lambda = std::stoi(argv[i+1]);
+      } else if (param == "fixlambda") {
+        fixlambda = std::stoi(argv[i+1]);
       } else if (param == "ite_time") {
         ite_time = std::stoi(argv[i+1]);
       } else if (param == "indfrac") {
@@ -2759,7 +2759,7 @@ void paintingalldense(const string method,
     std::string chunklengthfile = out+ "chunklength.txt";
     
     if(run=="paint"){
-      paintingalldense(method, diff_rho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, matchfrac, 
+      paintingalldense(method, diff_lambda, fixlambda, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, matchfrac, 
                        L_minmatch, haploid, reffile, targetfile, mapfile, popfile, targetname, painting,
                        aveSNPpainting,aveindpainting,LDA, LDAS, 
                        AAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,
@@ -2769,7 +2769,7 @@ void paintingalldense(const string method,
                      L_initial,matchfrac,L_minmatch,haploid,
                      reffile,mapfile,popfile,chunklengthfile,ncores);
     }else if (run=="both"){
-      paintingalldense(method, diff_rho, fixrho, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, matchfrac, 
+      paintingalldense(method, diff_lambda, fixlambda, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, matchfrac, 
                        L_minmatch, haploid, reffile, targetfile, mapfile, popfile, targetname, painting,
                        aveSNPpainting,aveindpainting,LDA, LDAS, 
                        AAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile,

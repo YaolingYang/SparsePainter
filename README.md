@@ -73,9 +73,9 @@ An example can be found in the **Example** section below.
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
-* **-diff_rho [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**).
+* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**).
 
-* **-fixrho [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **HMPaint** will estimate rho as the average recombination scaling constant of **indfrac** target samples under the default **fixrho** and **diff_rho**.
+* **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **HMPaint** will estimate lambda as the average recombination scaling constant of **indfrac** target samples under the default **fixlambda** and **diff_lambda**.
 
 * **-indfrac [number&isin;(0,1)]** The proportion of individuals used to estimate the recombination scaling constant (**default=0.1**).
 

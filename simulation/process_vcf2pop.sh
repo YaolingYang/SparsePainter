@@ -42,7 +42,7 @@ bcftools merge p0_common.vcf.gz p1_common.vcf.gz -Oz -o sim_ref.vcf.gz --force-s
 echo -e "pd\tgd" > sim_map.txt
 awk '{print $2"\t"2e-8*$2}' output_dir/sites.txt >> sim_map.txt
 
-#create sim_popnames.txt
+#create sim_popnames.txt, change number according to the reference sizes
 bcftools query -l sim_ref.vcf.gz > refsamples.txt
 awk '{if (NR <= 1000) print $1"\t0"; else print $1"\t1"}' refsamples.txt > sim_popnames.txt
 

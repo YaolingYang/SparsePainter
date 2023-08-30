@@ -71,11 +71,11 @@ p3.setSubpopulationSize(0);
 p4.setSubpopulationSize(0);
 }
 
-4010 early() {
+4020 early() {
     sim.addSubpopSplit("p5", 50, p6);
 }
 
-4010 late(){
+4020 late(){
     p5.genomes.outputVCF(filePath="p5.vcf");
     sim.treeSeqOutput("ts.trees");
     sim.simulationFinished();

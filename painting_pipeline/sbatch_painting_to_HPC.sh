@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=28
 #SBATCH --time=30:0:0
 #SBATCH --mem=10G
-#SBATCH --array=1-9
+#SBATCH --array=1-7
 #SBATCH --account=sscm011962
 
 module load languages/gcc/10.4.0
@@ -15,32 +15,26 @@ chr=21
 
 case ${SLURM_ARRAY_TASK_ID} in
 1)
-  pop='british1'
+  pop='british'
   ;;
 2)
-  pop='british2'
-  ;;
-3)
-  pop='british3'
-  ;;
-4)
   pop='indian'
   ;;
-5)
+3)
   pop='irish'
   ;;
-6)
+4)
   pop='caribbean'
   ;;
-7)
+5)
   pop='african'
   ;;
-8)
+6)
   pop='pakistani'
   ;;
-9)
+7)
   pop='chinese'
   ;;
 esac
 
-/usr/bin/time -v ./../test.exe -donorfile chr${chr}_1000G.phase.gz -targetfile chr${chr}_UKB_${pop}.phase.gz -targetname ../${pop}.txt -paintingfile painting_chr${chr}_${pop}.txt.gz -LDAfile LDA_chr${chr}_${pop}.txt.gz -LDASfile LDAS_chr${chr}_${pop}.txt.gz -mapfile chr${chr}map.txt -popfile ../popnames.txt
+/usr/bin/time -v ./../HMPaint.exe -aveSNPpaintingfile aveSNPpainting_chr${chr}_${pop}.txt.gz -donorfile chr${chr}_1000G.phase.gz -targetfile chr${chr}_UKB_${pop}.phase.gz -targetname ../${pop}.txt -aveindpaintingfile aveindpainting_chr${chr}_${pop}.txt.gz -LDAfile LDA_chr${chr}_${pop}.txt.gz -LDASfile LDAS_chr${chr}_${pop}.txt -AASfile AAS_chr${chr}_${pop}.txt -mapfile chr${chr}map.txt -popfile ../popnames.txt -fixlambda 164.2

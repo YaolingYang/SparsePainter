@@ -7,7 +7,7 @@
 
 # Installation
 
-The main code is in **devel/hashmap.cpp**.
+The main code is in **devel/HMPaint.cpp**.
 
 You should load the [Armadillo](https://arma.sourceforge.net/download.html) library, and also have ["gzstream.h" and "gzstream.C"](https://www.cs.unc.edu/Research/compgeom/gzstream/) in your directory. 
 
@@ -20,7 +20,7 @@ pbwt -readVcfGT XXX.vcf -writePhase XXX.phase
 When the above requirements are met, you can compile with:
 
 ``
-g++ hashmap.cpp -o HMPaint.exe -lz -fopenmp -lpthread -larmadillo
+g++ HMPaint.cpp -o HMPaint.exe -lz -fopenmp -lpthread -larmadillo
 ``
 
 To run **HMPaint**, enter the following command:

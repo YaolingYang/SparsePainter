@@ -11,17 +11,17 @@ initialize() {
     sim.addSubpop("p5", 8000);
 }
 
-2501 early() {
+3501 early() {
     catn("Splitting p5 into p0 and p1");
     sim.addSubpopSplit("p0", 4000, p5);
     sim.addSubpopSplit("p1", 4000, p5);
 }
 
-2501 late() {
+3501 late() {
     p5.setSubpopulationSize(0);
 }
 
-3007 late() {
+4007 late() {
     p0.outputVCFSample(100, replace=F, filePath="p0.vcf"); 
     p1.outputVCFSample(100, replace=F, filePath="p1.vcf"); 
     p0.outputVCFSample(200, replace=F, filePath="p0_200.vcf"); 
@@ -34,23 +34,23 @@ initialize() {
     p1.outputVCFSample(2000, replace=F, filePath="p1_2000.vcf"); 
 }
 
-3008 early() {
+4008 early() {
 catn("set up p2 as an admixture of p0 and p1");
 sim.addSubpop("p2", 1000);
 p2.setMigrationRates(c(p0, p1), c(0.5, 0.5));
 }
 
-3008 late() {
+4008 late() {
 p2.setMigrationRates(c(p0, p1), c(0.0, 0.0));
 p0.setSubpopulationSize(0);
 p1.setSubpopulationSize(0);
 }
 
-3020 early() {
+4020 early() {
     sim.addSubpopSplit("p3", 50, p2);
 }
 
-3020 late(){
+4020 late(){
     p3.genomes.outputVCF(filePath="p3.vcf");
     sim.treeSeqOutput("ts.trees");
     sim.simulationFinished();

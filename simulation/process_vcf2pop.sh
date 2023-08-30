@@ -38,7 +38,7 @@ bcftools index p1_common.vcf.gz
 
 bcftools merge p0_common.vcf.gz p1_common.vcf.gz -Oz -o sim_ref.vcf.gz --force-samples
 
-#create sim_map.txt with fixed recombination rate of 5e-8 Morgan/b
+#create sim_map.txt with fixed recombination rate of 2e-8 Morgan/b
 echo -e "pd\tgd" > sim_map.txt
 awk '{print $2"\t"2e-8*$2}' output_dir/sites.txt >> sim_map.txt
 

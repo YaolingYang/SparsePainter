@@ -63,11 +63,11 @@ bcftools index p4_common.vcf.gz
 
 bcftools merge p0_common.vcf.gz p1_common.vcf.gz p2_common.vcf.gz p3_common.vcf.gz p4_common.vcf.gz -Oz -o sim_ref.vcf.gz --force-samples
 
-#create sim_map.txt with fixed recombination rate of 5e-8 Morgan/b
+#create sim_map.txt with fixed recombination rate of 2e-8 Morgan/b
 echo -e "pd\tgd" > sim_map.txt
 awk '{print $2"\t"2e-8*$2}' output_dir/sites.txt >> sim_map.txt
 
-#create sim_popnames.txt
+#create sim_popnames.txt, change number according to the reference sizes
 bcftools query -l sim_ref.vcf.gz > refsamples.txt
 awk '{if (NR <= 2000) print $1"\t0"; else if (NR <= 4000) print $1"\t1"; else if (NR <= 6000) print $1"\t2"; else if (NR <= 8000) print $1"\t3"; else print $1"\t4"}' refsamples.txt > sim_popnames.txt
 

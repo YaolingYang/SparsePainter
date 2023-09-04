@@ -20,7 +20,7 @@ pbwt -readVcfGT XXX.vcf -writePhase XXX.phase
 When the above requirements are met, you can compile with:
 
 ``
-g++ HMPaint.cpp -o HMPaint.exe -lz -fopenmp -lpthread -larmadillo
+g++ HMPaint.cpp -o HMPaint.exe -lz -fopenmp -lpthread -larmadillo -std=c++0x -g -O3
 ``
 
 To run **HMPaint**, enter the following command:

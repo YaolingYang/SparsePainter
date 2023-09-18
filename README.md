@@ -77,7 +77,7 @@ An example can be found in the **Example** section below.
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
-* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When performing all-vs-all painting (**targetfile**=**reffile**), only the fixed lambda (default) is supported.
+* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When performing all-vs-all painting (``targetfile=reffile``), only the fixed lambda (default) is supported.
 
 * **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of **indfrac** target samples under the default **fixlambda** and **diff_lambda**.
 

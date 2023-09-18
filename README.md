@@ -1,5 +1,5 @@
-# HMPaint
-**HMPaint** is an efficient tool for local ancestry inference (LAI) coded in C++. It improves **d-PBWT** algorithm to find K longest matches at each position, and uses the **Hash Map** strategy to implement the forward and backward algorithm in the Hidden Markov Model (HMM) because of the sparsity of haplotype matches. HMPaint incorporates the function for efficiently calculating [Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)](https://github.com/YaolingYang/LDAandLDAscore) and [Ancestry Anomaly Score (AAS)](https://github.com/danjlawson/ms_paper) for understanding the population structure, evolution, selection, etc..  
+# SparsePainter
+**SparsePainter** is an efficient tool for local ancestry inference (LAI) coded in C++. It improves **d-PBWT** algorithm to find K longest matches at each position, and uses the **Hash Map** strategy to implement the forward and backward algorithm in the Hidden Markov Model (HMM) because of the sparsity of haplotype matches. SparsePainter incorporates the function for efficiently calculating [Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)](https://github.com/YaolingYang/LDAandLDAscore) and [Ancestry Anomaly Score (AAS)](https://github.com/danjlawson/ms_paper) for understanding the population structure, evolution, selection, etc..  
 
 -   Authors:  
     Yaoling Yang (<yaoling.yang@bristol.ac.uk>)  
@@ -7,11 +7,11 @@
 
 # Installation
 
-The main code is in **HMPaint.cpp**.
+The main code is in **SparsePainter.cpp**.
 
 You should load the [Armadillo](https://arma.sourceforge.net/download.html) library, and also have ["gzstream.h" and "gzstream.C"](https://www.cs.unc.edu/Research/compgeom/gzstream/) in your directory. 
 
-To prepare the input files (phase format) for **HMPaint**, you should also get [PBWT](https://github.com/richarddurbin/pbwt) installed, which converts Variant Call Format (VCF) to phase format by the following command:
+To prepare the input files (phase format) for **SparsePainter**, you should also get [PBWT](https://github.com/richarddurbin/pbwt) installed, which converts Variant Call Format (VCF) to phase format by the following command:
 
 ``
 pbwt -readVcfGT XXX.vcf -writePhase XXX.phase
@@ -20,13 +20,13 @@ pbwt -readVcfGT XXX.vcf -writePhase XXX.phase
 When the above requirements are met, you can compile with:
 
 ``
-g++ HMPaint.cpp -o HMPaint.exe -lz -fopenmp -lpthread -larmadillo -std=c++0x -g -O3
+g++ SparsePainter.cpp -o SparsePainter.exe -lz -fopenmp -lpthread -larmadillo -std=c++0x -g -O3
 ``
 
-To run **HMPaint**, enter the following command:
+To run **SparsePainter**, enter the following command:
 
 ``
-./HMPaint.exe [-parameter1 value1 -parameter2 value2 ......]
+./SparsePainter.exe [-parameter1 value1 -parameter2 value2 ......]
 ``
 
 An example can be found in the **Example** section below.
@@ -35,7 +35,7 @@ An example can be found in the **Example** section below.
 
 ## Required Parameters
 
-**HMPaint** has below 5 required parameters, all of which are files.
+**SparsePainter** has below 5 required parameters, all of which are files.
 
 * **-reffile [file]** Reference phase (or gzipped phase) file that contains the genotype data for each reference sample.
 
@@ -49,7 +49,7 @@ An example can be found in the **Example** section below.
 
 ## Optional Parameters
 
-* **-out [string]** Prefix of the output file names (**default=HMPaint**).
+* **-out [string]** Prefix of the output file names (**default=SparsePainter**).
 
 * **-haploid [1/0]** The individuals are haploid (**1**) or diploid (**0**) (**default=0**).
 
@@ -69,17 +69,17 @@ An example can be found in the **Example** section below.
 
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
 
-* **-L_initial [integer>0]** The initial length of matches (the number of SNPs) that **HMPaint** searches for (**default=320**). **L_initial** must be bigger than **L_minmatch** and should be a power of 2 of **L_minmatch** for computational efficiency.
+* **-L_initial [integer>0]** The initial length of matches (the number of SNPs) that **SparsePainter** searches for (**default=320**). **L_initial** must be bigger than **L_minmatch** and should be a power of 2 of **L_minmatch** for computational efficiency.
 
-* **-matchfrac [number&isin;(0,1)]** The proportion of matches of at least **L_minmatch** SNPs that **HMPaint** searches for (**default=0.002**). Positions with more than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain at least the longest **matchfrac** proportion of matches. A larger **matchfrac** increases both the accuracy and the computational time.
+* **-matchfrac [number&isin;(0,1)]** The proportion of matches of at least **L_minmatch** SNPs that **SparsePainter** searches for (**default=0.002**). Positions with more than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain at least the longest **matchfrac** proportion of matches. A larger **matchfrac** increases both the accuracy and the computational time.
 
-* **-L_minmatch [integer>0]** The minimal length of matches that **HMPaint** searches for (**default=20**). Positions with fewer than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain all the matches of at least **L_minmatch**. A larger **L_minmatch** increases both the accuracy and the computational time.
+* **-L_minmatch [integer>0]** The minimal length of matches that **SparsePainter** searches for (**default=20**). Positions with fewer than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain all the matches of at least **L_minmatch**. A larger **L_minmatch** increases both the accuracy and the computational time.
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
 * **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**).
 
-* **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **HMPaint** will estimate lambda as the average recombination scaling constant of **indfrac** target samples under the default **fixlambda** and **diff_lambda**.
+* **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of **indfrac** target samples under the default **fixlambda** and **diff_lambda**.
 
 * **-indfrac [number&isin;(0,1)]** The proportion of individuals used to estimate the recombination scaling constant (**default=0.1**).
 
@@ -92,10 +92,10 @@ An example can be found in the **Example** section below.
 * **-window [number>0]** The window for calculating LDA score (LDAS) in Morgan (**default=0.04**).
 
 # Example
-The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (``donor.phase.gz``), and the aim is to paint 500 target individuals (``target.phase.gz``). Remember we have compiled HMPaint in ``HMPaint.exe``, then we can paint with the following command:
+The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (``donor.phase.gz``), and the aim is to paint 500 target individuals (``target.phase.gz``). Remember we have compiled SparsePainter in ``SparsePainter.exe``, then we can paint with the following command:
 
 ``
-./HMPaint.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out HM
+./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out HM
 ``
 
 The output file for this example includes ``HM_painting.txt.gz``, ``HM_aveSNPpainting.txt.gz``, ``HM_aveindpainting.txt.gz`` and ``HM_AAS.txt``.

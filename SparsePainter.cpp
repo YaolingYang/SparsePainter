@@ -1835,6 +1835,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
                 const string LDAfile,
                 const string LDASfile,
                 const string AASfile,
+                const string lambdafile,
                 const double window,
                 int ncores,
                 const string run){
@@ -1985,7 +1986,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
         cout << "Using fixed lambda "<<lambda<<endl;
       }
       
-      ofstream outputlambda("lambda.txt");
+      ofstream outputlambda(lambdafile);
       outputlambda << "The fixed lambda used for SparsePainter is "<<lambda<<".";
       outputlambda.close();
     }
@@ -2551,6 +2552,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
     std::string LDASfile = out + "_LDAS.txt";
     std::string AASfile = out + "_AAS.txt";
     std::string chunklengthfile = out+ "_chunklength.txt";
+    std::string lambdafile = out+ "_fixedlambda.txt";
     
     if(run!="paint" && run!="chunklength"){
       if(run != "both"){
@@ -2563,7 +2565,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
              L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, targetname, painting,
              aveSNPpainting,aveindpainting,LDA, LDAS, 
              AAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile, chunklengthfile,
-             LDAfile, LDASfile, AASfile,window, ncores,run);
+             LDAfile, LDASfile, AASfile, lambdafile, window, ncores,run);
     
     return 0;
   } 

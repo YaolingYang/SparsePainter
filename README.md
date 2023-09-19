@@ -39,11 +39,11 @@ An example can be found in the **Example** section below.
 
 * **-reffile [file]** Reference phase (or gzipped phase) file that contains the genotype data for each reference sample.
 
-* **-targetfile [file]** Target phase (or gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves using leave-one-out strategy, please set ``targetfile`` to be the same as ``reffile``.
+* **-targetfile [file]** Target phase (or gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set ``targetfile`` to be the same as ``reffile``.
 
 * **-mapfile [file]** Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile.
 
-* **-popfile [file]** Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as donorfile. The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel.
+* **-popfile [file]** Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as ``reffile``. The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel.
 
 * **-targetname [file]** Target name file that contains the names of target samples. This parameter is necessary because the phase file doesn't contain the sample names.
 
@@ -53,15 +53,17 @@ An example can be found in the **Example** section below.
 
 * **-haploid [1/0]** The individuals are haploid (**1**) or diploid (**0**) (**default=0**).
 
-* **-run [paint/chunklength/both]** Run painting and/or LDAS and AAS (**paint**), chunk length of reference panel (**chunklength**) or both analysis (**both**) (**default=paint**).
+* **-run [paint/chunklength/both]** Run painting and/or LDAS and AAS (**paint**), chunk length of reference panel (**chunklength**) or both analysis (**both**) (**default=both**).
+
+* **-leaveoneout [1/0]** Paint with leave-one-out stragety (**1**) or not (**0**) (**default=0**). When running both painting and chunk length calculation (**run=both**), only the same leave-one-out option could be chosen.
 
 * **-painting [1/0]** Output the painting results (probabilities) for each individual at each SNP (**1**) or not (**0**) (**default=1**). The output file format is a gzipped text file (.txt.gz).
 
-* **-aveSNPpainting [1/0]** Output the average painting probabilities for each SNP (**1**) or not (**0**) (**default=1**). The output file format is a gzipped text file (.txt.gz).
+* **-aveSNPpainting [1/0]** Output the average painting probabilities for each SNP (**1**) or not (**0**) (**default=1**). The output file format is a text file (.txt).
 
-* **-aveindpainting [1/0]** Output the average painting probabilities for each individual (**1**) or not (**0**) (**default=1**). The output file format is a gzipped text file (.txt.gz).
+* **-aveindpainting [1/0]** Output the average painting probabilities for each individual (**1**) or not (**0**) (**default=1**). The output file format is a text file (.txt).
 
-* **-LDA [1/0]** Output the LDA results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the chromosome.
+* **-LDA [1/0]** Output the LDA results (**1**) or not (**0**) (**default=0**). The output file format is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the chromosome.
 
 * **-LDAS [1/0]** Output the LDAS results (**1**) or not (**0**) (**default=0**). The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of reference populations and the density of SNPs in the genome.
 
@@ -77,7 +79,7 @@ An example can be found in the **Example** section below.
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
-* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When performing all-vs-all painting (``targetfile=reffile``), only the fixed lambda (default) is supported.
+* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When **diff_lambda=0**, the fixed lambda will be output in ``lambda.txt`` for future reference.
 
 * **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of **indfrac** target samples under the default **fixlambda** and **diff_lambda**.
 
@@ -95,7 +97,7 @@ An example can be found in the **Example** section below.
 The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (``donor.phase.gz``), and the aim is to paint 500 target individuals (``target.phase.gz``). Remember we have compiled SparsePainter in ``SparsePainter.exe``, then we can paint with the following command:
 
 ``
-./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out HM
+./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out SparsePainter
 ``
 
-The output file for this example includes ``HM_painting.txt.gz``, ``HM_aveSNPpainting.txt.gz``, ``HM_aveindpainting.txt.gz`` and ``HM_AAS.txt``.
+The output file for this example includes ``SparsePainter_painting.txt.gz``, ``SparsePainter_aveSNPpainting.txt``, ``SparsePainter_aveindpainting.txt`` and ``lambda.txt``.

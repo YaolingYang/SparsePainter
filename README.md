@@ -55,7 +55,7 @@ An example can be found in the **Example** section below.
 
 * **-run [paint/chunklength/both]** Run painting and/or LDAS and AAS (**paint**), chunk length of reference panel (**chunklength**) or both analysis (**both**) (**default=both**). The chunk length results will be output in a text file (.txt).
 
-* **-leaveoneout [1/0]** Paint with leave-one-out stragety (**1**) or not (**0**) (**default=0**). When running both painting and chunk length calculation (**run=both**), only the same leave-one-out option could be chosen.
+* **-leaveoneout [1/0]** Paint with leave-one-out stragety (**1**) or not (**0**) (**default=0**). When running both painting and chunk length calculation (``-run both``), only the same leave-one-out option could be chosen.
 
 * **-painting [1/0]** Output the painting results (probabilities) for each individual at each SNP (**1**) or not (**0**) (**default=1**). The output file format is a gzipped text file (.txt.gz).
 

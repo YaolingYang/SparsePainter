@@ -53,7 +53,7 @@ An example can be found in the **Example** section below.
 
 * **-haploid [1/0]** The individuals are haploid (**1**) or diploid (**0**) (**default=0**).
 
-* **-run [paint/chunklength/both]** Run painting and/or LDAS and AAS (**paint**), chunk length of reference panel (**chunklength**) or both analysis (**both**) (**default=both**).
+* **-run [paint/chunklength/both]** Run painting and/or LDAS and AAS (**paint**), chunk length of reference panel (**chunklength**) or both analysis (**both**) (**default=both**). The chunk length results will be output in a text file (.txt).
 
 * **-leaveoneout [1/0]** Paint with leave-one-out stragety (**1**) or not (**0**) (**default=0**). When running both painting and chunk length calculation (**run=both**), only the same leave-one-out option could be chosen.
 
@@ -79,7 +79,7 @@ An example can be found in the **Example** section below.
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
-* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When **diff_lambda=0**, the fixed lambda will be output in a text file for future reference.
+* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When **diff_lambda=0**, the fixed lambda will be output in a text file (.txt) for future reference.
 
 * **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of **indfrac** target samples under the default **fixlambda** and **diff_lambda**.
 

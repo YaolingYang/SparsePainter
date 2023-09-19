@@ -53,7 +53,7 @@ An example can be found in the **Example** section below.
 
 * **-haploid [1/0]** The individuals are haploid (**1**) or diploid (**0**) (**default=0**).
 
-* **-run [paint/chunklength/both]** Run painting and/or LDAS and AAS (**paint**), chunk length of reference panel (**chunklength**) or both analysis (**both**) (**default=both**). The chunk length results will be output in a text file (.txt).
+* **-run [paint/chunklength/both]** Calculate painting probabilities and/or LDAS and AAS (**paint**), inherited chunk length (**chunklength**) or doing both analysis (**both**) (**default=both**). The chunk length results will be output in a text file (.txt).
 
 * **-leaveoneout [1/0]** Paint with leave-one-out stragety (**1**) or not (**0**) (**default=0**). When running both painting and chunk length calculation (``-run both``), only the same leave-one-out option could be chosen.
 

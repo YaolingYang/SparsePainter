@@ -79,7 +79,7 @@ An example can be found in the **Example** section below.
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
-* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When **diff_lambda=0**, the fixed lambda will be output in ``lambda.txt`` for future reference.
+* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When **diff_lambda=0**, the fixed lambda will be output in a text file for future reference.
 
 * **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of **indfrac** target samples under the default **fixlambda** and **diff_lambda**.
 
@@ -100,4 +100,4 @@ The example dataset is contained in the /example folder. This example includes 8
 ./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out SparsePainter
 ``
 
-The output file for this example includes ``SparsePainter_painting.txt.gz``, ``SparsePainter_aveSNPpainting.txt``, ``SparsePainter_aveindpainting.txt`` and ``lambda.txt``.
+The output file for this example includes ``SparsePainter_painting.txt.gz``, ``SparsePainter_aveSNPpainting.txt``, ``SparsePainter_aveindpainting.txt`` and ``SparsePainter_lambda.txt``.

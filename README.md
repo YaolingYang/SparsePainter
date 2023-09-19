@@ -71,25 +71,25 @@ An example can be found in the **Example** section below.
 
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
 
-* **-L_initial [integer>0]** The initial length of matches (the number of SNPs) that **SparsePainter** searches for (**default=320**). **L_initial** must be bigger than **L_minmatch** and should be a power of 2 of **L_minmatch** for computational efficiency.
+* **-L_initial [integer>0]** The initial length of matches (the number of SNPs) that **SparsePainter** searches for (**default=320**). ``L_initial`` must be bigger than ``L_minmatch`` and should be a power of 2 of ``L_minmatch`` for computational efficiency.
 
-* **-matchfrac [number&isin;(0,1)]** The proportion of matches of at least **L_minmatch** SNPs that **SparsePainter** searches for (**default=0.002**). Positions with more than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain at least the longest **matchfrac** proportion of matches. A larger **matchfrac** increases both the accuracy and the computational time.
+* **-matchfrac [number&isin;(0,1)]** The proportion of matches of at least ``L_minmatch`` SNPs that **SparsePainter** searches for (**default=0.002**). Positions with more than ``matchfrac`` proportion of matches of at least ``L_minmatch`` SNPs will retain at least the longest ``matchfrac`` proportion of matches. A larger ``matchfrac`` increases both the accuracy and the computational time.
 
-* **-L_minmatch [integer>0]** The minimal length of matches that **SparsePainter** searches for (**default=20**). Positions with fewer than **matchfrac** proportion of matches of at least **L_minmatch** SNPs will retain all the matches of at least **L_minmatch**. A larger **L_minmatch** increases both the accuracy and the computational time.
+* **-L_minmatch [integer>0]** The minimal length of matches that **SparsePainter** searches for (**default=20**). Positions with fewer than ``matchfrac`` proportion of matches of at least ``L_minmatch`` SNPs will retain all the matches of at least ``L_minmatch``. A larger ``L_minmatch`` increases both the accuracy and the computational time.
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
-* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When **diff_lambda=0**, the fixed lambda will be output in a text file (.txt) for future reference.
+* **-diff_lambda [1/0]** Use different recombination scaling constant (**1**) or the same value (**0**) for each target sample (**default=0**). When ``diff_lambda=0``, the fixed lambda will be output in a text file (.txt) for future reference.
 
-* **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of **indfrac** target samples under the default **fixlambda** and **diff_lambda**.
+* **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of ``indfrac`` target samples under the default ``fixlambda`` and ``diff_lambda``.
 
 * **-indfrac [number&isin;(0,1)]** The proportion of individuals used to estimate the recombination scaling constant (**default=0.1**).
 
-* **-minsnpEM [integer>0]** The minimum number of SNPs used for EM algorithm if **-method EM** is specified (**default=2000**).
+* **-minsnpEM [integer>0]** The minimum number of SNPs used for EM algorithm if ``-method EM`` is specified (**default=2000**).
 
-* **-EMsnpfrac [number&isin;(0,1)]** The proportion of SNPs used for EM algorithm if **-method EM** is specified (**default=0.1**). Note that if nsnp***EMsnpfrac** < **minsnpEM**, **minsnpEM** SNPs will be used for EM algorithm.
+* **-EMsnpfrac [number&isin;(0,1)]** The proportion of SNPs used for EM algorithm if ``-method EM`` is specified (**default=0.1**). Note that if ``nsnp***EMsnpfrac** < **minsnpEM**``, ``minsnpEM`` SNPs will be used for EM algorithm.
 
-* **-ite_time [integer>0]** The iteration times for EM algorithm if **-method EM** is specified (**default=10**).
+* **-ite_time [integer>0]** The iteration times for EM algorithm if ``-method EM`` is specified (**default=10**).
 
 * **-window [number>0]** The window for calculating LDA score (LDAS) in Morgan (**default=0.04**).
 

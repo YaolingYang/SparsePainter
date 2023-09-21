@@ -20,7 +20,7 @@ pbwt -readVcfGT XXX.vcf -writePhase XXX.phase
 When the above requirements are met, you can compile with:
 
 ``
-g++ SparsePainter.cpp -o SparsePainter.exe -lz -fopenmp -lpthread -larmadillo -std=c++0x -g -O3
+g++ SparsePainterPBWT.cpp -o SparsePainter.exe -lz -fopenmp -lpthread -larmadillo -std=c++0x -g -O3
 ``
 
 To run **SparsePainter**, enter the following command:

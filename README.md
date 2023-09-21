@@ -49,6 +49,8 @@ An example can be found in the **Example** section below.
 
 ## Optional Parameters
 
+* **-matchfile [file]** The file name of the match file which is the output of [pbwt -maxWithin](https://github.com/danjlawson/pbwt/blob/master/pbwtMain.c). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``.
+
 * **-out [string]** Prefix of the output file names (**default=SparsePainter**).
 
 * **-haploid [1/0]** The individuals are haploid (**1**) or diploid (**0**) (**default=0**).

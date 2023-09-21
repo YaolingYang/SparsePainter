@@ -2497,7 +2497,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
       } else if (param == "diff_lambda") {
         diff_lambda = std::stoi(argv[i+1]);
       } else if (param == "fixlambda") {
-        fixlambda = std::stoi(argv[i+1]);
+        fixlambda = std::stod(argv[i+1]);
       } else if (param == "ite_time") {
         ite_time = std::stoi(argv[i+1]);
       } else if (param == "indfrac") {

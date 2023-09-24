@@ -7,7 +7,7 @@
 
 # Installation
 
-The main code is in **SparsePainter.cpp**.
+The main code is in **SparsePainterPBWT.cpp**.
 
 You should load the [Armadillo](https://arma.sourceforge.net/download.html) library, and also have ["gzstream.h" and "gzstream.C"](https://www.cs.unc.edu/Research/compgeom/gzstream/) in your directory. 
 

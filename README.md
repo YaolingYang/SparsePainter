@@ -106,10 +106,12 @@ The example dataset is contained in the /example folder. This example includes 8
 ./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -aveSNP -aveind
 ``
 
-The output file for this example includes ``SparsePainter_painting.txt.gz``, ``SparsePainter_aveSNPpainting.txt``, ``SparsePainter_aveindpainting.txt`` and ``SparsePainter_lambda.txt``.
+The output file for this example includes ``target_vs_ref.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_aveSNPpainting.txt``, ``target_vs_ref_aveindpainting.txt`` and ``target_vs_ref_lambda.txt``.
 
 To paint the reference individuals against themselves with leave-one-out strategy, run with:
 
 ``
 ./SparsePainter.exe -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -aveSNP -aveind -loo
 ``
+
+The output file for this example includes ``ref_vs_ref.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_aveSNPpainting.txt``, ``ref_vs_ref_aveindpainting.txt`` and ``ref_vs_ref_lambda.txt``.

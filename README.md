@@ -37,9 +37,9 @@ An example can be found in the **Example** section below.
 
 **SparsePainter** has below 6 required parameters, all of which are files.
 
-* **-reffile [file]** Reference phase (or gzipped phase) file that contains the genotype data for each reference sample.
+* **-reffile [file]** Reference vcf (or gzipped phase), or phase (or gzipped phase) file (must be associated with -phase) that contains the genotype data for all the reference samples.
 
-* **-targetfile [file]** Target phase (or gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set ``targetfile`` to be the same as ``reffile``.
+* **-targetfile [file]** Reference vcf (or gzipped phase), or phase (or gzipped phase) file (must be associated with -phase) that contains the genotype data for each target sample. To paint reference samples against themselves, please set ``targetfile`` to be the same as ``reffile``. The file type of ``targetfile`` and ``reffile`` should be the same.
 
 * **-mapfile [file]** Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile.
 
@@ -52,6 +52,8 @@ An example can be found in the **Example** section below.
 ## Optional Parameters
 
 # Parameters without values
+
+* **-phase** The input genotypes files are in the phase (.phase) or gzipped phase format (.phase.gz). If this parameter is not given, the input files ``-reffile`` and ``-targetfile`` should be vcf or gzipped vcf files.
 
 * **-haploid** The individuals are haploid.
 
@@ -103,7 +105,7 @@ An example can be found in the **Example** section below.
 The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (``donor.phase.gz``), and the aim is to paint 500 target individuals (``target.phase.gz``). Remember we have compiled SparsePainter in ``SparsePainter.exe``, then we can paint with the following command:
 
 ``
-./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -aveSNP -aveind
+./SparsePainter.exe -phase -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -aveSNP -aveind
 ``
 
 The output file for this example includes ``target_vs_ref.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_aveSNPpainting.txt``, ``target_vs_ref_aveindpainting.txt`` and ``target_vs_ref_lambda.txt``.
@@ -111,7 +113,7 @@ The output file for this example includes ``target_vs_ref.txt.gz``, ``target_vs_
 To paint the reference individuals against themselves with leave-one-out strategy, run with:
 
 ``
-./SparsePainter.exe -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -aveSNP -aveind -loo
+./SparsePainter.exe -phase -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -aveSNP -aveind -loo
 ``
 
 The output file for this example includes ``ref_vs_ref.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_aveSNPpainting.txt``, ``ref_vs_ref_aveindpainting.txt`` and ``ref_vs_ref_lambda.txt``.

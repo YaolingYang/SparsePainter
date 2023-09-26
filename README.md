@@ -51,7 +51,7 @@ An example can be found in the **Example** section below.
 
 ## Optional Parameters
 
-# Parameters without values
+### Parameters without values
 
 * **-phase** The input genotypes files are in the phase (.phase) or gzipped phase format (.phase.gz). If this parameter is not given, the input files ``-reffile`` and ``-targetfile`` should be vcf or gzipped vcf files.
 
@@ -73,7 +73,7 @@ An example can be found in the **Example** section below.
 
 * **-diff_lambda** Use different recombination scaling constant for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference.
 
-# Parameters with values
+### Parameters with values
 
 * **-matchfile [file]** The file name of the set-maximal match file which is the output of [pbwt -maxWithin](https://github.com/danjlawson/pbwt/blob/master/pbwtMain.c). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``.
 

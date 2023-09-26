@@ -35,7 +35,7 @@ An example can be found in the **Example** section below.
 
 ## Required Parameters
 
-**SparsePainter** has below 5 required parameters, all of which are files.
+**SparsePainter** has below 6 required parameters, all of which are files.
 
 * **-reffile [file]** Reference phase (or gzipped phase) file that contains the genotype data for each reference sample.
 

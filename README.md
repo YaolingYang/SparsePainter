@@ -104,6 +104,11 @@ An example can be found in the **Example** section below.
 # Example
 The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (``donor.phase.gz``), and the aim is to paint 500 target individuals (``target.phase.gz``). Remember we have compiled SparsePainter in ``SparsePainter.exe``, then we can paint with the following command:
 
+(a) If your input file is in vcf or vcf.gz format:
+``
+./SparsePainter.exe -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -aveSNP -aveind
+``
+(b) If your input file is in phase of phase.gz format:
 ``
 ./SparsePainter.exe -phase -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -aveSNP -aveind
 ``
@@ -112,6 +117,12 @@ The output file for this example includes ``target_vs_ref.txt.gz``, ``target_vs_
 
 To paint the reference individuals against themselves with leave-one-out strategy, run with:
 
+(a) If your input file is in vcf or vcf.gz format:
+``
+./SparsePainter.exe -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -aveSNP -aveind -loo
+``
+
+(a) If your input file is in phase or phase.gz format:
 ``
 ./SparsePainter.exe -phase -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -aveSNP -aveind -loo
 ``

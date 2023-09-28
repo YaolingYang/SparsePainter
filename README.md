@@ -77,19 +77,17 @@ An example can be found in the **Example** section below.
 
 ### Parameters with values
 
-* **-matchfile [file]** The file name of the set-maximal match file which is the output of [pbwt -maxWithin](https://github.com/danjlawson/pbwt/blob/master/pbwtMain.c). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``.
-
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
+
+* **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of ``indfrac`` target samples under the default ``fixlambda`` and ``diff_lambda``.
+
+* **-nmatch [integer>=1]** The number of haplotype matches of at least ``L_minmatch`` SNPs that **SparsePainter** searches for (**default=10**). Positions with more than ``nmatch`` matches of at least ``L_minmatch`` SNPs will retain at least the longest ``nmatch`` proportion of matches. A larger ``nmatch`` slightly improves accuracy but significantly increases the computational time.
 
 * **-L0 [integer>0]** The initial length of matches (the number of SNPs) that **SparsePainter** searches for (**default=320**). ``L_initial`` must be bigger than ``L_minmatch`` and should be a power of 2 of ``L_minmatch`` for computational efficiency.
 
-* **-matchfrac [number&isin;(0,1)]** The proportion of matches of at least ``L_minmatch`` SNPs that **SparsePainter** searches for (**default=0.002**). Positions with more than ``matchfrac`` proportion of matches of at least ``L_minmatch`` SNPs will retain at least the longest ``matchfrac`` proportion of matches. A larger ``matchfrac`` increases both the accuracy and the computational time.
-
-* **-Lmin [integer>0]** The minimal length of matches that **SparsePainter** searches for (**default=20**). Positions with fewer than ``matchfrac`` proportion of matches of at least ``L_minmatch`` SNPs will retain all the matches of at least ``L_minmatch``. A larger ``L_minmatch`` increases both the accuracy and the computational time.
+* **-Lmin [integer>0]** The minimal length of matches that **SparsePainter** searches for (**default=20**). Positions with fewer than ``nmatch`` matches of at least ``L_minmatch`` SNPs will retain all the matches of at least ``L_minmatch``. A larger ``L_minmatch`` increases both the accuracy and the computational time.
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
-
-* **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of ``indfrac`` target samples under the default ``fixlambda`` and ``diff_lambda``.
 
 * **-indfrac [number&isin;(0,1)]** The proportion of individuals used to estimate the recombination scaling constant (**default=0.1**).
 
@@ -101,19 +99,21 @@ An example can be found in the **Example** section below.
 
 * **-window [number>0]** The window for calculating LDA score (LDAS) in Morgan (**default=0.04**).
 
+* **-matchfile [file]** The file name of the set-maximal match file which is the output of [pbwt -maxWithin](https://github.com/danjlawson/pbwt/blob/master/pbwtMain.c). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse that will significantly reduce the accuracy, despite saving compute time.
+
 # Example
 The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (``donor.phase.gz``), and the aim is to paint 500 target individuals (``target.phase.gz``). Remember we have compiled SparsePainter in ``SparsePainter.exe``, then we can paint with the following command:
 
 (a) If your input file is in vcf or vcf.gz format:
 
 ``
-./SparsePainter.exe -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -matchfrac 0.0005 -out target_vs_ref -prob -chunklength -aveSNP -aveind
+./SparsePainter.exe -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -prob -chunklength -aveSNP -aveind
 ``
 
 (b) If your input file is in phase of phase.gz format:
 
 ``
-./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -matchfrac 0.0005 -out target_vs_ref -prob -chunklength -aveSNP -aveind
+./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -prob -chunklength -aveSNP -aveind
 ``
 
 The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_aveSNPprob.txt``, ``target_vs_ref_aveindprob.txt`` and ``target_vs_ref_fixedlambda.txt``.
@@ -123,13 +123,13 @@ To paint the reference individuals against themselves with leave-one-out strateg
 (a) If your input file is in vcf or vcf.gz format:
 
 ``
-./SparsePainter.exe -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -matchfrac 0.0005 -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
+./SparsePainter.exe -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
 ``
 
 (b) If your input file is in phase or phase.gz format:
 
 ``
-./SparsePainter.exe -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -matchfrac 0.0005 -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
+./SparsePainter.exe -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
 ``
 
 The output file for this example includes ``ref_vs_ref_prob.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_aveSNPprob.txt``, ``ref_vs_ref_aveindprob.txt`` and ``ref_vs_ref_fixedlambda.txt``.

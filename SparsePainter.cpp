@@ -454,7 +454,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
                                                                      int **divergence, 
                                                                      int **u, 
                                                                      int **v,
-                                                                     const int minmatch,
+                                                                     int minmatch,
                                                                      vector<double> &gd,
                                                                      vector<int>& queryidx,
                                                                      const int N,
@@ -512,6 +512,10 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
   int nind_left=nind;
   
   omp_set_num_threads(ncores);
+  
+  if(samefile){
+    minmatch++;
+  } 
   
   while(nind_left>0){
     int ncores_use = (ncores < nind_left) ? ncores : nind_left;

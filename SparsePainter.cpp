@@ -1987,9 +1987,9 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
                 bool outputLDA,
                 bool outputLDAS,
                 bool outputAAS,
-                const string paintingfile,
-                const string aveSNPpaintingfile,
-                const string aveindpaintingfile,
+                const string probfile,
+                const string aveSNPprobfile,
+                const string aveindprobfile,
                 const string chunklengthfile,
                 const string LDAfile,
                 const string LDASfile,
@@ -2216,12 +2216,12 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
       }
     }
     
-    //output the painting into paintingfile
+    //output the painting into probfile
     ogzstream outputFile;
     if(outputpainting && run!="chunklength"){
-      outputFile.open(paintingfile.c_str());
+      outputFile.open(probfile.c_str());
       if (!outputFile) {
-        cerr << "Error: unable to open file: " << paintingfile << endl;
+        cerr << "Error: unable to open file: " << probfile << endl;
         abort();
       }
       outputFile << "haplotype_name" << " ";
@@ -2234,7 +2234,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
     }
     
     ofstream outputclFile;
-    if(run!="paint"){
+    if(run!="prob"){
       outputclFile.open(chunklengthfile.c_str());
       if (!outputclFile) {
         cerr << "Error: unable to open file: " << chunklengthfile << endl;
@@ -2273,7 +2273,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
         targetmatch_use[ii - (nhap_use - nhap_left)] = match_data;
       }
       
-      if(run=="paint"){
+      if(run=="prob"){
         cout<<"Calculating painting for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
       }else{
         if(run=="both"){
@@ -2342,7 +2342,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
           }
         }
         
-        if(run!="paint"){
+        if(run!="prob"){
           vector<double> cl=chunklength_each(gd,mat,lambda_use,npop,refindex,f,b,gdall);
           for(int j=0;j<npop;++j){
             chunklength[ii-nhap_use+nhap_left][j]=cl[j];
@@ -2464,7 +2464,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
         vector<vector<vector<double>>>().swap(painting_all);
       }
       
-      if(run!="paint"){
+      if(run!="prob"){
         if(haploid){
           for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
             outputclFile << indnames[ii] << " ";
@@ -2498,7 +2498,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
       looptime++;
     }
     
-    if(run!="paint"){
+    if(run!="prob"){
       outputclFile.close();
     }
       
@@ -2520,7 +2520,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
         
         if(outputaveSNPpainting){
           //output the average painting for each SNP
-          ofstream outputFile(aveSNPpaintingfile.c_str());
+          ofstream outputFile(aveSNPprobfile.c_str());
           
           if (outputFile) {
             outputFile << "physical_position" <<" ";
@@ -2538,7 +2538,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
             }
             outputFile.close();
           }else {
-            cerr << "Unable to open file" << aveSNPpaintingfile;
+            cerr << "Unable to open file" << aveSNPprobfile;
             abort();
           }
         }
@@ -2547,7 +2547,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
       //output the average painting for each individual
       if(outputaveindpainting){
         //output the average painting for each SNP
-        ofstream outputFile(aveindpaintingfile.c_str());
+        ofstream outputFile(aveindprobfile.c_str());
         if (outputFile) {
           outputFile << "individual_name" << " ";
           //the first row is the SNP's populations
@@ -2568,7 +2568,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
           
           outputFile.close();
         } else {
-          cerr << "Unable to open file" << aveindpaintingfile;
+          cerr << "Unable to open file" << aveindprobfile;
           abort();
         }
       }
@@ -2633,7 +2633,7 @@ bool ends_with(const string &value, const string &ending) {
 }
 
   int main(int argc, char *argv[]){
-    string run="paint";
+    string run="prob";
     bool runpaint=false;
     bool chunklength=false;
     string method="Viterbi";
@@ -2668,7 +2668,7 @@ bool ends_with(const string &value, const string &ending) {
     for (int i = 1; i < argc; i++) {
       string param = argv[i];
       if (param[0] != '-') {
-        cerr << "Invalid argument format. Expected -param value or -param.\n";
+        cerr << "Invalid argument format. Expected -param value or -param \n";
         return 1;
       }
       param = param.substr(1);  // Remove the -
@@ -2680,7 +2680,7 @@ bool ends_with(const string &value, const string &ending) {
          param=="haploid" || param=="ncores"){
         if(i!=argc-1){
           if(argv[i+1][0]!='-'){
-            cerr << "Error: No values should be given following -"<<param<<"."<<endl;
+            cerr << "Error: No values should be given following -"<<param<<endl;
             abort();
           }
         }
@@ -2696,10 +2696,10 @@ bool ends_with(const string &value, const string &ending) {
          param=="matchfile" || param=="out"||
          param=="window" || param=="reffile"){
         if(i==argc-1){
-          cerr << "Error: Parameter values should be given following -"<<param<<"."<<endl;
+          cerr << "Error: Values should be given following -"<<param<<endl;
           abort();
         }else if(argv[i+1][0]=='-'){
-          cerr << "Error: Parameter values should be given following -"<<param<<"."<<endl;
+          cerr << "Error: Values should be given following -"<<param<<endl;
           abort();
         }
       }
@@ -2811,9 +2811,9 @@ bool ends_with(const string &value, const string &ending) {
       return 1;
     }
     
-    string paintingfile = out + "_prob.txt.gz";
-    string aveSNPpaintingfile = out + "_aveSNPprob.txt";
-    string aveindpaintingfile = out + "_aveindprob.txt";
+    string probfile = out + "_prob.txt.gz";
+    string aveSNPprobfile = out + "_aveSNPprob.txt";
+    string aveindprobfile = out + "_aveindprob.txt";
     string LDAfile = out + "_LDA.txt.gz";
     string LDASfile = out + "_LDAS.txt";
     string AASfile = out + "_AAS.txt";
@@ -2846,7 +2846,7 @@ bool ends_with(const string &value, const string &ending) {
     paintall(method, diff_lambda, fixlambda, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 
              L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, targetname, matchfile, 
              outputpainting,aveSNPpainting,aveindpainting,LDA, LDAS, 
-             AAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile, chunklengthfile,
+             AAS,probfile, aveSNPprobfile,aveindprobfile, chunklengthfile,
              LDAfile, LDASfile, AASfile, lambdafile, window, ncores,run,phase);
     
     return 0;

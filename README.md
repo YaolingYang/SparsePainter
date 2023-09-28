@@ -116,7 +116,7 @@ The example dataset is contained in the /example folder. This example includes 8
 ./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -matchfrac 0.0005 -out target_vs_ref -prob -chunklength -aveSNP -aveind
 ``
 
-The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_aveSNPpainting.txt``, ``target_vs_ref_aveindpainting.txt`` and ``target_vs_ref_fixedlambda.txt``.
+The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_aveSNPprob.txt``, ``target_vs_ref_aveindprob.txt`` and ``target_vs_ref_fixedlambda.txt``.
 
 To paint the reference individuals against themselves with leave-one-out strategy, run with:
 
@@ -132,4 +132,4 @@ To paint the reference individuals against themselves with leave-one-out strateg
 ./SparsePainter.exe -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -matchfrac 0.0005 -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
 ``
 
-The output file for this example includes ``ref_vs_ref_painting.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_aveSNPpainting.txt``, ``ref_vs_ref_aveindpainting.txt`` and ``ref_vs_ref_fixedlambda.txt``.
+The output file for this example includes ``ref_vs_ref_prob.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_aveSNPprob.txt``, ``ref_vs_ref_aveindprob.txt`` and ``ref_vs_ref_fixedlambda.txt``.

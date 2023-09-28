@@ -35,7 +35,7 @@ An example can be found in the **Example** section below.
 
 ## Required Parameters
 
-**SparsePainter** has below 6 required parameters, all of which are files.
+**SparsePainter** has below 6 required parameters.
 
 * **-reffile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples.
 
@@ -49,7 +49,7 @@ An example can be found in the **Example** section below.
 
 * **-out [string]** Prefix of the output file names (**default=SparsePainter**).
 
-**At least one of the below commands should be given in order to run SparsePainter**
+**At least one of the below commands should also be given in order to run SparsePainter**
 
 * **-prob** Output the local ancestry probabilities for each target sample at each SNP. The output file format is a gzipped text file (.txt.gz).
 

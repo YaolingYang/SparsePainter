@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <random>
 #include <cmath>
+#include <cstdlib>
 #include <iomanip>
 #include <sstream>
 #include <utility>
@@ -255,9 +256,14 @@ void ReadVCF(const string inFile,
              const int M, 
              const int qM,
              const bool haploid){
+  igzstream in,qin;
   if(inFile==qinFile){
     string line = "##";
-    igzstream in (inFile.c_str());
+    in.open(inFile.c_str());
+    if (!in) {
+      cerr << "Error: unable to open file: " << inFile << endl;
+      abort();
+    }
     stringstream linestr;
     int x = 0;
     char y = 0;
@@ -288,8 +294,16 @@ void ReadVCF(const string inFile,
     in.close();
   }else{
     string line = "##", qline = "##";
-    igzstream in (inFile.c_str());
-    igzstream qin(qinFile.c_str());
+    in.open(inFile.c_str());
+    if (!in) {
+      cerr << "Error: unable to open file: " << inFile << endl;
+      abort();
+    }
+    qin.open(qinFile.c_str());
+    if (!qin) {
+      cerr << "Error: unable to open file: " << qinFile << endl;
+      abort();
+    }
     stringstream linestr, qlinestr;
     int x = 0;
     char y = 0;
@@ -349,10 +363,12 @@ void Readphase_donor(const string inFile,
   cout << "Read reference data with "<<N<<" SNPs for "<<M-qM<<" haploptypes." << endl;
   
   // read the data
-  igzstream in(inFile.c_str());
+  igzstream in;
+  in.open(inFile.c_str());
   
   if (!in) {
-    cerr << "Error opening file: " << inFile << endl;
+    cerr << "Error: unable to open file: " << inFile << endl;
+    abort();
   }
   
   string line;
@@ -457,9 +473,8 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
   if(phase & !samefile){
     in.open(qinFile.c_str());
     if (!in) {
-      cerr << "Error opening file: " << qinFile << endl;
-      tuple<vector<int>,vector<int>,vector<int>,vector<int>> a;
-      return a;
+      cerr << "Error: unable to open file: " << qinFile << endl;
+      abort();
     }
     
     // Read and discard the first three lines
@@ -831,6 +846,9 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
                 fullidx.erase(it, fullidx.end());
               }
             }
+          }
+          if(fullidx.size()==0) {
+            break;
           }
         }
         
@@ -1324,8 +1342,7 @@ tuple<vector<double>,vector<double>> readmap(const string& mapfile) {
   
   if (!file.is_open()) {
     cerr << "Error: Unable to open file " << mapfile << endl;
-    tuple<vector<double>,vector<double>> output(pd,gd);
-    return output;
+    abort();
   }
   
   string line;
@@ -1356,8 +1373,7 @@ tuple<vector<string>,vector<int>> readpopfile(const string& popfile) {
   
   if (!file.is_open()) {
     cerr << "Error: Unable to open file " << popfile << endl;
-    tuple<vector<string>,vector<int>> output(indnames,refindex);
-    return output;
+    abort();
   }
   
   string line;
@@ -1385,7 +1401,7 @@ vector<string> readtargetname(const string& targetname) {
   
   if (!file.is_open()) {
     cerr << "Error: Unable to open file " << targetname << endl;
-    return tgnames;
+    abort();
   }
   
   string line;
@@ -1955,7 +1971,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
                 const int minsnpEM, 
                 const double EMsnpfrac,
                 int L_initial,
-                double matchfrac,
+                int nmatch,
                 int L_minmatch,
                 bool haploid,
                 bool leaveoneout,
@@ -2046,7 +2062,6 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
     const int npop=refidx.pos.size();
     double lambda;
     double gdall=gd[nsnp-1]-gd[0];
-    int minmatch=static_cast<int>(ceil(nref*matchfrac));
     
     bool loo=false;
     
@@ -2066,7 +2081,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
         }
       }
       cout<<"Begin doing PBWT and finding matches for target haplotypes"<<endl;
-      pbwtall_target=do_pbwt(L_initial, gd,queryidx,ncores,nref+qM,nsnp,qM,minmatch,
+      pbwtall_target=do_pbwt(L_initial, gd,queryidx,ncores,nref+qM,nsnp,qM,nmatch,
                                L_minmatch,reffile,targetfile,haploid,phase);
       cout<<"Finish finding matches with PBWT"<<endl;
     }else{
@@ -2090,10 +2105,10 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
         cout<<"Begin estimating fixed lambda"<<endl;
         if(method=="EM"){
           if(targetfile==reffile){
-            lambda=est_lambda_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,
+            lambda=est_lambda_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
                                       indfrac,ite_time,method,minsnpEM,EMsnpfrac,haploid,reffile,phase,pbwtall_target);
           }else{
-            lambda=est_lambda_average(refidx,nref,nsnp,gd,L_initial,minmatch,L_minmatch,ncores,
+            lambda=est_lambda_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
                                       indfrac,ite_time,method,minsnpEM,EMsnpfrac,haploid,reffile,phase);
           }
         }else{
@@ -2205,6 +2220,10 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
     ogzstream outputFile;
     if(outputpainting && run!="chunklength"){
       outputFile.open(paintingfile.c_str());
+      if (!outputFile) {
+        cerr << "Error: unable to open file: " << paintingfile << endl;
+        abort();
+      }
       outputFile << "haplotype_name" << " ";
       //the first row is the SNP's physical position
       for (int i = 0; i < nsnp; ++i) {
@@ -2217,6 +2236,10 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
     ofstream outputclFile;
     if(run!="paint"){
       outputclFile.open(chunklengthfile.c_str());
+      if (!outputclFile) {
+        cerr << "Error: unable to open file: " << chunklengthfile << endl;
+        abort();
+      }
       outputclFile << "indnames" << " ";
       for (int i = 0; i < npop; ++i) {
         outputclFile <<"pop";
@@ -2516,6 +2539,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
             outputFile.close();
           }else {
             cerr << "Unable to open file" << aveSNPpaintingfile;
+            abort();
           }
         }
       }
@@ -2545,6 +2569,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
           outputFile.close();
         } else {
           cerr << "Unable to open file" << aveindpaintingfile;
+          abort();
         }
       }
       
@@ -2581,6 +2606,7 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
           outputFile.close();
         } else {
           cerr << "Unable to open file" << LDAfile;
+          abort();
         }
       }
       
@@ -2600,10 +2626,16 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
     
   }
 
-  
+
+bool ends_with(const string &value, const string &ending) {
+  if (ending.size() > value.size()) return false;
+  return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
 
   int main(int argc, char *argv[]){
-    string run="both";
+    string run="paint";
+    bool runpaint=false;
+    bool chunklength=false;
     string method="Viterbi";
     bool haploid=false;
     bool leaveoneout=false;
@@ -2613,16 +2645,16 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
     int minsnpEM=2000;
     double EMsnpfrac=0.1;
     int L_initial=320;
-    double matchfrac=0.002;
+    int nmatch=10;
     int L_minmatch=20;
     int ite_time=10;
-    string reffile="donor.vcf.gz";
-    string targetfile="target.vcf.gz";
-    string mapfile="map.txt";
-    string popfile="popnames.txt";
-    string targetname="targetname.txt";
+    string reffile={};
+    string targetfile={};
+    string mapfile={};
+    string popfile={};
+    string targetname={};
     string matchfile={};
-    bool painting=true;
+    bool outputpainting=false;
     bool aveSNPpainting=false;
     bool aveindpainting=false;
     bool LDA=false;
@@ -2636,17 +2668,70 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
     for (int i = 1; i < argc; i++) {
       string param = argv[i];
       if (param[0] != '-') {
-        cerr << "Invalid argument format. Expected -param value\n";
+        cerr << "Invalid argument format. Expected -param value or -param.\n";
         return 1;
       }
       param = param.substr(1);  // Remove the -
       
-      if (param == "run") {
-        run = argv[++i];
-      }else if (param == "method") {
-        method = argv[++i];
+      if(param=="prob" || param=="chunklength" ||
+         param=="aveSNP" || param=="aveind" ||
+         param=="LDA" || param=="LDAS" ||
+         param=="AAS" || param=="diff_lambda" ||
+         param=="haploid" || param=="ncores"){
+        if(i!=argc-1){
+          if(argv[i+1][0]!='-'){
+            cerr << "Error: No values should be given following -"<<param<<"."<<endl;
+            abort();
+          }
+        }
+      }
+      
+      if(param=="method" || param=="fixlambda" ||
+         param=="ite_time" || param=="indfrac" ||
+         param=="minsnpEM" || param=="EMsnpfrac" ||
+         param=="L0" || param=="nmatch" ||
+         param=="Lmin" || param=="reffile"||
+         param=="targetfile" || param=="mapfile"||
+         param=="popfile" || param=="targetname"||
+         param=="matchfile" || param=="out"||
+         param=="window" || param=="reffile"){
+        if(i==argc-1){
+          cerr << "Error: Parameter values should be given following -"<<param<<"."<<endl;
+          abort();
+        }else if(argv[i+1][0]=='-'){
+          cerr << "Error: Parameter values should be given following -"<<param<<"."<<endl;
+          abort();
+        }
+      }
+      
+      if (param == "prob") {
+        runpaint=true;
+        outputpainting=true;
+      }else if (param == "chunklength") {
+        chunklength=true;
+      } else if (param == "aveSNP") {
+        aveSNPpainting = true;
+        runpaint=true;
+      } else if (param == "aveind") {
+        aveindpainting = true;
+        runpaint=true;
+      } else if (param == "LDA") {
+        LDA = true;
+        runpaint=true;
+      } else if (param == "LDAS") {
+        LDAS = true;
+        runpaint=true;
+      } else if (param == "AAS") {
+        AAS = true;
+        runpaint=true;
       } else if (param == "diff_lambda") {
         diff_lambda = true;
+      } else if (param == "haploid") {
+        haploid = true;
+      } else if (param == "loo") {
+        leaveoneout = true;
+      }else if (param == "method") {
+        method = argv[++i];
       } else if (param == "fixlambda") {
         fixlambda = stod(argv[++i]);
       } else if (param == "ite_time") {
@@ -2659,14 +2744,10 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
         EMsnpfrac = stod(argv[++i]);
       } else if (param == "L0") {
         L_initial = stoi(argv[++i]);
-      } else if (param == "matchfrac") {
-        matchfrac = stod(argv[++i]);
+      } else if (param == "nmatch") {
+        nmatch = stoi(argv[++i]);
       } else if (param == "Lmin") {
         L_minmatch = stoi(argv[++i]);
-      } else if (param == "haploid") {
-        haploid = true;
-      } else if (param == "loo") {
-        leaveoneout = true;
       } else if (param == "reffile") {
         reffile = argv[++i];
       } else if (param == "targetfile") {
@@ -2679,20 +2760,6 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
         targetname = argv[++i];
       } else if (param == "matchfile") {
         matchfile = argv[++i];
-      } else if (param == "np") {
-        painting = false;
-      } else if (param == "aveSNP") {
-        aveSNPpainting = true;
-      } else if (param == "aveind") {
-        aveindpainting = true;
-      } else if (param == "LDA") {
-        LDA = true;
-      } else if (param == "LDAS") {
-        LDAS = true;
-      } else if (param == "AAS") {
-        AAS = true;
-      } else if (param == "phase") {
-        phase = true;
       } else if (param == "out") {
         out = argv[++i];
       } else if (param == "window") {
@@ -2700,34 +2767,85 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
       } else if (param == "ncores") {
         ncores = stoi(argv[++i]);
       } else {
-        cerr << "Unknown parameter: " << param << "\n";
+        cerr << "Unknown parameter: " << param << ".\n";
         return 1;
       }
     }
     
-    string paintingfile = out + "_painting.txt.gz";
-    string aveSNPpaintingfile = out + "_aveSNPpainting.txt";
-    string aveindpaintingfile = out + "_aveindpainting.txt";
+    if(reffile.empty()){
+      reffile="donor.vcf.gz";
+      cout << "No `-reffile filename' input is found, use donor.vcf.gz as default."<<endl;
+    }
+    
+    if(targetfile.empty()){
+      targetfile="target.vcf.gz";
+      cout << "No `-targetfile filename' input is found, use target.vcf.gz as default."<<endl;
+    }
+    
+    if(mapfile.empty()){
+      mapfile="map.txt";
+      cout << "No `-mapfile filename' input is found, use map.txt as default."<<endl;
+    }
+    
+    if(popfile.empty()){
+      popfile="popnames.txt";
+      cout << "No `-popfile filename' input is found, use popnames.txt as default."<<endl;
+    }
+    
+    if(targetname.empty()){
+      targetname="targetname.txt";
+      cout << "No `-targetname filename' input is found, use targetname.txt as default."<<endl;
+    }
+    
+    
+    bool reffile_phase = ends_with(reffile, ".phase") || ends_with(reffile, ".phase.gz");
+    bool targetfile_phase = ends_with(targetfile, ".phase") || ends_with(targetfile, ".phase.gz");
+    bool reffile_vcf = ends_with(reffile, ".vcf") || ends_with(reffile, ".vcf.gz");
+    bool targetfile_vcf = ends_with(targetfile, ".vcf") || ends_with(targetfile, ".vcf.gz");
+    
+    if ((reffile_phase && targetfile_phase)) {
+      phase=true;
+    }
+    if (!((reffile_vcf && targetfile_vcf) || (reffile_phase && targetfile_phase))) {
+      cerr << "The reffile and targetfile should both be vcf (including gzipped vcf) or phase (including gzipped phase) format." << "\n";
+      return 1;
+    }
+    
+    string paintingfile = out + "_prob.txt.gz";
+    string aveSNPpaintingfile = out + "_aveSNPprob.txt";
+    string aveindpaintingfile = out + "_aveindprob.txt";
     string LDAfile = out + "_LDA.txt.gz";
     string LDASfile = out + "_LDAS.txt";
     string AASfile = out + "_AAS.txt";
     string chunklengthfile = out+ "_chunklength.txt";
     string lambdafile = out+ "_fixedlambda.txt";
     
-    if(run!="paint" && run!="chunklength"){
-      if(run != "both"){
-        cout << "Unknown argument given to run, SparsePainter will run both painting and chunk length" << "\n";
-        run == "both";
-      }
-    }
-    
     if (!matchfile.empty()){
       targetfile=reffile;
     }
     
-    paintall(method, diff_lambda, fixlambda, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, matchfrac, 
+    if(!runpaint && !chunklength){
+      cerr<<"Please specify at least one of the following command in order to run SparsePainter:"<<endl;
+      cerr<<"-prob: output the local ancestry probabilities for each target sample at each SNP."<<endl;
+      cerr<<"-chunklength: output the chunk length of each local ancestry for each target sample."<<endl;
+      cerr<<"-aveSNP: output the average local ancestry probability for each SNP."<<endl;
+      cerr<<"-aveind: output the average local ancestry probability for each target sample."<<endl;
+      cerr<<"-LDA: output the LDA of each pair of SNPs."<<endl;
+      cerr<<"-LDAS: output the LDAS of each SNP."<<endl;
+      cerr<<"-AAS: output the AAS of each SNP."<<endl;
+      return 1;
+    }
+    
+    if(runpaint && chunklength){
+      run="both";
+    }
+    if(!runpaint && chunklength){
+      run="chunklength";
+    }
+    
+    paintall(method, diff_lambda, fixlambda, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 
              L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, targetname, matchfile, 
-             painting,aveSNPpainting,aveindpainting,LDA, LDAS, 
+             outputpainting,aveSNPpainting,aveindpainting,LDA, LDAS, 
              AAS,paintingfile, aveSNPpaintingfile,aveindpaintingfile, chunklengthfile,
              LDAfile, LDASfile, AASfile, lambdafile, window, ncores,run,phase);
     

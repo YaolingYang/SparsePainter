@@ -37,9 +37,9 @@ An example can be found in the **Example** section below.
 
 **SparsePainter** has below 6 required parameters, all of which are files.
 
-* **-reffile [file]** Reference vcf (or gzipped phase), or phase (or gzipped phase) file (must be associated with -phase) that contains the genotype data for all the reference samples.
+* **-reffile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples.
 
-* **-targetfile [file]** Reference vcf (or gzipped phase), or phase (or gzipped phase) file (must be associated with -phase) that contains the genotype data for each target sample. To paint reference samples against themselves, please set ``targetfile`` to be the same as ``reffile``. The file type of ``targetfile`` and ``reffile`` should be the same.
+* **-targetfile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set ``targetfile`` to be the same as ``reffile``. The file type of ``targetfile`` and ``reffile`` should be the same.
 
 * **-mapfile [file]** Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile.
 
@@ -49,35 +49,35 @@ An example can be found in the **Example** section below.
 
 * **-out [string]** Prefix of the output file names (**default=SparsePainter**).
 
+**At least one of the below commands should be given in order to run SparsePainter**
+
+* **-prob** Output the local ancestry probabilities for each target sample at each SNP. The output file format is a gzipped text file (.txt.gz).
+
+* **-chunklength** Output the chunk length of each local ancestry for each target sample. The output file format is a text file (.txt).
+
+* **-aveSNP** Output the average painting probabilities for each SNP. The output file format is a text file (.txt).
+
+* **-aveind** Output the average painting probabilities for each target individual. The output file format is a text file (.txt).
+
+* **-LDA** Output the LDA of each pair of SNPs. The output file format is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome.
+
+* **-LDAS** Output the LDAS of each SNP. The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome.
+
+* **-AAS** Output the AAS of each SNP. The output file format is a text file (.txt).
+
 ## Optional Parameters
 
 ### Parameters without values
 
-* **-phase** The input genotypes files are in the phase (.phase) or gzipped phase format (.phase.gz). If this parameter is not given, the input files ``-reffile`` and ``-targetfile`` should be vcf or gzipped vcf files.
-
 * **-haploid** The individuals are haploid.
 
+* **-diff_lambda** Use different recombination scaling constant for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference.\
+
 * **-loo** Paint with leave-one-out stragety. When running both painting and chunk length calculation (``-run both``), only the same leave-one-out option could be chosen.
-
-* **-np** Do not output the painting probabilities for each individual at each SNP. If this parameter is not given, the painting probabilities will be output in a gzipped text file (.txt.gz).
-
-* **-aveSNP** Output the average painting probabilities for each SNP. The output file format is a text file (.txt).
-
-* **-aveind** Output the average painting probabilities for each individual. The output file format is a text file (.txt).
-
-* **-LDA** Output the LDA results. The output file format is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome.
-
-* **-LDAS** Output the LDAS results. The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome.
-
-* **-AAS** Output the AAS results. The output file format is a text file (.txt).
-
-* **-diff_lambda** Use different recombination scaling constant for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference.
 
 ### Parameters with values
 
 * **-matchfile [file]** The file name of the set-maximal match file which is the output of [pbwt -maxWithin](https://github.com/danjlawson/pbwt/blob/master/pbwtMain.c). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``.
-
-* **-run [paint/chunklength/both]** Calculate painting probabilities and/or LDAS and AAS (**paint**), inherited chunk length (**chunklength**) or doing both analysis (**both**) (**default=both**). The chunk length results will be output in a text file (.txt).
 
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
 
@@ -106,25 +106,25 @@ The example dataset is contained in the /example folder. This example includes 8
 
 (a) If your input file is in vcf or vcf.gz format:
 ``
-./SparsePainter.exe -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -aveSNP -aveind
+./SparsePainter.exe -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -prob -chunklength -aveSNP -aveind
 ``
 (b) If your input file is in phase of phase.gz format:
 ``
-./SparsePainter.exe -phase -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -aveSNP -aveind
+./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -prob -chunklength -aveSNP -aveind
 ``
 
-The output file for this example includes ``target_vs_ref.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_aveSNPpainting.txt``, ``target_vs_ref_aveindpainting.txt`` and ``target_vs_ref_lambda.txt``.
+The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_aveSNPpainting.txt``, ``target_vs_ref_aveindpainting.txt`` and ``target_vs_ref_lambda.txt``.
 
 To paint the reference individuals against themselves with leave-one-out strategy, run with:
 
 (a) If your input file is in vcf or vcf.gz format:
 ``
-./SparsePainter.exe -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -aveSNP -aveind -loo
+./SparsePainter.exe -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
 ``
 
 (a) If your input file is in phase or phase.gz format:
 ``
-./SparsePainter.exe -phase -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -aveSNP -aveind -loo
+./SparsePainter.exe -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
 ``
 
-The output file for this example includes ``ref_vs_ref.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_aveSNPpainting.txt``, ``ref_vs_ref_aveindpainting.txt`` and ``ref_vs_ref_lambda.txt``.
+The output file for this example includes ``ref_vs_ref_painting.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_aveSNPpainting.txt``, ``ref_vs_ref_aveindpainting.txt`` and ``ref_vs_ref_lambda.txt``.

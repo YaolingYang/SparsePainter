@@ -1,5 +1,5 @@
 # SparsePainter
-**SparsePainter** is an efficient tool for local ancestry inference (LAI) coded in C++. It improves **d-PBWT** algorithm to find K longest matches at each position, and uses the **Hash Map** strategy to implement the forward and backward algorithm in the Hidden Markov Model (HMM) because of the sparsity of haplotype matches. SparsePainter incorporates the function for efficiently calculating [Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)](https://github.com/YaolingYang/LDAandLDAscore) and [Ancestry Anomaly Score (AAS)](https://github.com/danjlawson/ms_paper) for understanding the population structure, evolution, selection, etc..  
+**SparsePainter** is an efficient tool for local ancestry inference (LAI) coded in C++. It improves **PBWT** algorithm to find K longest matches at each position, and uses the **Hash Map** strategy to implement the forward and backward algorithm in the Hidden Markov Model (HMM) because of the sparsity of haplotype matches. SparsePainter incorporates the function for efficiently calculating [Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)](https://github.com/YaolingYang/LDAandLDAscore) and [Ancestry Anomaly Score (AAS)](https://github.com/danjlawson/ms_paper) for understanding the population structure, evolution, selection, etc..  
 
 -   Authors:  
     Yaoling Yang (<yaoling.yang@bristol.ac.uk>)  
@@ -105,10 +105,13 @@ An example can be found in the **Example** section below.
 The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (``donor.phase.gz``), and the aim is to paint 500 target individuals (``target.phase.gz``). Remember we have compiled SparsePainter in ``SparsePainter.exe``, then we can paint with the following command:
 
 (a) If your input file is in vcf or vcf.gz format:
+
 ``
 ./SparsePainter.exe -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -prob -chunklength -aveSNP -aveind
 ``
+
 (b) If your input file is in phase of phase.gz format:
+
 ``
 ./SparsePainter.exe -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -targetname targetname.txt -out target_vs_ref -prob -chunklength -aveSNP -aveind
 ``
@@ -118,11 +121,13 @@ The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``targe
 To paint the reference individuals against themselves with leave-one-out strategy, run with:
 
 (a) If your input file is in vcf or vcf.gz format:
+
 ``
 ./SparsePainter.exe -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
 ``
 
-(a) If your input file is in phase or phase.gz format:
+(b) If your input file is in phase or phase.gz format:
+
 ``
 ./SparsePainter.exe -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -targetname refname.txt -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
 ``

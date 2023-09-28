@@ -2000,11 +2000,6 @@ vector<double> rowMeans(const vector<vector<double>>& data) {
                 const string run,
                 bool phase){
     
-    //detect cores
-    if(ncores==0){
-      ncores = omp_get_num_procs();
-    }
-    
     int LDAfactor=1;
     
     if(outputLDA||outputLDAS){
@@ -2677,7 +2672,7 @@ bool ends_with(const string &value, const string &ending) {
          param=="aveSNP" || param=="aveind" ||
          param=="LDA" || param=="LDAS" ||
          param=="AAS" || param=="diff_lambda" ||
-         param=="haploid" || param=="ncores"){
+         param=="haploid" || param=="loo"){
         if(i!=argc-1){
           if(argv[i+1][0]!='-'){
             cerr << "Error: No values should be given following -"<<param<<endl;
@@ -2694,7 +2689,7 @@ bool ends_with(const string &value, const string &ending) {
          param=="targetfile" || param=="mapfile"||
          param=="popfile" || param=="targetname"||
          param=="matchfile" || param=="out"||
-         param=="window" || param=="reffile"){
+         param=="window" || param=="ncores"){
         if(i==argc-1){
           cerr << "Error: Values should be given following -"<<param<<endl;
           abort();
@@ -2841,6 +2836,15 @@ bool ends_with(const string &value, const string &ending) {
     }
     if(!runpaint && chunklength){
       run="chunklength";
+    }
+    
+    int ncores_temp= omp_get_num_procs();
+    if(ncores==0){
+      ncores = ncores_temp;
+    }
+    if(ncores>ncores_temp){
+      ncores = ncores_temp;
+      cout<<"The maximum number of cores available is "<<ncores_temp<<". SparsePainter will use "<<ncores_temp<<" cores for parallel programming only."<<endl;
     }
     
     paintall(method, diff_lambda, fixlambda, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 

@@ -2860,8 +2860,8 @@ int main(int argc, char *argv[]){
     cerr<<"Please specify at least one of the following command in order to run SparsePainter:"<<endl;
     cerr<<"-prob: output the local ancestry probabilities for each target sample at each SNP."<<endl;
     cerr<<"-chunklength: output the chunk length of each local ancestry for each target sample."<<endl;
-    cerr<<"-aveSNP: output the average local ancestry probability for each SNP."<<endl;
-    cerr<<"-aveind: output the average local ancestry probability for each target sample."<<endl;
+    cerr<<"-aveSNP: output the average local ancestry probabilities for each SNP."<<endl;
+    cerr<<"-aveind: output the average local ancestry probabilities for each target sample."<<endl;
     cerr<<"-LDA: output the LDA of each pair of SNPs."<<endl;
     cerr<<"-LDAS: output the LDAS of each SNP."<<endl;
     cerr<<"-AAS: output the AAS of each SNP."<<endl;

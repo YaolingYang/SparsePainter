@@ -1531,7 +1531,6 @@ double est_lambda_Viterbi(const vector<int>& startpos,
     if(maxend==nsnp-1 || maxend==nsnp-2) j=nsnp-1;
   }
   if(nrec==0){
-    cout<<"There is a perfect match but our model assumes at least one match"<<endl;
     nrec=1;
   } 
   double lambda_est = nrec / static_cast<double>(gdall);
@@ -1554,7 +1553,7 @@ double est_lambda_EM_average(const hAnc& refidx,
                              bool haploid,
                              const string reffile,
                              const bool phase,
-                             const bool leaveoneout=false,
+                             const bool leaveoneout,
                              tuple<vector<int>,vector<int>,vector<int>,vector<int>> pbwtall_ref=
                                make_tuple(vector<int>(), vector<int>(), vector<int>(), vector<int>()))
 {
@@ -1609,16 +1608,23 @@ double est_lambda_EM_average(const hAnc& refidx,
   vector<int> startpos_ref=get<2>(pbwtall_ref);
   vector<int> endpos_ref=get<3>(pbwtall_ref);
   
-  
+  omp_set_num_threads(ncores); 
   for(int i=0;i<npop;++i){
     vector<int> samples;
     for(int j=popstart[i];j<popstart[i+1];++j){
       samples.push_back(allsamples[j]);
     }
     
+    vector<vector<vector<int>>> match_use(samples.size());
+    
+    for (int k = 0; k < samples.size(); ++k) {
+      match_use[k] = get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samples[k], true,haploid);
+    }// this reduces memory
+    
+#pragma omp parallel for reduction(+:count)
     for(int k=0;k<samples.size();++k){
       //leave-one-out
-      vector<vector<int>> matchdata=get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samples[k],true,haploid);
+      vector<vector<int>> matchdata=match_use[k];
       vector<int> removeidx;
       
       if(leaveoneout){
@@ -1665,12 +1671,12 @@ double est_lambda_EM_average(const hAnc& refidx,
         }
         
         double lambda_estimated=est_lambda_EM(mat_use,gd_use,ite_time);
-        count=count+1;
+        count++;
         lambda_est.push_back(lambda_estimated);
       }else{
         
         double lambda_estimated=est_lambda_EM(mat,gd,ite_time);
-        count=count+1;
+        count++;
         lambda_est.push_back(lambda_estimated);
       }
     }
@@ -2123,7 +2129,7 @@ void paintall(const string method,
                                        indfrac,ite_time,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout,pbwtall_target);
         }else{
           lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
-                                       indfrac,ite_time,minsnpEM,EMsnpfrac,haploid,reffile,phase);
+                                       indfrac,ite_time,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout);
         }
       }else{
         //estimate lambda as the average of v_nsamples target individuals
@@ -2139,13 +2145,11 @@ void paintall(const string method,
           
           for (int ii = v_nsamples - v_nhap_left; ii < v_nsamples - v_nhap_left + v_nsamples_use; ++ii) {
             // leave one out if the donor file is the same as the target file
-            vector<vector<int>> match_data = get_matchdata(queryidall_target,
-                                                           donorid_target,
-                                                           startpos_target,
-                                                           endpos_target,
-                                                           v_samples[ii], loo,haploid);
-            
-            v_targetmatch_use[ii - (v_nsamples - v_nhap_left)] = match_data;
+            v_targetmatch_use[ii - (v_nsamples - v_nhap_left)] = get_matchdata(queryidall_target,
+                                                                               donorid_target,
+                                                                               startpos_target,
+                                                                               endpos_target,
+                                                                               v_samples[ii], loo,haploid);
           }
           
 #pragma omp parallel for reduction(+:lambda_sum)
@@ -2278,13 +2282,11 @@ void paintall(const string method,
     
     for (int ii = nhap_use - nhap_left; ii < nhap_use - nhap_left + nsamples_use; ++ii) {
       // leave one out if the donor file is the same as the target file
-      vector<vector<int>> match_data = get_matchdata(queryidall_target,
-                                                     donorid_target,
-                                                     startpos_target,
-                                                     endpos_target,
-                                                     ii, loo);
       
-      targetmatch_use[ii - (nhap_use - nhap_left)] = match_data;
+      targetmatch_use[ii - (nhap_use - nhap_left)] = get_matchdata(queryidall_target,
+                                                                   donorid_target,
+                                                                   startpos_target,
+                                                                   endpos_target,ii, loo,haploid);
     }
     
     if(run=="prob"){

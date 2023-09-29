@@ -35,7 +35,7 @@ An example can be found in the **Example** section below.
 
 ## Required Parameters
 
-**SparsePainter** has below 6 required parameters.
+**SparsePainter** has below 6 required parameters together with additional parameters that specify the intended output.
 
 * **-reffile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples.
 

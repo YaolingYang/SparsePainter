@@ -26,7 +26,7 @@ g++ SparsePainter.cpp -o SparsePainter.exe -lz -fopenmp -lpthread -larmadillo -s
 To run **SparsePainter**, enter the following command:
 
 ``
-./SparsePainter.exe [-parameter1 value1 -parameter2 value2 ......]
+./SparsePainter.exe [-parameter1 -parameter2 ...... -parameter3 value3 -parameter4 value4......]
 ``
 
 An example can be found in the **Example** section below.

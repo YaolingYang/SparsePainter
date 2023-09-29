@@ -55,9 +55,9 @@ An example can be found in the **Example** section below.
 
 * **-chunklength** Output the chunk length of each local ancestry for each target sample. The output file format is a text file (.txt).
 
-* **-aveSNP** Output the average painting probabilities for each SNP. The output file format is a text file (.txt).
+* **-aveSNP** Output the average local ancestry probabilities for each SNP. The output file format is a text file (.txt).
 
-* **-aveind** Output the average painting probabilities for each target individual. The output file format is a text file (.txt).
+* **-aveind** Output the average local ancestry probabilities for each target individual. The output file format is a text file (.txt).
 
 * **-LDA** Output the LDA of each pair of SNPs. The output file format is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome.
 

@@ -71,7 +71,7 @@ An example can be found in the **Example** section below.
 
 * **-haploid** The individuals are haploid.
 
-* **-diff_lambda** Use different recombination scaling constants for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference.\
+* **-diff_lambda** Use different recombination scaling constants for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference.
 
 * **-loo** Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If `-loo` is not specified under reference-vs-reference painting (`reffile=targetfile`), each individual will be automatically left out of painting.
 

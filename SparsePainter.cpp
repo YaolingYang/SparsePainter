@@ -1,12 +1,12 @@
 // Compile with:
 // module load languages/gcc/10.4.0
-// g++ SparsePainter.cpp -o PBWT.exe -lz -fopenmp -lpthread -larmadillo -std=c++0x -g -O3
+// g++ SparsePainter.cpp -o SparsePainter.exe -lz -fopenmp -lpthread -larmadillo -std=c++0x -g -O3
 // on HPC
 // module load libs/armadillo/12.4.0
-// g++ SparsePainter.cpp -o PBWT.exe -lz -fopenmp -lpthread -L/mnt/storage/software/libraries/gnu/12.4.0/lib64 -larmadillo -std=c++0x -g -O3
+// g++ SparsePainter.cpp -o SparsePainter.exe -lz -fopenmp -lpthread -L/mnt/storage/software/libraries/gnu/12.4.0/lib64 -larmadillo -std=c++0x -g -O3
 // if the module load isn't available, please install armadillo on their official website
 // using cmake . and make to install, and then
-// g++ -I/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1/include SparsePainter.cpp -o PBWT.exe -lz -fopenmp -lpthread -L/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1 -larmadillo  -lopenblas -std=c++0x -g -O3
+// g++ -I/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1/include SparsePainter.cpp -o SparsePainter.exe -lz -fopenmp -lpthread -L/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1 -larmadillo  -lopenblas -std=c++0x -g -O3
 // export LD_LIBRARY_PATH=/mnt/storage/scratch/ip21972/1000GUKB/armadillo-9.850.1:$LD_LIBRARY_PATH
 
 #ifdef _OPENMP
@@ -256,6 +256,14 @@ void ReadVCF(const string inFile,
              const int M, 
              const int qM,
              const bool haploid){
+  
+  cout << "Read reference data with "<<N<<" SNPs for "<<M-qM<<" haploptypes";
+  if(inFile!=qinFile){
+    cout<<" and target data with "<<N<<" SNPs for "<<qM<<" haploptypes" << endl;
+  }else{
+    cout<<endl;
+  }
+  
   igzstream in,qin;
   if(inFile==qinFile){
     string line = "##";

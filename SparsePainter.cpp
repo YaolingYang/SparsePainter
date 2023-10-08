@@ -919,9 +919,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
   
   if (!phase) {
     panel = vector<vector<bool>>(nrow_panel, vector<bool>(N)); 
-    cout<<"Begin reading reference and target data"<<endl;
     ReadVCF(reffile,targetfile,panel,N,M,qM,haploid);
-    cout<<"Finish reading reference and target data"<<endl;
   }else{
     Readphase_donor(reffile,panel,N,M,qM);
   }
@@ -1739,8 +1737,7 @@ vector<double> chunklength_each(vector<double>& gd,
                                 tuple<hMat, vector<double>> forwardprob,
                                 tuple<hMat, vector<double>> backwardprob,
                                 const double gdall){
-  //calculate chunk length for each reference sample
-  //chunk length is the elements of coancestry matrix
+  //calculate chunk length for each haplotype
   int nsnp=mat.d2;
   vector<double> gl(nsnp-1);
   for(int j=0;j<nsnp-1;++j){
@@ -1784,7 +1781,7 @@ vector<double> chunklength_each(vector<double>& gd,
   for(int k=0;k<npop;++k){
     totalsum+=suml[k];
   }
-  double standardize_factor=gdall/totalsum;
+  double standardize_factor=gdall*100/totalsum;
   for(int k=0;k<npop;++k){
     suml[k]=suml[k]*standardize_factor;
   }
@@ -2507,6 +2504,7 @@ void paintall(const string method,
     }
     
     if(run!="prob"){
+      //output chunk length
       if(haploid){
         for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
           outputclFile << indnames[ii] << " ";
@@ -2520,14 +2518,14 @@ void paintall(const string method,
         for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
           outputclFile << indnames[ii] <<"_0 ";
           for(int j=0;j<npop;++j){
-            outputclFile << fixed << setprecision(5) << chunklength[2*ii-nhap_use+nhap_left][j];
+            outputclFile << fixed << setprecision(3) << chunklength[2*ii-nhap_use+nhap_left][j];
             if(j!=npop-1) outputclFile << " ";
           }
           outputclFile << "\n";
           
           outputclFile << indnames[ii] <<"_1 ";
           for(int j=0;j<npop;++j){
-            outputclFile << fixed << setprecision(5) << chunklength[2*ii-nhap_use+nhap_left+1][j];
+            outputclFile << fixed << setprecision(3) << chunklength[2*ii-nhap_use+nhap_left+1][j];
             if(j!=npop-1) outputclFile << " ";
           }
           outputclFile << "\n";
@@ -2704,7 +2702,7 @@ int main(int argc, char *argv[]){
   bool AAS=false;
   bool phase=false;
   string out="SparsePainter";
-  double window=0.04;
+  double window=4;
   int ncores=0;
   
   for (int i = 1; i < argc; i++) {
@@ -2798,7 +2796,7 @@ int main(int argc, char *argv[]){
       mapfile = argv[++i];
     } else if (param == "popfile") {
       popfile = argv[++i];
-    } else if (param == "targetname") {
+    } else if (param == "namefile") {
       targetname = argv[++i];
     } else if (param == "matchfile") {
       matchfile = argv[++i];

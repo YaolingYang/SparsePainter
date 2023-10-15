@@ -7,8 +7,6 @@
 
 # Installation
 
-The main code is in **SparsePainter.cpp**.
-
 You should put ["gzstream.h" and "gzstream.C"](https://www.cs.unc.edu/Research/compgeom/gzstream/) in the same directory as SparsePainter.cpp. ``gzstream.h`` and ``gzstream.C`` can be found on the current GitHub page.
 
 You should download the [Armadillo](https://arma.sourceforge.net/download.html) package, unzip the package and rename the folder as ``armadillo``. Then ``cd armadillo``, ``cmake .``, ``cd ..``.

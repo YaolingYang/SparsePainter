@@ -8,19 +8,12 @@
 # Installation
 
 To install SparsePainter, please follow the below steps.
-
 ``git clone https://github.com/YaolingYang/SparsePainter`` Note that we depend on ["gzstream.h" and "gzstream.C"](https://www.cs.unc.edu/Research/compgeom/gzstream/).
-
 ``cd SparsePainter``
-
 Then please download the [Armadillo](https://arma.sourceforge.net/download.html) package, unzip the package, and rename the folder as ``armadillo`` under folder ``SparsePainter``. 
-
 Then ``cd armadillo`` 
-
 ``cmake .``
-
 ``cd ..``
-
 ``make``
 
 # Usage

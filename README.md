@@ -9,18 +9,18 @@
 
 The main code is in **SparsePainter.cpp**.
 
-You should load the [Armadillo](https://arma.sourceforge.net/download.html) library, and also have ["gzstream.h" and "gzstream.C"](https://www.cs.unc.edu/Research/compgeom/gzstream/) in your directory. 
+You should put ["gzstream.h" and "gzstream.C"](https://www.cs.unc.edu/Research/compgeom/gzstream/) in the same directory as SparsePainter.cpp. ``gzstream.h`` and ``gzstream.C`` can be found on the current GitHub page.
 
-Either converts variant call format (VCF) or phase format is supported by **SparsePainter**. Inputting phase format is slightly faster than inputting the VCF format. To prepare the phase format for **SparsePainter**, you should get [PBWT](https://github.com/richarddurbin/pbwt) installed, which converts Variant Call Format (VCF) to phase format by the following command:
+You should download the [Armadillo](https://arma.sourceforge.net/download.html) package, unzip the package and rename the folder as ``armadillo``. Then ``cd armadillo``, ``cmake .``, ``cd ..``.
+
+Then compile SparsePainter with ``make``.
+
+# Usage
+
+Either variant call format (VCF) or phase format is supported by **SparsePainter**. Inputting phase format is slightly faster than inputting the VCF format. To prepare the phase format for **SparsePainter**, you should get [PBWT](https://github.com/richarddurbin/pbwt) installed, which converts Variant Call Format (VCF) to phase format by the following command:
 
 ``
 pbwt -readVcfGT XXX.vcf -writePhase XXX.phase
-``
-
-When the above requirements are met, you can compile with:
-
-``
-g++ SparsePainter.cpp -o SparsePainter -lz -fopenmp -larmadillo -std=c++0x -g -O3
 ``
 
 To run **SparsePainter**, enter the following command:

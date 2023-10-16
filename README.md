@@ -10,7 +10,9 @@
 To install SparsePainter, please follow the below steps.  
 ``git clone https://github.com/YaolingYang/SparsePainter``.  
 ``cd SparsePainter``  
-Download the [Armadillo-12.6.5](https://sourceforge.net/projects/arma/files/) package, unzip the package, and rename the folder as ``armadillo`` under folder ``SparsePainter``.   
+Download the [Armadillo-12.6.5](https://sourceforge.net/projects/arma/files/) package under folder ``SparsePainter``. 
+``tar -xf armadillo-12.6.5.tar.xz``
+``mv armadillo-12.6.5 armadillo``
 ``cd armadillo``   
 ``cmake .``  
 ``cd ..``  

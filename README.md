@@ -5,6 +5,8 @@
     Yaoling Yang (<yaoling.yang@bristol.ac.uk>)  
     Daniel Lawson (<dan.lawson@bristol.ac.uk>)
 
+-   SparsePainter website:  https://sparsepainter.github.io/
+
 # Installation
 
 To install SparsePainter, please follow the below steps.  

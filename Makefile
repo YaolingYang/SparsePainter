@@ -6,10 +6,18 @@ ARMA_DIR = ./armadillo
 INCLUDE_DIR = $(ARMA_DIR)/include
 LIB_DIR = $(ARMA_DIR)
 
-# Compiler and Linker Flags
+# Compiler Flags
 CXXFLAGS = -I$(INCLUDE_DIR) -std=c++0x -g -O3 -fopenmp
 LDFLAGS = -L$(LIB_DIR) -Wl,-rpath=$(LIB_DIR)
-LDLIBS = -larmadillo -llapack -lblas -lz -lpthread
+
+# Determine OS type and set linker flags accordingly
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    LDLIBS = -larmadillo -lblas -llapack -lz -lpthread
+endif
+ifeq ($(UNAME_S),Darwin)  # Darwin is the result for macOS
+    LDLIBS = -larmadillo -framework Accelerate -lz -lpthread
+endif
 
 # Target
 TARGET = SparsePainter

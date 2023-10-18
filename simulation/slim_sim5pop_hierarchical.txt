@@ -1,0 +1,43 @@
+initialize() {
+    initializeTreeSeq();
+    initializeMutationRate(6e-9);
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, 1e8-1);
+    initializeRecombinationRate(2e-8);
+}
+
+1 late() {
+    sim.addSubpop("p8", 20000);
+}
+
+2933 early() {
+    catn("Splitting p8 into p0 and p3");
+    sim.addSubpopSplit("p0", 4000, p8);
+    sim.addSubpopSplit("p3", 4000, p8);
+}
+2933 late() {
+    p8.setSubpopulationSize(0);
+}
+
+2958 late() {
+    catn("Splitting p0 into p0 and p1");
+    sim.addSubpopSplit("p1", 4000, p0);
+}
+2983 late() {
+    catn("Splitting p1 into p1 and p2");
+    sim.addSubpopSplit("p2", 4000, p1);
+}
+2993 late() {
+    catn("Splitting p3 into p3 and p4");
+    sim.addSubpopSplit("p4", 4000, p3);
+}
+
+3000 late() {
+    p0.outputVCFSample(1000, replace=F, filePath="p0.vcf"); 
+    p1.outputVCFSample(1000, replace=F, filePath="p1.vcf"); 
+    p2.outputVCFSample(1000, replace=F, filePath="p2.vcf"); 
+    p3.outputVCFSample(1000, replace=F, filePath="p3.vcf"); 
+    p4.outputVCFSample(1000, replace=F, filePath="p4.vcf"); 
+}
+

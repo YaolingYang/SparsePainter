@@ -1,0 +1,68 @@
+initialize() {
+    initializeTreeSeq();
+    initializeMutationRate(6e-9);
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, 1e8-1);
+    initializeRecombinationRate(2e-8);
+}
+
+1 late() {
+    sim.addSubpop("p11", 20000);
+}
+
+2926 early() {
+    catn("Splitting p11 into p0, p3 and p7");
+    sim.addSubpopSplit("p0", 4000, p11);
+    sim.addSubpopSplit("p3", 4000, p11);
+    sim.addSubpopSplit("p7", 4000, p11);
+}
+2926 late() {
+    p11.setSubpopulationSize(0);
+}
+
+2940 late() {
+    catn("Splitting p0 into p0 and p1");
+    sim.addSubpopSplit("p1", 4000, p0);
+}
+
+2945 late() {
+    catn("Splitting p7 into p7 and p8");
+    sim.addSubpopSplit("p8", 4000, p7);
+}
+
+2953 late() {
+    catn("Splitting p1 into p1 and p2");
+    sim.addSubpopSplit("p2", 4000, p1);
+    catn("Splitting p3 into p3 and p4");
+    sim.addSubpopSplit("p4", 4000, p3);
+}
+2963 late() {
+    catn("Splitting p4 into p4 and p5");
+    sim.addSubpopSplit("p5", 4000, p4);
+}
+
+2973 late() {
+    catn("Splitting p5 into p5 and p6");
+    sim.addSubpopSplit("p6", 4000, p5);
+}
+
+2986 late() {
+    catn("Splitting p8 into p8 and p9");
+    sim.addSubpopSplit("p9", 4000, p8);
+}
+
+3007 late() {
+    p0.outputVCFSample(1000, replace=F, filePath="p0.vcf"); 
+    p1.outputVCFSample(1000, replace=F, filePath="p1.vcf"); 
+    p2.outputVCFSample(1000, replace=F, filePath="p2.vcf"); 
+    p3.outputVCFSample(1000, replace=F, filePath="p3.vcf"); 
+    p4.outputVCFSample(1000, replace=F, filePath="p4.vcf"); 
+    p5.outputVCFSample(1000, replace=F, filePath="p5.vcf"); 
+    p6.outputVCFSample(1000, replace=F, filePath="p6.vcf"); 
+    p7.outputVCFSample(1000, replace=F, filePath="p7.vcf"); 
+    p8.outputVCFSample(1000, replace=F, filePath="p8.vcf"); 
+    p9.outputVCFSample(1000, replace=F, filePath="p9.vcf"); 
+   sim.simulationFinished();
+}
+

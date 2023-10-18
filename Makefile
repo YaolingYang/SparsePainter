@@ -5,9 +5,9 @@ all: setup $(TARGET)
 
 # Compile armadillo 12.6.5
 
-.PHONY: setup
+.PHONY: setup_armadillo
 
-setup:
+setup_armadillo:
 	tar -xf armadillo-12.6.5.tar.xz
 	mv armadillo-12.6.5 armadillo
 	cd armadillo && cmake .

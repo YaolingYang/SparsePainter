@@ -31,16 +31,14 @@ pbwt -readVcfGT XXX.vcf -writePhase XXX.phase
 To run **SparsePainter**, enter the following command:
 
 ``
-./SparsePainter [-parameter1 -parameter2 ...... -parameter3 value3 -parameter4 value4 ......]
+./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]
 ``
 
-An example can be found in the **Example** section below.
+# Commands
 
-# Parameters
+## Required Commands
 
-## Required Parameters
-
-**SparsePainter** has below 6 required parameters together with additional parameters that specify the desired output.
+**SparsePainter** has below 6 required commands together with additional commands that specify the desired output.
 
 * **-reffile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples.
 
@@ -50,7 +48,7 @@ An example can be found in the **Example** section below.
 
 * **-popfile [file]** Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as ``reffile``). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel.
 
-* **-namefile [file]** Target name file that contains the names of target samples. This parameter is necessary because the phase file doesn't contain the sample names. When painting reference samples against themselves, this parameter should contain the names of reference samples.
+* **-namefile [file]** Name file that contains the names of samples to be painted.
 
 * **-out [string]** Prefix of the output file names (**default=SparsePainter**).
 
@@ -70,23 +68,23 @@ An example can be found in the **Example** section below.
 
 * **-AAS** Output the AAS of each SNP. The output file format is a text file (.txt).
 
-## Optional Parameters
+## Optional Commands
 
-### Parameters without values
+### Commands without values
 
 * **-haploid** The individuals are haploid.
 
-* **-diff_lambda** Use different recombination scaling constants for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference.
+* **-diff_lambda** Use different recombination scaling constants for each target sample. If this command is not given, the fixed lambda will be output in a text file (.txt) for future reference.
 
 * **-loo** Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If `-loo` is not specified under reference-vs-reference painting (`reffile=targetfile`), each individual will be automatically left out of painting.
 
-### Parameters with values
+### Commands with values
 
-* **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** parameter uses all the available CPU cores of your device.
+* **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** uses all the available CPU cores of your device.
 
 * **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of ``indfrac`` target samples under the default ``fixlambda`` and ``diff_lambda``.
 
-* **-nmatch [integer>=1]** The number of haplotype matches of at least ``L_minmatch`` SNPs that **SparsePainter** searches for (**default=10**). Positions with more than ``nmatch`` matches of at least ``L_minmatch`` SNPs will retain at least the longest ``nmatch`` proportion of matches. A larger ``nmatch`` slightly improves accuracy but significantly increases the computational time.
+* **-nmatch [integer>=1]** The number of haplotype matches of at least ``L_minmatch`` SNPs that **SparsePainter** searches for (**default=10**). Positions with more than ``nmatch`` matches of at least ``L_minmatch`` SNPs will retain at least the longest ``nmatch`` matches. A larger ``nmatch`` slightly improves accuracy but significantly increases the computational time.
 
 * **-L0 [integer>0]** The initial length of matches (the number of SNPs) that **SparsePainter** searches for (**default=320**). ``L_initial`` must be bigger than ``L_minmatch`` and should be a power of 2 of ``L_minmatch`` for computational efficiency.
 
@@ -104,7 +102,7 @@ An example can be found in the **Example** section below.
 
 * **-window [number>0]** The window for calculating LDA score (LDAS) in Morgan (**default=0.04**).
 
-* **-matchfile [file]** The file name of the set-maximal match file which is the output of [pbwt -maxWithin](https://github.com/danjlawson/pbwt/blob/master/pbwtMain.c). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse that will significantly reduce the accuracy, despite saving compute time.
+* **-matchfile [file]** The file name of the set-maximal match file which is the output of [pbwt -maxWithin](https://github.com/danjlawson/pbwt/blob/master/pbwtMain.c). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time.
 
 # Example
 The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (Both vcf version ``donor.vcf.gz`` and phase version ``donor.phase.gz`` are available), and the aim is to paint 500 target individuals (Both vcf version ``target.vcf.gz`` and phase version ``target.phase.gz`` are available). Remember we have compiled SparsePainter in ``SparsePainter``, then we can paint with the following command:

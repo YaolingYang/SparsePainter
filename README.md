@@ -7,6 +7,8 @@
 
 -   SparsePainter website:  https://sparsepainter.github.io/
 
+-   Version: 1.0.0
+
 # Installation
 
 To install SparsePainter, please follow the below steps.  

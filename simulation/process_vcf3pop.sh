@@ -1,3 +1,4 @@
+// commands to process 3-pop simulations for accuracy comparison
 slim slim_sim3pop.txt
 
 bgzip p0.vcf
@@ -70,11 +71,11 @@ rm sim_target2.vcf
 
 Rscript makemap.R
 
-java -jar ../../../longmatchquery/compare_software/flare.jar ref=sim_ref.vcf.gz ref-panel=sim_popnames.txt gt=sim_target.vcf.gz map=sim.map out=sim probs=true min-mac=1
+java -jar flare.jar ref=sim_ref.vcf.gz ref-panel=sim_popnames.txt gt=sim_target.vcf.gz map=sim.map out=sim probs=true min-mac=1
 
-../../../longmatchquery/./test.exe -reffile sim_ref.phase -targetfile sim_target.phase -popfile sim_popnames.txt -mapfile sim_map.txt -targetname sim_50ind.txt -L_minmatch 10 -matchfrac 0.01 -AAS 0 -out sim_3pop
+./SparsePainter.exe -reffile sim_ref.phase -targetfile sim_target.phase -popfile sim_popnames.txt -mapfile sim_map.txt -namefile sim_50ind.txt -L_minmatch 10 -prob -out sim_3pop
 
- ../../../finestructure4/scripts/makeuniformrecfile.pl -c 2e-8 sim_target.phase recfile.rec
+ makeuniformrecfile.pl -c 2e-8 sim_target.phase recfile.rec
 
 for i in `seq 1 50`; do 
     echo "fs cp -g sim_ref.phase -n 10 -t sim_popnames.txt -Rg sim_target.phase -r recfile.rec -f donorfile.txt $i $i -o op/sim$i -b > op/sim$i.log 2>&1" >> mycmds.txt

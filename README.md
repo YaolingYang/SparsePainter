@@ -12,11 +12,6 @@
 To install SparsePainter, please follow the below steps.  
 ``git clone git@github.com:YaolingYang/SparsePainter.git``  
 ``cd SparsePainter``  
-``tar -xf armadillo-12.6.5.tar.xz``  
-``mv armadillo-12.6.5 armadillo``  
-``cd armadillo``    
-``cmake .``  
-``cd ..``  
 ``make``  
 
 # Dependencies

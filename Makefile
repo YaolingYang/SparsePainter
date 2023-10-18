@@ -1,16 +1,15 @@
 # Target
 TARGET = SparsePainter
 
-all: setup $(TARGET)
+all: armadillo $(TARGET)
 
 # Compile armadillo 12.6.5
 
-.PHONY: setup_armadillo
+#.PHONY: setup_armadillo
 
-setup_armadillo:
+armadillo:
 	tar -xf armadillo-12.6.5.tar.xz
 	mv armadillo-12.6.5 armadillo
-	cd armadillo && cmake .
 
 # Compiler
 CXX = g++
@@ -32,16 +31,17 @@ endif
 ifeq ($(UNAME_S),Darwin)  # Darwin is the result for macOS
     ## We will set CXX and LDLIBS specially
     $(info CXX = $(CXX))
-    $(info On Mac, we cannot use the Xcode compiler based on clang. Checking for the correct version...)
-    CXXVERSION=$($(CXX) -v 2>&1 | grep gcc) # check for gcc c++
-    ifeq (,$(findstring gcc,$(CXXVERSION))) # Not found gcc
-        $(warning The specified CXX is not supported. Searching for a gcc version in your PATH...) 
+    $(shell chmod +x ./whereisglob)
+    CXXVERSION=$(shell $(CXX) -v 2>&1 | grep Apple) # check for Apple c++
+    ifeq (Apple,$(findstring Apple,$(CXXVERSION))) # Found apple c++
+        $(info On Mac, we cannot use the Xcode compiler based on clang (called Darwin).)
+        $(warning The specified CXX is not supported. Searching for another version in your PATH...) 
         CXX=$(shell ./whereisglob g++*) # search for g++
         $(info Found CXX = $(CXX))
     endif
-    CXXVERSION=$($(CXX) -v 2>&1 | grep gcc)
-    ifneq (,$(findstring gcc,$(CXXVERSION))) # Not found gcc
-        $(error You don't have a gcc supported compiler as the first g++* in your path. You must a. have installed g++, and b. specify the version my running make CXX=g++-<version>, for example, g++-13)
+    CXXVERSION=$(shell $(CXX) -v 2>&1 | grep Apple) # check for Apple c++
+    ifeq (Apple,$(findstring Apple,$(CXXVERSION))) # Found Apple c++
+        $(error You have a native Apple Xcode compiler as the first g++* in your path. A gcc compiler is strongly recommended. a. have installed g++, and b. specify the version my running make CXX=g++-<version>, for example, CXX=g++-13)
     endif
     $(info Proceeding with gcc g++ executable $(CXX))
     LDLIBS = -larmadillo -framework Accelerate -lz -lpthread -Wl,-ld_classic -Wl,-rpath $(LIB_DIR)

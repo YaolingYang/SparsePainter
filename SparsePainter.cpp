@@ -1,5 +1,5 @@
-// Compile with below commands
-// g++ -I./armadillo/include SparsePainter.cpp -o SparsePainter -lz -fopenmp -lpthread -L./armadillo -larmadillo -llapack -lblas -std=c++0x -g -O3 -Wl,-rpath=./armadillo
+// please compile with "make"
+// g++ -I./armadillo-12.6.5/include SparsePainter.cpp -o SparsePainter -lz -fopenmp -lpthread -L./armadillo-12.6.5 -larmadillo -llapack -lblas -std=c++0x -g -O3 -Wl,-rpath=./armadillo-12.6.5
 #ifdef _OPENMP
 #include <omp.h>
 #else
@@ -2740,7 +2740,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -matchfile [file]: The file name of the set-maximal match file which is the output of pbwt -maxWithin. This can only be used for painting reference samples against themselves. When matchfile is given, there is no need to provide reffile and targetfile, because all the match information required for painting is contained in matchfile. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse that will significantly reduce the accuracy, despite saving compute time." << endl;
     
-    abort();
+    return 0;
   }
   
   string run="prob";
@@ -2779,6 +2779,7 @@ int main(int argc, char *argv[]){
     string param = argv[i];
     if (param[0] != '-') {
       cerr << "Invalid argument format. Expected -param value or -param \n";
+      cerr<<"Type -h or -help to see the help file"<<endl;
       return 1;
     }
     param = param.substr(1);  // Remove the -
@@ -2791,7 +2792,8 @@ int main(int argc, char *argv[]){
       if(i!=argc-1){
         if(argv[i+1][0]!='-'){
           cerr << "Error: No values should be given following -"<<param<<endl;
-          abort();
+          cerr<<"Type -h or -help to see the help file"<<endl;
+          return 0;
         }
       }
     }
@@ -2806,11 +2808,13 @@ int main(int argc, char *argv[]){
        param=="matchfile" || param=="out"||
        param=="window" || param=="ncores"){
       if(i==argc-1){
-        cerr << "Error: Values should be given following -"<<param<<endl;
-        abort();
+        cerr << "Error: Parameters should be given following -"<<param<<endl;
+        cerr<<"Type -h or -help to see the help file"<<endl;
+        return 0;
       }else if(argv[i+1][0]=='-'){
-        cerr << "Error: Values should be given following -"<<param<<endl;
-        abort();
+        cerr << "Error: Parameters should be given following -"<<param<<endl;
+        cerr<<"Type -h or -help to see the help file"<<endl;
+        return 0;
       }
     }
     
@@ -2878,6 +2882,7 @@ int main(int argc, char *argv[]){
       ncores = stoi(argv[++i]);
     } else {
       cerr << "Unknown parameter: " << param << ".\n";
+      cerr<<"Type -h or -help to see the help file"<<endl;
       return 1;
     }
   }
@@ -2917,7 +2922,8 @@ int main(int argc, char *argv[]){
     phase=true;
   }
   if (!((reffile_vcf && targetfile_vcf) || (reffile_phase && targetfile_phase))) {
-    cerr << "The reffile and targetfile should both be vcf (including gzipped vcf) or phase (including gzipped phase) format." << "\n";
+    cerr << "The reffile and targetfile should both be vcf (including gzipped vcf) or phase (including gzipped phase) format." << endl;
+    cerr<<"Type -h or -help to see the help file"<<endl;
     return 1;
   }
   
@@ -2943,6 +2949,7 @@ int main(int argc, char *argv[]){
     cerr<<"-LDA: output the LDA of each pair of SNPs."<<endl;
     cerr<<"-LDAS: output the LDAS of each SNP."<<endl;
     cerr<<"-AAS: output the AAS of each SNP."<<endl;
+    cerr<<"Type -h or -help to see the help file"<<endl;
     return 1;
   }
   

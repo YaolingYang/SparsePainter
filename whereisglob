@@ -1,0 +1,15 @@
+#!/bin/sh
+## Find the FIRST match in the path of the specified path
+## ALLOWING glob matches as ls does
+## Usage: whereisglob g++*
+## Which returns the highest g++ of any version in your path
+
+IFS=":"
+for PART in $PATH
+do
+    matches=`ls $PART/$1 2>/dev/null`
+    if [ "$matches" != "" ]; then
+	echo "$matches"
+	exit 0
+    fi
+done

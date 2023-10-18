@@ -1413,12 +1413,12 @@ tuple<vector<string>,vector<int>> readpopfile(const string& popfile) {
 }
 
 
-vector<string> readtargetname(const string& targetname) {
-  ifstream file(targetname);
+vector<string> readtargetname(const string& namefile) {
+  ifstream file(namefile);
   vector<string> tgnames;
   
   if (!file.is_open()) {
-    cerr << "Error: Unable to open file " << targetname << endl;
+    cerr << "Error: Unable to open file " << namefile << endl;
     abort();
   }
   
@@ -2000,7 +2000,7 @@ void paintall(const string method,
               const string targetfile,
               const string mapfile,
               const string popfile,
-              const string targetname,
+              const string namefile,
               const string matchfile,
               bool outputpainting,
               bool outputaveSNPpainting,
@@ -2036,7 +2036,7 @@ void paintall(const string method,
   
   vector<int> refindex = get<1>(popinfo);
   
-  vector<string> indnames = readtargetname(targetname);
+  vector<string> indnames = readtargetname(namefile);
   
   int nind=indnames.size();
   
@@ -2247,7 +2247,7 @@ void paintall(const string method,
     outputFile << "\n";
   }
   
-  ofstream outputclFile;
+  ogzstream outputclFile;
   if(run!="prob"){
     outputclFile.open(chunklengthfile.c_str());
     if (!outputclFile) {
@@ -2664,6 +2664,85 @@ bool ends_with(const string &value, const string &ending) {
 }
 
 int main(int argc, char *argv[]){
+  
+  // Check if no commands are provided
+  if (argc == 1 || string(argv[1]) == "-help" || string(argv[1]) == "-h") {
+    cout << "Program: SparsePainter" << endl;
+    cout << "Version: 1.0.0" << endl;
+    cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl;
+    cout << "Usage: ./SparsePainter [-parameter1 -parameter2 ...... -parameter3 value3 -parameter4 value4 ......]" << endl;
+    
+    cout << "Type ./SparsePainter, ./SparsePainter -h or ./SparsePainter -help to see this help file." << endl;
+
+    cout << "\nRequired Commands" << endl;
+    cout << "SparsePainter has the following 6 required commands together with additional commands that specify the desired output." << endl;
+    
+    cout << "  -reffile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples." << endl;
+    
+    cout << "  -targetfile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set targetfile to be the same as reffile. The file type of targetfile and reffile should be the same." << endl;
+    
+    cout << "  -mapfile [file]: Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile." << endl;
+    
+    cout << "  -popfile [file]: Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as reffile). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel." << endl;
+    
+    cout << "  -namefile [file]: Target name file that contains the names of target samples. This parameter is necessary because the phase file doesn't contain the sample names. When painting reference samples against themselves, this parameter should contain the names of reference samples." << endl;
+    
+    cout << "  -out [string]: Prefix of the output file names (default=SparsePainter)." << endl;
+    
+    cout << "At least one of the below commands should also be given in order to run SparsePainter" << endl;
+    
+    cout << "  -prob: Output the local ancestry probabilities for each target sample at each SNP. The output file format is a gzipped text file (.txt.gz)." << endl;
+    
+    cout << "  -chunklength: Output the chunk length of each local ancestry for each target sample. The output file format is a text file (.txt)." << endl;
+    
+    cout << "  -aveSNP: Output the average local ancestry probabilities for each SNP. The output file format is a text file (.txt)." << endl;
+    
+    cout << "  -aveind: Output the average local ancestry probabilities for each target individual. The output file format is a text file (.txt)." << endl;
+    
+    cout << "  -LDA: Output the LDA of each pair of SNPs. The output file format is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome." << endl;
+    
+    cout << "  -LDAS: Output the LDAS of each SNP. The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome." << endl;
+    
+    cout << "  -AAS: Output the AAS of each SNP. The output file format is a text file (.txt)." << endl;
+    
+    cout << "\nOptional Commands" << endl;
+    cout << "(a) Commands without parameters" << endl;
+    
+    cout << "  -haploid: The individuals are haploid." << endl;
+    
+    cout << "  -diff_lambda: Use different recombination scaling constants for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference." << endl;
+    
+    cout << "  -loo: Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If -loo is not specified under reference-vs-reference painting (reffile=targetfile), each individual will be automatically left out of painting." << endl;
+    
+    cout << "(b) Commands with parameters" << endl;
+    
+    cout << "  -ncores [integer>=0]: The number of CPU cores used for the analysis (default=0). The default ncores parameter uses all the available CPU cores of your device." << endl;
+    
+    cout << "  -fixlambda [number>=0]: The value of the fixed recombination scaling constant (default=0). SparsePainter will estimate lambda as the average recombination scaling constant of indfrac target samples under the default fixlambda and diff_lambda." << endl;
+    
+    cout << "  -nmatch [integer>=1]: The number of haplotype matches of at least L_minmatch SNPs that SparsePainter searches for (default=10). Positions with more than nmatch matches of at least L_minmatch SNPs will retain at least the longest nmatch proportion of matches. A larger nmatch slightly improves accuracy but significantly increases the computational time." << endl;
+    
+    cout << "  -L0 [integer>0]: The initial length of matches (the number of SNPs) that SparsePainter searches for (default=320). L_initial must be bigger than L_minmatch and should be a power of 2 of L_minmatch for computational efficiency." << endl;
+    
+    cout << "  -Lmin [integer>0]: The minimal length of matches that SparsePainter searches for (default=20). Positions with fewer than nmatch matches of at least L_minmatch SNPs will retain all the matches of at least L_minmatch. A larger L_minmatch increases both the accuracy and the computational time." << endl;
+    
+    cout << "  -method [Viterbi/EM]: The algorithm used for estimating the recombination scaling constant (default=Viterbi)." << endl;
+    
+    cout << "  -indfrac [number∈(0,1)]: The proportion of individuals used to estimate the recombination scaling constant (default=0.1)." << endl;
+    
+    cout << "  -minsnpEM [integer>0]: The minimum number of SNPs used for EM algorithm if -method EM is specified (default=2000)." << endl;
+    
+    cout << "  -EMsnpfrac [number∈(0,1)]: The proportion of SNPs used for EM algorithm if -method EM is specified (default=0.1). Note that if nsnp*EMsnpfrac < minsnpEM, minsnpEM SNPs will be used for EM algorithm." << endl;
+    
+    cout << "  -ite_time [integer>0]: The iteration times for EM algorithm if -method EM is specified (default=10)." << endl;
+    
+    cout << "  -window [number>0]: The window for calculating LDA score (LDAS) in Morgan (default=0.04)." << endl;
+    
+    cout << "  -matchfile [file]: The file name of the set-maximal match file which is the output of pbwt -maxWithin. This can only be used for painting reference samples against themselves. When matchfile is given, there is no need to provide reffile and targetfile, because all the match information required for painting is contained in matchfile. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse that will significantly reduce the accuracy, despite saving compute time." << endl;
+    
+    abort();
+  }
+  
   string run="prob";
   bool runpaint=false;
   bool chunklength=false;
@@ -2683,7 +2762,7 @@ int main(int argc, char *argv[]){
   string targetfile={};
   string mapfile={};
   string popfile={};
-  string targetname={};
+  string namefile={};
   string matchfile={};
   bool outputpainting=false;
   bool aveSNPpainting=false;
@@ -2723,7 +2802,7 @@ int main(int argc, char *argv[]){
        param=="L0" || param=="nmatch" ||
        param=="Lmin" || param=="reffile"||
        param=="targetfile" || param=="mapfile"||
-       param=="popfile" || param=="targetname"||
+       param=="popfile" || param=="namefile"||
        param=="matchfile" || param=="out"||
        param=="window" || param=="ncores"){
       if(i==argc-1){
@@ -2788,7 +2867,7 @@ int main(int argc, char *argv[]){
     } else if (param == "popfile") {
       popfile = argv[++i];
     } else if (param == "namefile") {
-      targetname = argv[++i];
+      namefile = argv[++i];
     } else if (param == "matchfile") {
       matchfile = argv[++i];
     } else if (param == "out") {
@@ -2823,9 +2902,9 @@ int main(int argc, char *argv[]){
     cout << "No `-popfile filename' input is found, use popnames.txt as default."<<endl;
   }
   
-  if(targetname.empty()){
-    targetname="targetname.txt";
-    cout << "No `-targetname filename' input is found, use targetname.txt as default."<<endl;
+  if(namefile.empty()){
+    namefile="targetname.txt";
+    cout << "No `-namefile filename' input is found, use targetname.txt as default."<<endl;
   }
   
   
@@ -2848,7 +2927,7 @@ int main(int argc, char *argv[]){
   string LDAfile = out + "_LDA.txt.gz";
   string LDASfile = out + "_LDAS.txt";
   string AASfile = out + "_AAS.txt";
-  string chunklengthfile = out+ "_chunklength.txt";
+  string chunklengthfile = out+ "_chunklength.txt.gz";
   string lambdafile = out+ "_fixedlambda.txt";
   
   if (!matchfile.empty()){
@@ -2884,7 +2963,7 @@ int main(int argc, char *argv[]){
   }
   
   paintall(method, diff_lambda, fixlambda, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 
-           L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, targetname, matchfile, 
+           L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, 
            outputpainting,aveSNPpainting,aveindpainting,LDA, LDAS, 
            AAS,probfile, aveSNPprobfile,aveindprobfile, chunklengthfile,
            LDAfile, LDASfile, AASfile, lambdafile, window, ncores,run,phase);

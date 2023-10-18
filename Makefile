@@ -8,14 +8,13 @@ all: armadillo $(TARGET)
 #.PHONY: setup_armadillo
 
 armadillo:
-	tar -xf armadillo-12.6.5.tar.xz
-	mv armadillo-12.6.5 armadillo
+	tar -xf armadillo-12.6.5.tar.xz && rm armadillo-12.6.5.tar.xz
 
 # Compiler
 CXX = g++
 
 # Directories and Libraries
-ARMA_DIR = ./armadillo
+ARMA_DIR = ./armadillo-12.6.5
 INCLUDE_DIR = $(ARMA_DIR)/include
 LIB_DIR = $(ARMA_DIR)
 

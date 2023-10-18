@@ -1,3 +1,8 @@
+# Target
+TARGET = SparsePainter
+
+all: setup $(TARGET)
+
 # Compile armadillo 12.6.5
 
 .PHONY: setup
@@ -41,11 +46,6 @@ ifeq ($(UNAME_S),Darwin)  # Darwin is the result for macOS
     $(info Proceeding with gcc g++ executable $(CXX))
     LDLIBS = -larmadillo -framework Accelerate -lz -lpthread -Wl,-ld_classic -Wl,-rpath $(LIB_DIR)
 endif
-
-# Target
-TARGET = SparsePainter
-
-all: $(TARGET)
 
 $(TARGET): SparsePainter.cpp
 	$(CXX) $< -o $@ $(CXXFLAGS) $(LDFLAGS) $(LDLIBS)

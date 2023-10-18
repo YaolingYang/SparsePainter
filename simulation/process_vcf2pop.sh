@@ -1,3 +1,4 @@
+// commands to process 2-pop simulations for accuracy comparison
 slim slim_sim2pop.txt
 
 bgzip p0.vcf

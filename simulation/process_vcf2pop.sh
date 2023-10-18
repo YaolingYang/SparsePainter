@@ -1,5 +1,5 @@
 // commands to process 2-pop simulations for accuracy comparison
-slim slim_sim2pop.txt
+slim slim_sim2popsimple.txt
 
 bgzip p0.vcf
 tabix p0.vcf.gz

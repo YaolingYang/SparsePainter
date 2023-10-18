@@ -2670,7 +2670,7 @@ int main(int argc, char *argv[]){
     cout << "Program: SparsePainter" << endl;
     cout << "Version: 1.0.0" << endl;
     cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl;
-    cout << "Usage: ./SparsePainter [-parameter1 -parameter2 ...... -parameter3 value3 -parameter4 value4 ......]" << endl;
+    cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl;
     
     cout << "Type ./SparsePainter, ./SparsePainter -h or ./SparsePainter -help to see this help file." << endl;
 
@@ -2679,13 +2679,13 @@ int main(int argc, char *argv[]){
     
     cout << "  -reffile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples." << endl;
     
-    cout << "  -targetfile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set targetfile to be the same as reffile. The file type of targetfile and reffile should be the same." << endl;
+    cout << "  -targetfile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set -targetfile to be the same as -reffile. The file type of -targetfile and -reffile should be the same." << endl;
     
     cout << "  -mapfile [file]: Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile." << endl;
     
-    cout << "  -popfile [file]: Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as reffile). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel." << endl;
+    cout << "  -popfile [file]: Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as -reffile). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel." << endl;
     
-    cout << "  -namefile [file]: Target name file that contains the names of target samples. This parameter is necessary because the phase file doesn't contain the sample names. When painting reference samples against themselves, this parameter should contain the names of reference samples." << endl;
+    cout << "  -namefile [file]: Name file that contains the names of samples to be painted." << endl;
     
     cout << "  -out [string]: Prefix of the output file names (default=SparsePainter)." << endl;
     
@@ -2712,19 +2712,19 @@ int main(int argc, char *argv[]){
     
     cout << "  -diff_lambda: Use different recombination scaling constants for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference." << endl;
     
-    cout << "  -loo: Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If -loo is not specified under reference-vs-reference painting (reffile=targetfile), each individual will be automatically left out of painting." << endl;
+    cout << "  -loo: Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If -loo is not specified under reference-vs-reference painting (-reffile = -targetfile), each individual will be automatically left out of painting." << endl;
     
     cout << "(b) Commands with parameters" << endl;
     
-    cout << "  -ncores [integer>=0]: The number of CPU cores used for the analysis (default=0). The default ncores parameter uses all the available CPU cores of your device." << endl;
+    cout << "  -ncores [integer>=0]: The number of CPU cores used for the analysis (default=0). The default ncores uses all the available CPU cores of your device." << endl;
     
-    cout << "  -fixlambda [number>=0]: The value of the fixed recombination scaling constant (default=0). SparsePainter will estimate lambda as the average recombination scaling constant of indfrac target samples under the default fixlambda and diff_lambda." << endl;
+    cout << "  -fixlambda [number>=0]: The value of the fixed recombination scaling constant (default=0). SparsePainter will estimate lambda as the average recombination scaling constant of -indfrac target samples under the default -fixlambda and -diff_lambda." << endl;
     
-    cout << "  -nmatch [integer>=1]: The number of haplotype matches of at least L_minmatch SNPs that SparsePainter searches for (default=10). Positions with more than nmatch matches of at least L_minmatch SNPs will retain at least the longest nmatch proportion of matches. A larger nmatch slightly improves accuracy but significantly increases the computational time." << endl;
+    cout << "  -nmatch [integer>=1]: The number of haplotype matches of at least -L_minmatch SNPs that SparsePainter searches for (default=10). Positions with more than -nmatch matches of at least -L_minmatch SNPs will retain at least the longest -nmatch matches. A larger nmatch slightly improves accuracy but significantly increases the computational time." << endl;
     
-    cout << "  -L0 [integer>0]: The initial length of matches (the number of SNPs) that SparsePainter searches for (default=320). L_initial must be bigger than L_minmatch and should be a power of 2 of L_minmatch for computational efficiency." << endl;
+    cout << "  -L0 [integer>0]: The initial length of matches (the number of SNPs) that SparsePainter searches for (default=320). -L_initial must be bigger than -L_minmatch and preferrably be a power of 2 of -L_minmatch for computational efficiency." << endl;
     
-    cout << "  -Lmin [integer>0]: The minimal length of matches that SparsePainter searches for (default=20). Positions with fewer than nmatch matches of at least L_minmatch SNPs will retain all the matches of at least L_minmatch. A larger L_minmatch increases both the accuracy and the computational time." << endl;
+    cout << "  -Lmin [integer>0]: The minimal length of matches that SparsePainter searches for (default=20). Positions with fewer than -nmatch matches of at least -L_minmatch SNPs will retain all the matches of at least -L_minmatch. A larger -L_minmatch increases both the accuracy and the computational time." << endl;
     
     cout << "  -method [Viterbi/EM]: The algorithm used for estimating the recombination scaling constant (default=Viterbi)." << endl;
     
@@ -2732,13 +2732,13 @@ int main(int argc, char *argv[]){
     
     cout << "  -minsnpEM [integer>0]: The minimum number of SNPs used for EM algorithm if -method EM is specified (default=2000)." << endl;
     
-    cout << "  -EMsnpfrac [number∈(0,1)]: The proportion of SNPs used for EM algorithm if -method EM is specified (default=0.1). Note that if nsnp*EMsnpfrac < minsnpEM, minsnpEM SNPs will be used for EM algorithm." << endl;
+    cout << "  -EMsnpfrac [number∈(0,1)]: The proportion of SNPs used for EM algorithm if -method EM is specified (default=0.1). Note that if nsnp * -EMsnpfrac < -minsnpEM, -minsnpEM SNPs will be used for EM algorithm." << endl;
     
     cout << "  -ite_time [integer>0]: The iteration times for EM algorithm if -method EM is specified (default=10)." << endl;
     
     cout << "  -window [number>0]: The window for calculating LDA score (LDAS) in Morgan (default=0.04)." << endl;
     
-    cout << "  -matchfile [file]: The file name of the set-maximal match file which is the output of pbwt -maxWithin. This can only be used for painting reference samples against themselves. When matchfile is given, there is no need to provide reffile and targetfile, because all the match information required for painting is contained in matchfile. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse that will significantly reduce the accuracy, despite saving compute time." << endl;
+    cout << "  -matchfile [file]: The file name of the set-maximal match file which is the output of pbwt -maxWithin. This can only be used for painting reference samples against themselves. When -matchfile is given, there is no need to provide -reffile and -targetfile, because all the match information required for painting is contained in -matchfile. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time." << endl;
     
     return 0;
   }

@@ -1,10 +1,11 @@
 # Compile armadillo 12.6.5
 
-tar -xf armadillo-12.6.5.tar.xz
-mv armadillo-12.6.5 armadillo
-cd armadillo
-cmake .
-cd ..
+.PHONY: setup
+
+setup:
+	tar -xf armadillo-12.6.5.tar.xz
+	mv armadillo-12.6.5 armadillo
+	cd armadillo && cmake .
 
 # Compiler
 CXX = g++

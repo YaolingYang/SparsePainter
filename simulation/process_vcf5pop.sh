@@ -1,4 +1,5 @@
-slim slim_sim5pop.txt
+// commands to process 5-pop simulations for accuracy comparison
+slim slim_sim5popsimple.txt
 
 bgzip p0.vcf
 tabix p0.vcf.gz
@@ -87,11 +88,11 @@ rm sim_target2.vcf
 
 Rscript makemap.R
 
-java -jar ../../../longmatchquery/compare_software/flare.jar ref=sim_ref.vcf.gz ref-panel=sim_popnames.txt gt=sim_target.vcf.gz map=sim.map out=sim probs=true min-mac=1
+java -jar flare.jar ref=sim_ref.vcf.gz ref-panel=sim_popnames.txt gt=sim_target.vcf.gz map=sim.map out=sim probs=true min-mac=1
 
-../../../longmatchquery/./test.exe -reffile sim_ref.phase -targetfile sim_target.phase -popfile sim_popnames.txt -mapfile sim_map.txt -targetname sim_50ind.txt -L_minmatch 10 -matchfrac 0.01 -AAS 0 -out sim_5pop
+./SparsePainter -reffile sim_ref.phase -targetfile sim_target.phase -popfile sim_popnames.txt -mapfile sim_map.txt -namefile sim_50ind.txt -L_minmatch 10 -prob -out sim_5pop
 
- ../../../finestructure4/scripts/makeuniformrecfile.pl -c 2e-8 sim_target.phase recfile.rec
+ makeuniformrecfile.pl -c 2e-8 sim_target.phase recfile.rec
 
 rm mycmds.txt
 

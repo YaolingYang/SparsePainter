@@ -40,7 +40,7 @@ ifeq ($(UNAME_S),Darwin)  # Darwin is the result for macOS
         $(info Found CXX = $(CXX))
     endif
     CXXVERSION=$($(CXX) -v 2>&1 | grep gcc)
-    ifeq (,$(findstring gcc,$(CXXVERSION))) # Not found gcc
+    ifneq (,$(findstring gcc,$(CXXVERSION))) # Not found gcc
         $(error You don't have a gcc supported compiler as the first g++* in your path. You must a. have installed g++, and b. specify the version my running make CXX=g++-<version>, for example, g++-13)
     endif
     $(info Proceeding with gcc g++ executable $(CXX))

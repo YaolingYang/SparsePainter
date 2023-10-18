@@ -1,6 +1,4 @@
-import os
-os.chdir("C:/Ubuntu/SLiM/sim_true/new5pop_1000ref2")
-
+## We refer the codes for finding true local ancestries from https://github.com/rwaples/lai-sim
 import subprocess, msprime
 import matplotlib.pyplot as plt 
 import numpy as np 

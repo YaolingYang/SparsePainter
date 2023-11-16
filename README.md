@@ -94,6 +94,8 @@ To run **SparsePainter**, enter the following command:
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
+* **-al [number&isin;(0,1)]** The accuracy level of the output of local ancestry probabilities (**default=0.01**). This controls the size of the output file for local ancestry probabilities.
+
 * **-indfrac [number&isin;(0,1)]** The proportion of individuals used to estimate the recombination scaling constant (**default=0.1**).
 
 * **-minsnpEM [integer>0]** The minimum number of SNPs used for EM algorithm if ``-method EM`` is specified (**default=2000**).

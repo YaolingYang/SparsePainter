@@ -1723,15 +1723,27 @@ hMat indpainting(const hMat& mat,
       // update the probability of this population
       popprob[popidx]=popprob[popidx]+marginal_prob.m[j].get(refnumberidx);
     }
-    if(precision%static_cast<int>(al*precision)==0){
-      for(int i=0; i<npop; ++i){
-        popprob[i] = round(round(popprob[i] /al) * al * precision)/precision;
-        marginal_prob_pop.m[j].set(i,popprob[i]);
+    
+    //accuracy level is al, which is set for smaller output file size
+    for(int i=0; i<npop; ++i){
+      popprob[i] = round(popprob[i] /al) * al;
+    }
+
+    //standardize to ensure probs sum to 1
+    double probsum=vec_sum(popprob);
+    if(probsum==1){
+      if(precision%static_cast<int>(al*precision)==0){
+        for(int i=0; i<npop; ++i){
+          marginal_prob_pop.m[j].set(i,round(popprob[i]*precision)/precision);
+        }
+      }else{
+        for(int i=0; i<npop; ++i){
+          marginal_prob_pop.m[j].set(i,popprob[i]);
+        }
       }
     }else{
       for(int i=0; i<npop; ++i){
-        popprob[i] = round(round(popprob[i] /al) * al * precision)/precision;
-        marginal_prob_pop.m[j].set(i,popprob[i]);
+        marginal_prob_pop.m[j].set(i,round(popprob[i]/probsum* precision)/precision);
       }
     }
   }

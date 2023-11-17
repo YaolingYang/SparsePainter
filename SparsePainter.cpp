@@ -2876,7 +2876,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -probstore [sparse/raw]: Output the local ancestry probabilities in sparse form (default=sparse) or raw form." << endl;
     
-    cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This controls the size of the output file for local ancestry probabilities." << endl;
+    cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This controls the size of the output file for local ancestry probabilities, especially when using the default probstore." << endl;
     
     cout << "  -indfrac [number∈(0,1)]: The proportion of individuals used to estimate the recombination scaling constant (default=0.1)." << endl;
     

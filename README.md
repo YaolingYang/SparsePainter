@@ -94,7 +94,9 @@ To run **SparsePainter**, enter the following command:
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
-* **-probstore [sparse/raw]**: Output the local ancestry probabilities in sparse form (**default=sparse**) or raw form.
+* **-probstore [sparse/raw]** Output the local ancestry probabilities in sparse form (**default=sparse**) or raw form.
+    
+* **-SNPfile [file]** File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by ``probstore``. 
 
 * **-al [number&isin;(0,1)]** The accuracy level of the output of local ancestry probabilities (**default=0.01**). This controls the size of the output file for local ancestry probabilities, especially when using the default ``probstore``.
 

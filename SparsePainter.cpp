@@ -1384,6 +1384,45 @@ tuple<vector<double>,vector<double>> readmap(const string& mapfile) {
   return output;
 }
 
+
+
+
+
+tuple<vector<double>,vector<int>> readSNP(const string& SNPfile, vector<double>pd) {
+  ifstream file(SNPfile);
+  vector<double> oppd;
+  vector<int> oppd_idx;
+  
+  if (!file.is_open()) {
+    cerr << "Error: Unable to open file " << SNPfile << endl;
+    abort();
+  }
+  
+  string line;
+  double column1;
+  
+  // Read and discard the header line
+  getline(file, line);
+  
+  // Read the data lines
+  while (getline(file, line)) {
+    istringstream lineStream(line);
+    lineStream >> column1;
+    auto it = find(pd.begin(), pd.end(), column1);
+    if (it != pd.end()) {
+      int index = distance(pd.begin(), it);
+      oppd.push_back(column1);
+      oppd_idx.push_back(index);
+    } else {
+      cout << "Unable to find SNP "<<column1<<", skip this SNP." << endl;
+    }
+  }
+  
+  file.close();
+  tuple<vector<double>,vector<int>> output(oppd,oppd_idx);
+  return output;
+}
+
 tuple<vector<string>,vector<int>> readpopfile(const string& popfile) {
   ifstream file(popfile);
   vector<string> indnames;
@@ -2033,12 +2072,14 @@ void paintall(const string method,
               const string popfile,
               const string namefile,
               const string matchfile,
+              const string SNPfile,
               bool outputpainting,
               bool outputaveSNPpainting,
               bool outputaveindpainting,
               bool outputLDA,
               bool outputLDAS,
               bool outputAAS,
+              bool outputallSNP,
               const string probfile,
               const string aveSNPprobfile,
               const string aveindprobfile,
@@ -2064,6 +2105,17 @@ void paintall(const string method,
   tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);
   vector<double> gd = get<1>(mapinfo);
   vector<double> pd = get<0>(mapinfo);
+  
+  // read the SNPs to be output if given
+  int nsnp_op;
+  vector<double> pd_op;
+  vector<int> SNPidx_op;
+  if(!outputallSNP){
+    tuple<vector<double>,vector<int>> SNPinfo=readSNP(SNPfile,pd);
+    pd_op = get<0>(SNPinfo);
+    SNPidx_op = get<1>(SNPinfo);
+    nsnp_op=SNPidx_op.size();
+  }
   
   tuple<vector<string>,vector<int>> popinfo = readpopfile(popfile);
   
@@ -2271,20 +2323,30 @@ void paintall(const string method,
       cerr << "Error: unable to open file: " << probfile << endl;
       abort();
     }
-    if(probstore=="sparse"){
-      outputFile << "SNPidx_start"<< " "<<"SNPidx_end"<< " ";
-      for (int j = 0; j < npop; ++j){
-        outputFile << "pop"<<j << " ";
+    if(outputallSNP){
+      if(probstore=="sparse"){
+        outputFile << "SNPidx_start"<< " "<<"SNPidx_end"<< " ";
+        for (int j = 0; j < npop; ++j){
+          outputFile << "pop"<<j << " ";
+        }
+      }else{
+        outputFile << "ind_name" << " ";
+        //the first row is the SNP's physical position
+        for (int i = 0; i < nsnp; ++i) {
+          outputFile << fixed << setprecision(0) << pd[i];
+          if(i != nsnp-1) outputFile << " ";
+        }
       }
     }else{
-      outputFile << "haplotype_name" << " ";
+      outputFile << "ind_name" << " ";
       //the first row is the SNP's physical position
-      for (int i = 0; i < nsnp; ++i) {
-        outputFile << pd[i];
-        if(i != nsnp-1) outputFile << " ";
+      for (int i = 0; i < nsnp_op; ++i) {
+        outputFile << fixed << setprecision(0) << pd_op[i];
+        if(i != nsnp_op-1) outputFile << " ";
       }
     }
     outputFile <<"\n";
+    outputFile.unsetf(std::ios_base::fixed);
   }
   
   ogzstream outputclFile;
@@ -2498,141 +2560,175 @@ void paintall(const string method,
       
       if(outputpainting){
         //output painting
-        if(probstore=="sparse"){
-          if(haploid){
-            for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-              outputFile << indnames[ii] << " "<<"\n";
-              int snpidx=1;
-              bool same=true;
-              for (int j = 1; j < nsnp; ++j) {
-                for(int k=0;k<npop;++k){
-                  if(painting_all[ii-nhap_use+nhap_left][k][j]!=painting_all[ii-nhap_use+nhap_left][k][j-1]){
-                    same=false;
-                    break;
-                  }
-                }
-                if(!same || j==nsnp-1){
-                  if(j==nsnp-1){
-                    outputFile << snpidx <<" "<<j+1<<" ";
-                  }else{
-                    outputFile << snpidx <<" "<<j<<" ";
-                  }
-                  
+        if(outputallSNP){
+          if(probstore=="sparse"){
+            if(haploid){
+              for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+                outputFile << indnames[ii] << " "<<"\n";
+                int snpidx=1;
+                bool same=true;
+                for (int j = 1; j < nsnp; ++j) {
                   for(int k=0;k<npop;++k){
-                    if(j==nsnp-1){
-                      outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
-                    }else{
-                      outputFile << painting_all[ii-nhap_use+nhap_left][k][j-1];
+                    if(painting_all[ii-nhap_use+nhap_left][k][j]!=painting_all[ii-nhap_use+nhap_left][k][j-1]){
+                      same=false;
+                      break;
                     }
-                    if(k!=npop-1) outputFile << " ";
                   }
-                  same=true;
-                  snpidx=j+1;
-                  outputFile <<"\n";
+                  if(!same || j==nsnp-1){
+                    if(j==nsnp-1){
+                      outputFile << snpidx <<" "<<j+1<<" ";
+                    }else{
+                      outputFile << snpidx <<" "<<j<<" ";
+                    }
+                    
+                    for(int k=0;k<npop;++k){
+                      if(j==nsnp-1){
+                        outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
+                      }else{
+                        outputFile << painting_all[ii-nhap_use+nhap_left][k][j-1];
+                      }
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    same=true;
+                    snpidx=j+1;
+                    outputFile <<"\n";
+                  }
+                  if(j==nsnp-1) snpidx=1;
                 }
-                if(j==nsnp-1) snpidx=1;
+              }
+            }else{
+              for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+                outputFile << indnames[ii] << "_0 "<<"\n";
+                int snpidx=1;
+                bool same=true;
+                
+                for (int j = 1; j < nsnp; ++j) {
+                  for(int k=0;k<npop;++k){
+                    if(painting_all[2*ii-nhap_use+nhap_left][k][j]!=painting_all[2*ii-nhap_use+nhap_left][k][j-1]){
+                      same=false;
+                      break;
+                    }
+                  }
+                  if(!same || j==nsnp-1){
+                    if(j==nsnp-1){
+                      outputFile << snpidx <<" "<<j+1<<" ";
+                    }else{
+                      outputFile << snpidx <<" "<<j<<" ";
+                    }
+                    
+                    for(int k=0;k<npop;++k){
+                      if(j==nsnp-1){
+                        outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                      }else{
+                        outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j-1];
+                      }
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    same=true;
+                    snpidx=j+1;
+                    outputFile <<"\n";
+                  }
+                  if(j==nsnp-1) snpidx=1;
+                }
+                
+                outputFile << indnames[ii] << "_1 "<<"\n";
+                
+                for (int j = 1; j < nsnp; ++j) {
+                  for(int k=0;k<npop;++k){
+                    if(painting_all[2*ii-nhap_use+nhap_left+1][k][j]!=painting_all[2*ii-nhap_use+nhap_left+1][k][j-1]){
+                      same=false;
+                      break;
+                    }
+                  }
+                  if(!same || j==nsnp-1){
+                    if(j==nsnp-1){
+                      outputFile << snpidx <<" "<<j+1<<" ";
+                    }else{
+                      outputFile << snpidx <<" "<<j<<" ";
+                    }
+                    
+                    for(int k=0;k<npop;++k){
+                      if(j==nsnp-1){
+                        outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+                      }else{
+                        outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j-1];
+                      }
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    same=true;
+                    snpidx=j+1;
+                    outputFile <<"\n";
+                  }
+                  if(j==nsnp-1) snpidx=1;
+                }
               }
             }
           }else{
-            for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
-              outputFile << indnames[ii] << "_0 "<<"\n";
-              int snpidx=1;
-              bool same=true;
-              
-              for (int j = 1; j < nsnp; ++j) {
-                for(int k=0;k<npop;++k){
-                  if(painting_all[2*ii-nhap_use+nhap_left][k][j]!=painting_all[2*ii-nhap_use+nhap_left][k][j-1]){
-                    same=false;
-                    break;
-                  }
-                }
-                if(!same || j==nsnp-1){
-                  if(j==nsnp-1){
-                    outputFile << snpidx <<" "<<j+1<<" ";
-                  }else{
-                    outputFile << snpidx <<" "<<j<<" ";
-                  }
-                  
+            if(haploid){
+              for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+                outputFile << indnames[ii] << " ";
+                for (int j = 0; j < nsnp; ++j) {
                   for(int k=0;k<npop;++k){
-                    if(j==nsnp-1){
-                      outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
-                    }else{
-                      outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j-1];
-                    }
-                    if(k!=npop-1) outputFile << " ";
+                    outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
+                    if(k!=npop-1) outputFile << ",";
                   }
-                  same=true;
-                  snpidx=j+1;
-                  outputFile <<"\n";
+                  if(j!=nsnp-1) outputFile << " ";
                 }
-                if(j==nsnp-1) snpidx=1;
+                outputFile << "\n";
               }
-              
-              outputFile << indnames[ii] << "_1 "<<"\n";
-              
-              for (int j = 1; j < nsnp; ++j) {
-                for(int k=0;k<npop;++k){
-                  if(painting_all[2*ii-nhap_use+nhap_left+1][k][j]!=painting_all[2*ii-nhap_use+nhap_left+1][k][j-1]){
-                    same=false;
-                    break;
-                  }
-                }
-                if(!same || j==nsnp-1){
-                  if(j==nsnp-1){
-                    outputFile << snpidx <<" "<<j+1<<" ";
-                  }else{
-                    outputFile << snpidx <<" "<<j<<" ";
-                  }
-                  
+            }else{
+              for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+                outputFile << indnames[ii] << " ";
+                for (int j = 0; j < nsnp; ++j) {
                   for(int k=0;k<npop;++k){
-                    if(j==nsnp-1){
-                      outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
-                    }else{
-                      outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j-1];
-                    }
-                    if(k!=npop-1) outputFile << " ";
+                    outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                    if(k!=npop-1) outputFile << ",";
                   }
-                  same=true;
-                  snpidx=j+1;
-                  outputFile <<"\n";
+                  outputFile << "|";
+                  for(int k=0;k<npop;++k){
+                    outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+                    if(k!=npop-1) outputFile << ",";
+                  }
+                  if(j!=nsnp-1) outputFile << " ";
                 }
-                if(j==nsnp-1) snpidx=1;
+                outputFile << "\n";
               }
             }
           }
         }else{
+          // output specific SNPs' local ancestry probabilities
           if(haploid){
             for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
               outputFile << indnames[ii] << " ";
-              for (int j = 0; j < nsnp; ++j) {
+              for (int j = 0; j < nsnp_op; ++j) {
                 for(int k=0;k<npop;++k){
-                  outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
+                  outputFile << painting_all[ii-nhap_use+nhap_left][k][SNPidx_op[j]];
                   if(k!=npop-1) outputFile << ",";
                 }
-                if(j!=nsnp-1) outputFile << " ";
+                if(j!=nsnp_op-1) outputFile << " ";
               }
               outputFile << "\n";
             }
           }else{
             for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
               outputFile << indnames[ii] << " ";
-              for (int j = 0; j < nsnp; ++j) {
+              for (int j = 0; j < nsnp_op; ++j) {
                 for(int k=0;k<npop;++k){
-                  outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                  outputFile << painting_all[2*ii-nhap_use+nhap_left][k][SNPidx_op[j]];
                   if(k!=npop-1) outputFile << ",";
                 }
                 outputFile << "|";
                 for(int k=0;k<npop;++k){
-                  outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+                  outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][SNPidx_op[j]];
                   if(k!=npop-1) outputFile << ",";
                 }
-                if(j!=nsnp-1) outputFile << " ";
+                if(j!=nsnp_op-1) outputFile << " ";
               }
               outputFile << "\n";
             }
           }
         }
-        
+ 
       }
       
       
@@ -2876,6 +2972,8 @@ int main(int argc, char *argv[]){
     
     cout << "  -probstore [sparse/raw]: Output the local ancestry probabilities in sparse form (default=sparse) or raw form." << endl;
     
+    cout << "  -SNPfile [file]: File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by probstore." <<endl;
+    
     cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This controls the size of the output file for local ancestry probabilities, especially when using the default probstore." << endl;
     
     cout << "  -indfrac [number∈(0,1)]: The proportion of individuals used to estimate the recombination scaling constant (default=0.1)." << endl;
@@ -2914,6 +3012,7 @@ int main(int argc, char *argv[]){
   string popfile={};
   string namefile={};
   string matchfile={};
+  string SNPfile={};
   bool outputpainting=false;
   bool aveSNPpainting=false;
   bool aveindpainting=false;
@@ -2921,6 +3020,7 @@ int main(int argc, char *argv[]){
   bool LDAS=false;
   bool AAS=false;
   bool phase=false;
+  bool outputallSNP=true;
   string out="SparsePainter";
   double window=4;
   string probstore="sparse";
@@ -2956,7 +3056,7 @@ int main(int argc, char *argv[]){
        param=="L0" || param=="nmatch" ||
        param=="Lmin" || param=="reffile"||
        param=="targetfile" || param=="mapfile"||
-       param=="popfile" || param=="namefile"||
+       param=="popfile" || param=="namefile"|| param=="SNPfile"||
        param=="matchfile" || param=="out" || param=="probstore" ||
        param=="window" || param=="ncores" || param=="al"){
       if(i==argc-1){
@@ -3026,6 +3126,8 @@ int main(int argc, char *argv[]){
       namefile = argv[++i];
     } else if (param == "matchfile") {
       matchfile = argv[++i];
+    } else if (param == "SNPfile") {
+      SNPfile = argv[++i];
     } else if (param == "out") {
       out = argv[++i];
     } else if (param == "probstore") {
@@ -3096,6 +3198,10 @@ int main(int argc, char *argv[]){
     targetfile=reffile;
   }
   
+  if (!SNPfile.empty()){
+    outputallSNP=false;
+  }
+  
   if(!runpaint && !chunklength){
     cerr<<"Please specify at least one of the following command in order to run SparsePainter:"<<endl;
     cerr<<"-prob: output the local ancestry probabilities for each target sample at each SNP."<<endl;
@@ -3137,9 +3243,9 @@ int main(int argc, char *argv[]){
   
   paintall(method, diff_lambda, fixlambda, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 
            L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, 
-           outputpainting,aveSNPpainting,aveindpainting,LDA, LDAS, 
-           AAS,probfile, aveSNPprobfile,aveindprobfile, chunklengthfile,
-           LDAfile, LDASfile, AASfile, lambdafile, probstore, window, al,ncores,run,phase);
+           SNPfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, 
+           AAS, outputallSNP, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile,
+           LDAfile, LDASfile, AASfile, lambdafile, probstore, window, al, ncores, run, phase);
   
   return 0;
 } 

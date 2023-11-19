@@ -1401,9 +1401,6 @@ tuple<vector<double>,vector<int>> readSNP(const string& SNPfile, vector<double>p
   string line;
   double column1;
   
-  // Read and discard the header line
-  getline(file, line);
-  
   // Read the data lines
   while (getline(file, line)) {
     istringstream lineStream(line);

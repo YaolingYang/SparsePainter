@@ -2322,7 +2322,7 @@ void paintall(const string method,
       abort();
     }
     if(outputallSNP){
-      if(probstore=="sparse"){
+      if(probstore=="constant"){
         outputFile << "SNPidx_start"<< " "<<"SNPidx_end"<< " ";
         for (int j = 0; j < npop; ++j){
           outputFile << "pop"<<j << " ";
@@ -2564,7 +2564,7 @@ void paintall(const string method,
       if(outputpainting){
         //output painting
         if(outputallSNP){
-          if(probstore=="sparse"){
+          if(probstore=="constant"){
             if(haploid){
               for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
                 outputFile << indnames[ii] << " "<<"\n";
@@ -3136,7 +3136,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -method [Viterbi/EM]: The algorithm used for estimating the recombination scaling constant (default=Viterbi)." << endl;
     
-    cout << "  -probstore [raw/constant/linear]: Output the local ancestry probabilities in raw, constant or linear form (default=raw). For each individual, in raw form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in constant form, we output the range of SNP index, and the painting probabilities that those SNPs share; in linear form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than rmsethre." << endl;
+    cout << "  -probstore [raw/constant/linear]: Output the local ancestry probabilities in raw, constant or linear form (default=raw). For each individual, in raw form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in constant form, we output the range of SNP index, and the painting probabilities that those SNPs share; in linear form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than rmsethre. Storing in constant considerably reduces the file size while has the same accuracy compared with storing in raw, and storing in linear has an even smaller file size but loses some accuracy." << endl;
     
     cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This also controls the size of the output file for local ancestry probabilities." << endl;
     
@@ -3191,7 +3191,7 @@ int main(int argc, char *argv[]){
   bool outputallSNP=true;
   string out="SparsePainter";
   double window=4;
-  string probstore="sparse";
+  string probstore="constant";
   double al=0.01;
   double rmsethre=0.01;
   int ncores=0;
@@ -3402,9 +3402,9 @@ int main(int argc, char *argv[]){
     cout<<"The maximum number of cores available is "<<ncores_temp<<". SparsePainter will use "<<ncores_temp<<" cores for parallel programming only."<<endl;
   }
   
-  if(probstore!="raw" && probstore!="sparse" && probstore!="linear"){
-    cerr<<"Invalid parameter given to probstore, using probstore=sparse as default"<<endl;
-    probstore="sparse";
+  if(probstore!="raw" && probstore!="constant" && probstore!="linear"){
+    cerr<<"Invalid parameter given to probstore, using probstore=constant as default"<<endl;
+    probstore="constant";
   }
   
   if(method!="Viterbi" && method!="EM"){

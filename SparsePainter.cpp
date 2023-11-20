@@ -3140,7 +3140,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This also controls the size of the output file for local ancestry probabilities." << endl;
     
-    cout << "  -rmsethre [number∈(0,1)]: The upper bound that the root mean squared error of the esimated local ancestry probabilities (default=0.01) when storing them in linear form by argument, i.e. -probstore linear." <<endl;
+    cout << "  -rmsethre [number∈(0,1)]: The upper bound that the root mean squared error of the estimated local ancestry probabilities (default=0.01) when storing them in linear form by argument, i.e. -probstore linear." <<endl;
     
     cout << "  -SNPfile [file]: File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by probstore." <<endl;
     

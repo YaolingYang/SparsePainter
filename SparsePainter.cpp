@@ -2088,6 +2088,7 @@ void paintall(const string method,
               const string probstore,
               const double window,
               const double al,
+              const double rmsethre,
               int ncores,
               const string run,
               bool phase){
@@ -2326,19 +2327,24 @@ void paintall(const string method,
         for (int j = 0; j < npop; ++j){
           outputFile << "pop"<<j << " ";
         }
-      }else{
+      }else if(probstore=="raw"){
         outputFile << "ind_name" << " ";
         //the first row is the SNP's physical position
         for (int i = 0; i < nsnp; ++i) {
-          outputFile << fixed << setprecision(0) << pd[i];
+          outputFile << static_cast<int>(pd[i]);
           if(i != nsnp-1) outputFile << " ";
+        }
+      }else{
+        outputFile << "SNPidx"<< " ";
+        for (int j = 0; j < npop; ++j){
+          outputFile << "pop"<<j << " ";
         }
       }
     }else{
       outputFile << "ind_name" << " ";
       //the first row is the SNP's physical position
       for (int i = 0; i < nsnp_op; ++i) {
-        outputFile << fixed << setprecision(0) << pd_op[i];
+        outputFile << static_cast<int>(pd_op[i]);
         if(i != nsnp_op-1) outputFile << " ";
       }
     }
@@ -2660,7 +2666,7 @@ void paintall(const string method,
                 }
               }
             }
-          }else{
+          }else if(probstore=="raw"){
             if(haploid){
               for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
                 outputFile << indnames[ii] << " ";
@@ -2691,6 +2697,169 @@ void paintall(const string method,
                 outputFile << "\n";
               }
             }
+          }else{
+           // piecewise linear output which is the most sparse version
+           if(haploid){
+             for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+               outputFile << indnames[ii] << " "<<"\n";
+               //output the first SNP's painting
+               outputFile << 1 <<" ";
+               for(int k=0;k<npop;++k){
+                 outputFile << painting_all[ii-nhap_use+nhap_left][k][0];
+                 if(k!=npop-1) outputFile << " ";
+               }
+               outputFile <<"\n";
+               
+               int startidx=0;
+               for (int j = 1; j < nsnp; ++j) {
+                 double rmse=0;
+                 for(int k=0;k<npop;++k){
+                   double slope=(painting_all[ii-nhap_use+nhap_left][k][j]-painting_all[ii-nhap_use+nhap_left][k][startidx])/(j-startidx);
+                   if(j-startidx>=2){
+                     for(int jj=startidx+1;jj<j;++jj){
+                       double se=painting_all[ii-nhap_use+nhap_left][k][startidx]+slope*(jj-startidx)-painting_all[ii-nhap_use+nhap_left][k][jj];
+                       rmse+=se*se;
+                     }
+                   }
+                 }
+                 if(j-startidx>=2){
+                   rmse=sqrt(rmse/npop/(j-startidx-1));
+                 }
+                 
+                 if(rmse>rmsethre){
+                   startidx=j;
+                   // output the painting of the previous SNP
+                   outputFile << j <<" ";
+                   for(int k=0;k<npop;++k){
+                     outputFile << painting_all[ii-nhap_use+nhap_left][k][j-1];
+                     if(k!=npop-1) outputFile << " ";
+                   }
+                   outputFile <<"\n";
+                   // output the painting of the this SNP
+                   outputFile << j+1 <<" ";
+                   for(int k=0;k<npop;++k){
+                     outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
+                     if(k!=npop-1) outputFile << " ";
+                   }
+                   outputFile <<"\n";
+                 }else if(j==nsnp-1){
+                   outputFile << j+1 <<" ";
+                   for(int k=0;k<npop;++k){
+                     outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
+                     if(k!=npop-1) outputFile << " ";
+                   }
+                   outputFile <<"\n";
+                 }
+               }
+             }
+           }else{
+             for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+               outputFile << indnames[ii] << "_0 "<<"\n";
+               //output the first SNP's painting
+               outputFile << 1 <<" ";
+               for(int k=0;k<npop;++k){
+                 outputFile << painting_all[2*ii-nhap_use+nhap_left][k][0];
+                 if(k!=npop-1) outputFile << " ";
+               }
+               outputFile <<"\n";
+               
+               int startidx=0;
+               for (int j = 1; j < nsnp; ++j) {
+                 double rmse=0;
+                 for(int k=0;k<npop;++k){
+                   double slope=(painting_all[2*ii-nhap_use+nhap_left][k][j]-painting_all[2*ii-nhap_use+nhap_left][k][startidx])/(j-startidx);
+                   if(j-startidx>=2){
+                     for(int jj=startidx+1;jj<j;++jj){
+                       double se=painting_all[2*ii-nhap_use+nhap_left][k][startidx]+slope*(jj-startidx)-painting_all[2*ii-nhap_use+nhap_left][k][jj];
+                       rmse+=se*se;
+                     }
+                   }
+                 }
+                 if(j-startidx>=2){
+                   rmse=sqrt(rmse/npop/(j-startidx-1));
+                 }
+                 
+                 if(rmse>rmsethre){
+                   startidx=j;
+                   // output the painting of the previous SNP
+                   outputFile << j <<" ";
+                   for(int k=0;k<npop;++k){
+                     outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j-1];
+                     if(k!=npop-1) outputFile << " ";
+                   }
+                   outputFile <<"\n";
+                   // output the painting of the this SNP
+                   outputFile << j+1 <<" ";
+                   for(int k=0;k<npop;++k){
+                     outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                     if(k!=npop-1) outputFile << " ";
+                   }
+                   outputFile <<"\n";
+                 }else if(j==nsnp-1){
+                   outputFile << j+1 <<" ";
+                   for(int k=0;k<npop;++k){
+                     outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                     if(k!=npop-1) outputFile << " ";
+                   }
+                   outputFile <<"\n";
+                 }
+               }
+               
+               
+               outputFile << indnames[ii] << "_1 "<<"\n";
+               //output the first SNP's painting
+               outputFile << 1 <<" ";
+               for(int k=0;k<npop;++k){
+                 outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][0];
+                 if(k!=npop-1) outputFile << " ";
+               }
+               outputFile <<"\n";
+               
+               startidx=0;
+               for (int j = 1; j < nsnp; ++j) {
+                 double rmse=0;
+                 for(int k=0;k<npop;++k){
+                   double slope=(painting_all[2*ii-nhap_use+nhap_left+1][k][j]-painting_all[2*ii-nhap_use+nhap_left+1][k][startidx])/(j-startidx);
+                   if(j-startidx>=2){
+                     for(int jj=startidx+1;jj<j;++jj){
+                       double se=painting_all[2*ii-nhap_use+nhap_left+1][k][startidx]+slope*(jj-startidx)-painting_all[2*ii-nhap_use+nhap_left+1][k][jj];
+                       rmse+=se*se;
+                     }
+                   }
+                 }
+                 if(j-startidx>=2){
+                   rmse=sqrt(rmse/npop/(j-startidx-1));
+                 }
+                 
+                 
+                 if(rmse>rmsethre){
+                   startidx=j;
+                   // output the painting of the previous SNP
+                   outputFile << j <<" ";
+                   for(int k=0;k<npop;++k){
+                     outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j-1];
+                     if(k!=npop-1) outputFile << " ";
+                   }
+                   outputFile <<"\n";
+                   // output the painting of the this SNP
+                   outputFile << j+1 <<" ";
+                   for(int k=0;k<npop;++k){
+                     outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+                     if(k!=npop-1) outputFile << " ";
+                   }
+                   outputFile <<"\n";
+                 }else if(j==nsnp-1){
+                   outputFile << j+1 <<" ";
+                   for(int k=0;k<npop;++k){
+                     outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+                     if(k!=npop-1) outputFile << " ";
+                   }
+                   outputFile <<"\n";
+                 }
+               }
+               
+             }
+           }
           }
         }else{
           // output specific SNPs' local ancestry probabilities
@@ -2967,11 +3136,13 @@ int main(int argc, char *argv[]){
     
     cout << "  -method [Viterbi/EM]: The algorithm used for estimating the recombination scaling constant (default=Viterbi)." << endl;
     
-    cout << "  -probstore [sparse/raw]: Output the local ancestry probabilities in sparse form (default=sparse) or raw form." << endl;
+    cout << "  -probstore [raw/constant/linear]: Output the local ancestry probabilities in raw, constant or linear form (default=raw). For each individual, in raw form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in constant form, we output the range of SNP index, and the painting probabilities that those SNPs share; in linear form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than rmsethre." << endl;
+    
+    cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This also controls the size of the output file for local ancestry probabilities." << endl;
+    
+    cout << "  -rmsethre [number∈(0,1)]: The upper bound that the root mean squared error of the esimated local ancestry probabilities (default=0.01) when storing them in linear form by argument, i.e. -probstore linear." <<endl;
     
     cout << "  -SNPfile [file]: File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by probstore." <<endl;
-    
-    cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This controls the size of the output file for local ancestry probabilities, especially when using the default probstore." << endl;
     
     cout << "  -indfrac [number∈(0,1)]: The proportion of individuals used to estimate the recombination scaling constant (default=0.1)." << endl;
     
@@ -3022,6 +3193,7 @@ int main(int argc, char *argv[]){
   double window=4;
   string probstore="sparse";
   double al=0.01;
+  double rmsethre=0.01;
   int ncores=0;
   
   for (int i = 1; i < argc; i++) {
@@ -3052,7 +3224,7 @@ int main(int argc, char *argv[]){
        param=="minsnpEM" || param=="EMsnpfrac" ||
        param=="L0" || param=="nmatch" ||
        param=="Lmin" || param=="reffile"||
-       param=="targetfile" || param=="mapfile"||
+       param=="targetfile" || param=="mapfile"|| param=="rmsethre"||
        param=="popfile" || param=="namefile"|| param=="SNPfile"||
        param=="matchfile" || param=="out" || param=="probstore" ||
        param=="window" || param=="ncores" || param=="al"){
@@ -3133,6 +3305,8 @@ int main(int argc, char *argv[]){
       window = stod(argv[++i]);
     } else if (param == "al") {
       al = stod(argv[++i]);
+    } else if (param == "rmsethre") {
+      rmsethre = stod(argv[++i]);
     } else if (param == "ncores") {
       ncores = stoi(argv[++i]);
     } else {
@@ -3228,7 +3402,7 @@ int main(int argc, char *argv[]){
     cout<<"The maximum number of cores available is "<<ncores_temp<<". SparsePainter will use "<<ncores_temp<<" cores for parallel programming only."<<endl;
   }
   
-  if(probstore!="raw" && probstore!="sparse"){
+  if(probstore!="raw" && probstore!="sparse" && probstore!="linear"){
     cerr<<"Invalid parameter given to probstore, using probstore=sparse as default"<<endl;
     probstore="sparse";
   }
@@ -3242,7 +3416,7 @@ int main(int argc, char *argv[]){
            L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, 
            SNPfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, 
            AAS, outputallSNP, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile,
-           LDAfile, LDASfile, AASfile, lambdafile, probstore, window, al, ncores, run, phase);
+           LDAfile, LDASfile, AASfile, lambdafile, probstore, window, al, rmsethre,ncores, run, phase);
   
   return 0;
 } 

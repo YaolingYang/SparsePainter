@@ -1,5 +1,5 @@
 library(data.table)
-linear=fread("chr19_1000G_linear_10inds_prob.txt.gz",fill=TRUE)
+linear=fread("chr19_1000G_linear_10inds_prob.txt.gz",fill=TRUE,skip=1)
 nsnp=as.numeric(linear[nrow(linear),SNPidx])
 npop=ncol(linear)-1
 split_linear=which(is.na(linear[,2]))

@@ -3,8 +3,8 @@ constant=fread("chr19_1000G_constant_10inds_prob.txt.gz",fill=TRUE)
 nsnp=as.numeric(constant[nrow(constant),2])
 npop=ncol(constant)-2
 split_constant=which(is.na(constant[,2]))
-split_constant=c(split_constant,nrow(constant)+1)
 nind=length(split_constant)/2
+split_constant=c(split_constant,nrow(constant)+1)
 SNPidx=1:nsnp
 
 painting=lapply(1:nind,function(h){

@@ -1,5 +1,5 @@
 library(data.table)
-constant=fread("chr19_1000G_constant_10inds_prob.txt.gz",fill=TRUE)
+constant=fread("chr19_1000G_constant_10inds_prob.txt.gz",fill=TRUE,skip=1)
 nsnp=as.numeric(constant[nrow(constant),2])
 npop=ncol(constant)-2
 split_constant=which(is.na(constant[,2]))

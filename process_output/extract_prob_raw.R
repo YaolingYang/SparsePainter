@@ -1,5 +1,5 @@
 library(data.table)
-raw=fread("chr19_1000G_raw_10inds_prob.txt.gz",header = T)
+raw=fread("chr19_1000G_raw_10inds_prob.txt.gz",header = T,skip=1)
 SNPs=as.numeric(colnames(raw)[-1])
 nsnp=length(SNPs)
 nind=nrow(raw)

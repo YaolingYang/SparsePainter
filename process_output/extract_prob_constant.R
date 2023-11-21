@@ -36,5 +36,5 @@ painting=lapply(1:nind,function(h){
 
 big_matrix <- do.call(cbind, painting)
 painting_final <- lapply(1:npop, function(x){
-  matrix(big_matrix[x, ], ncol = i)
+  matrix(big_matrix[x, ], ncol = nsnp)
 })

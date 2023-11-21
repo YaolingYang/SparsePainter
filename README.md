@@ -9,6 +9,8 @@
 
 -   Version: 1.0.0
 
+
+
 # Installation
 
 To install SparsePainter, please follow the below steps.  
@@ -16,11 +18,15 @@ To install SparsePainter, please follow the below steps.
 ``cd SparsePainter``  
 ``make``  
 
+
+
 # Dependencies
 
 SparsePainter depends on   
 [Armadillo-v12.6.5](https://arma.sourceforge.net/download.html) to compute AAS;   
 [gzstream-v1.5](https://www.cs.unc.edu/Research/compgeom/gzstream/) to read and write gzipped files.
+
+
 
 # Usage
 
@@ -35,6 +41,8 @@ To run **SparsePainter**, enter the following command:
 ``
 ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]
 ``
+
+
 
 # Commands
 
@@ -113,6 +121,8 @@ To run **SparsePainter**, enter the following command:
 * **-window [number>0]** The window for calculating LDA score (LDAS) in Morgan (**default=0.04**).
 
 * **-matchfile [file]** The file name of the set-maximal match file which is the output of [pbwt -maxWithin](https://github.com/danjlawson/pbwt/blob/master/pbwtMain.c). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time.
+
+
 
 # Example
 The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (Both vcf version ``donor.vcf.gz`` and phase version ``donor.phase.gz`` are available), and the aim is to paint 500 target individuals (Both vcf version ``target.vcf.gz`` and phase version ``target.phase.gz`` are available). Remember we have compiled SparsePainter in ``SparsePainter``, then we can paint with the following command:

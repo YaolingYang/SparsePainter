@@ -47,7 +47,7 @@ int main(){
   vector<int> SNPidx=readSNP("chr19_GWAS_SNPs.txt");
   int nsnp=SNPidx.size();
 
-  string probfile="linear_50_prob.txt.gz";
+  string probfile="chr19_1000G_linear_10inds_prob.txt.gz";
   vector<vector<double>> painting(vector<vector<double>>(nsnp, vector<double>(npop)));
   
   

@@ -2323,11 +2323,13 @@ void paintall(const string method,
     }
     if(outputallSNP){
       if(probstore=="constant"){
+        outputFile << "#Storage Mode: Constant" <<"\n";
         outputFile << "SNPidx_start"<< " "<<"SNPidx_end"<< " ";
         for (int j = 0; j < npop; ++j){
           outputFile << "pop"<<j << " ";
         }
       }else if(probstore=="raw"){
+        outputFile << "#Storage Mode: Raw" <<"\n";
         outputFile << "ind_name" << " ";
         //the first row is the SNP's physical position
         for (int i = 0; i < nsnp; ++i) {
@@ -2335,12 +2337,14 @@ void paintall(const string method,
           if(i != nsnp-1) outputFile << " ";
         }
       }else{
+        outputFile << "#Storage Mode: Linear" <<"\n";
         outputFile << "SNPidx"<< " ";
         for (int j = 0; j < npop; ++j){
           outputFile << "pop"<<j << " ";
         }
       }
     }else{
+      outputFile << "#Storage Mode: Raw" <<"\n";
       outputFile << "ind_name" << " ";
       //the first row is the SNP's physical position
       for (int i = 0; i < nsnp_op; ++i) {

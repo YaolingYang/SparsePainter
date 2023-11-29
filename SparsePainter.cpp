@@ -1148,7 +1148,7 @@ vector<vector<double>> hMatrix2matrix(hMat& mat){
 vector<int> randomsample(const vector<int>& popidx, 
                          const int number) {
   // sample number from popidx
-  if(number>popidx.size()) cout<<"Number cannot be greater than the size of popidx"<<endl;
+  if(number>popidx.size()) cout<<"Number cannot be greater than the size of popidx. Please check the populations' indices are continuous integers start from 0, as provided by the popfile."<<endl;
   // Initialize the random number generator
   random_device rd;
   mt19937 gen(rd());
@@ -2705,7 +2705,7 @@ void paintall(const string method,
            // piecewise linear output which is the most sparse version
            if(haploid){
              for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-               outputFile << indnames[ii] << " "<<"\n";
+               outputFile << indnames[ii]<<"\n";
                //output the first SNP's painting
                outputFile << 1 <<" ";
                for(int k=0;k<npop;++k){
@@ -2717,6 +2717,7 @@ void paintall(const string method,
                int startidx=0;
                for (int j = 1; j < nsnp; ++j) {
                  double rmse=0;
+#pragma omp parallel for reduction(+:rmse)
                  for(int k=0;k<npop;++k){
                    double slope=(painting_all[ii-nhap_use+nhap_left][k][j]-painting_all[ii-nhap_use+nhap_left][k][startidx])/(j-startidx);
                    if(j-startidx>=2){

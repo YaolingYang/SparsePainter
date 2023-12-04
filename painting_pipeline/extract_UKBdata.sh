@@ -12,7 +12,7 @@ chr=1
 
 ## unphased file
 ## bg="/mnt/storage/private/mrcieu/data/ukbiobank/genetic/variants/arrays/imputed/released/2018-09-18/data/raw_download$## phased file
-bg="/mnt/storage/private/mrcieu/data/ukbiobank/genetic/variants/arrays/imputed/released/2018-09-18/data/raw_downloaded/$
+bg="/mnt/storage/private/mrcieu/data/ukbiobank/genetic/variants/arrays/imputed/released/2018-09-18/data/raw_downloaded/haplotypes/ukb_hap_chr${chr}_v2.bgen"
 ## sample files
 ## Not sure what this one is but its in the wrong format
 #sample="/mnt/storage/private/mrcieu/data/ukbiobank/genetic/variants/arrays/imputed/released/2018-09-18/data/sample-fil$## This is in the bgen sample format

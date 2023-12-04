@@ -1171,8 +1171,8 @@ vector<double> cal_sameprob(const int nsnp,
   vector<double> sameprob(nsnp);
   for(int j=0;j<nsnp-1;++j){
     sameprob[j]=exp(-lambda*(gd[j+1]-gd[j]));
-    if(sameprob[j]>1-nref*2e-15){
-      sameprob[j]=1-nref*2e-15;
+    if(sameprob[j]>1-nref*2e-10){
+      sameprob[j]=1-nref*2e-10;
     } 
   }
   return(sameprob);
@@ -1227,10 +1227,10 @@ tuple<hMat, vector<double>> forwardProb(const hMat& mat,
       twj=forward_prob.m[j-1].k;
       fprev=forward_prob.m[j-1].getall(twj);
       for(int i=0;i<twj.size();++i){
-        if(log(sameprobuse*fprev[i]+otherprobuse)+log(mu)>-34.53){
+        if(log(sameprobuse*fprev[i]+otherprobuse)+log(mu)>-23.026){
           forward_prob.m[j].set(twj[i],(sameprobuse*fprev[i]+otherprobuse)*mu);
         }else{
-          forward_prob.m[j].set(twj[i],exp(-34.53));
+          forward_prob.m[j].set(twj[i],exp(-23.026));
         }
       }
     }else{
@@ -1280,10 +1280,10 @@ tuple<hMat, vector<double>> backwardProb(const hMat& mat,
       twj=backward_prob.m[j+1].k;
       Bjp1=backward_prob.m[j+1].getall(twj);
       for(int i=0;i<Bjp1.size();++i){
-        if(log(Bjp1[i])+log(mu)>-34.53){
+        if(log(Bjp1[i])+log(mu)>-23.026){
           Bjp1[i]=Bjp1[i]*mu;
         }else{
-          Bjp1[i]=exp(-34.53);
+          Bjp1[i]=exp(-23.026);
         }
       }
       double default_val=backward_prob.m[j+1].x0;
@@ -1598,7 +1598,7 @@ double est_lambda_EM_average(const hAnc& refidx,
   
   
   vector<int> allsamples;
-  vector<int> popstart={0}; //the start position of diffent population samples
+  vector<int> popstart={0}; //the start position of different population samples
   
   //stratified sampling
   for(int i=0;i<npop;++i){
@@ -1613,27 +1613,6 @@ double est_lambda_EM_average(const hAnc& refidx,
       allsamples.push_back(samples[j]);
     }
     popstart.push_back(allsamples.size());
-  }
-  
-  if (get<0>(pbwtall_ref).empty() && 
-      get<1>(pbwtall_ref).empty() && 
-      get<2>(pbwtall_ref).empty() && 
-      get<3>(pbwtall_ref).empty()){
-    
-    vector<int> queryidx;
-    
-    for(int i=0;i<nref;++i){
-      queryidx.push_back(i);
-    }
-    
-    
-    cout<<"Begin doing PBWT and finding matches for reference haplotypes"<<endl;
-    tuple<vector<int>,vector<int>,vector<int>,vector<int>> pbwtall_ref=do_pbwt(L_initial, gd,queryidx,
-                                                                               ncores,nref,nsnp,0,
-                                                                               minmatch,L_minmatch,
-                                                                               reffile,reffile,haploid,phase);
-    
-    cout<<"Finish finding matches with PBWT"<<endl;
   }
   
   vector<int> queryidall=get<0>(pbwtall_ref);
@@ -2207,8 +2186,18 @@ void paintall(const string method,
           lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
                                        indfrac,ite_time,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout,pbwtall_target);
         }else{
+          cout<<"Begin doing PBWT and finding matches for reference haplotypes"<<endl;
+          vector<int> queryidx_ref;
+          
+          for(int i=0;i<nref;++i){
+            queryidx_ref.push_back(i);
+          }
+          
+          tuple<vector<int>,vector<int>,vector<int>,vector<int>> pbwtall_ref=do_pbwt(L_initial, gd,queryidx_ref,ncores,nref,nsnp,0,nmatch,
+                                                                                     L_minmatch,reffile,reffile,haploid,phase);
+          cout<<"Finish finding matches with PBWT"<<endl;
           lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
-                                       indfrac,ite_time,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout);
+                                       indfrac,ite_time,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout,pbwtall_ref);
         }
       }else{
         //estimate lambda as the average of v_nsamples target individuals

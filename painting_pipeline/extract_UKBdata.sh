@@ -16,7 +16,7 @@ bg="/mnt/storage/private/mrcieu/data/ukbiobank/genetic/variants/arrays/imputed/r
 ## sample files
 ## Not sure what this one is but its in the wrong format
 #sample="/mnt/storage/private/mrcieu/data/ukbiobank/genetic/variants/arrays/imputed/released/2018-09-18/data/sample-fil$## This is in the bgen sample format
-sample="/mnt/storage/private/mrcieu/data/ukbiobank/genetic/variants/arrays/imputed/released/2018-09-18/data/id_mapping/$
+sample="/mnt/storage/private/mrcieu/data/ukbiobank/genetic/variants/arrays/imputed/released/2018-09-18/data/id_mapping/data.chr1-22.sample"
 ## Where we want our final output
 outroot="kb_hap_chr${chr}_v2"
 tfile="$outroot.tmp.vcf.gz"

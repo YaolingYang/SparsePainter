@@ -6,6 +6,7 @@
 ## sbatch_array.sh -f runaccess.txt
 
 module load languages/java/sdk-1.8.0.141 binutils/2.26-GCCcore-5.4.0 apps/qctool/2.2.0
+module load GCCcore/5.4.0
 
 ## Currently not used; this could allow looping over all chromosomes
 chr=1

@@ -3128,94 +3128,94 @@ int main(int argc, char *argv[]){
   
   // Check if no commands are provided
   if (argc == 1 || string(argv[1]) == "-help" || string(argv[1]) == "-h") {
-    cout << "Program: SparsePainter" << endl;
-    cout << "Version: 1.0.0" << endl;
-    cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl;
-    cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl;
+    cout << "Program: SparsePainter" << endl<< endl;
+    cout << "Version: 1.0.0" << endl<< endl;
+    cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl<< endl;
+    cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl<< endl;
     
-    cout << "Type ./SparsePainter, ./SparsePainter -h or ./SparsePainter -help to see this help file." << endl;
+    cout << "Type ./SparsePainter, ./SparsePainter -h or ./SparsePainter -help to see this help file." << endl<< endl;
     
-    cout << "\nRequired Commands" << endl;
-    cout << "SparsePainter has the following 6 required commands together with additional commands that specify the desired output." << endl;
+    cout << "Required Commands" << endl<< endl;
+    cout << "SparsePainter has the following 6 required commands together with additional commands that specify the desired output." << endl<< endl;
     
-    cout << "  -reffile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples." << endl;
+    cout << "  -reffile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples." << endl<< endl;
     
-    cout << "  -targetfile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set -targetfile to be the same as -reffile. The file type of -targetfile and -reffile should be the same." << endl;
+    cout << "  -targetfile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set -targetfile to be the same as -reffile. The file type of -targetfile and -reffile should be the same." << endl<< endl;
     
-    cout << "  -mapfile [file]: Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile." << endl;
+    cout << "  -mapfile [file]: Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in donorfile and targetfile." << endl<< endl;
     
-    cout << "  -popfile [file]: Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as -reffile). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel." << endl;
+    cout << "  -popfile [file]: Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as -reffile). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel." << endl<< endl;
     
-    cout << "  -namefile [file]: Name file that contains the names of samples to be painted." << endl;
+    cout << "  -namefile [file]: Name file that contains the names of samples to be painted." << endl<< endl;
     
-    cout << "  -out [string]: Prefix of the output file names (default=SparsePainter)." << endl;
+    cout << "  -out [string]: Prefix of the output file names (default=SparsePainter)." << endl<< endl;
     
-    cout << "At least one of the below commands should also be given in order to run SparsePainter" << endl;
+    cout << "At least one of the below commands should also be given in order to run SparsePainter" << endl<< endl;
     
-    cout << "  -prob: Output the local ancestry probabilities for each target sample at each SNP. The output file format is a gzipped text file (.txt.gz). The output probabilities need to be standardized by user because of the rounding errors by argument al." << endl;
+    cout << "  -prob: Output the local ancestry probabilities for each target sample at each SNP. The output file format is a gzipped text file (.txt.gz). The output probabilities need to be standardized by user because of the rounding errors by argument al." << endl<< endl;
     
-    cout << "  -chunklength: Output the chunk length of each local ancestry for each target sample. The output file format is a text file (.txt)." << endl;
+    cout << "  -chunklength: Output the chunk length of each local ancestry for each target sample. The output file format is a text file (.txt)." << endl<< endl;
     
-    cout << "  -aveSNP: Output the average local ancestry probabilities for each SNP. The output file format is a text file (.txt)." << endl;
+    cout << "  -aveSNP: Output the average local ancestry probabilities for each SNP. The output file format is a text file (.txt)." << endl<< endl;
     
-    cout << "  -aveind: Output the average local ancestry probabilities for each target individual. The output file format is a text file (.txt)." << endl;
+    cout << "  -aveind: Output the average local ancestry probabilities for each target individual. The output file format is a text file (.txt)." << endl<< endl;
     
-    cout << "  -LDA: Output the LDA of each pair of SNPs. The output file format is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome." << endl;
+    cout << "  -LDA: Output the LDA of each pair of SNPs. The output file format is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome." << endl<< endl;
     
-    cout << "  -LDAS: Output the LDAS of each SNP. The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome." << endl;
+    cout << "  -LDAS: Output the LDAS of each SNP. The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome." << endl<< endl;
     
-    cout << "  -AAS: Output the AAS of each SNP. The output file format is a text file (.txt)." << endl;
+    cout << "  -AAS: Output the AAS of each SNP. The output file format is a text file (.txt)." << endl<< endl;
     
-    cout << "\nOptional Commands" << endl;
-    cout << "(a) Commands without parameters" << endl;
+    cout << "\nOptional Commands" << endl<< endl;
+    cout << "(a) Commands without parameters" << endl<< endl;
     
-    cout << "  -haploid: The individuals are haploid." << endl;
+    cout << "  -haploid: The individuals are haploid." << endl<< endl;
     
-    cout << "  -diff_lambda: Use different recombination scaling constants for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference." << endl;
+    cout << "  -diff_lambda: Use different recombination scaling constants for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference." << endl<< endl;
     
-    cout << "  -loo: Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If -loo is not specified under reference-vs-reference painting (-reffile = -targetfile), each individual will be automatically left out of painting." << endl;
+    cout << "  -loo: Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If -loo is not specified under reference-vs-reference painting (-reffile = -targetfile), each individual will be automatically left out of painting." << endl<< endl;
     
-    cout << "  -rmrelative: Leave out the reference sample that is the most related to the target sample under leave-one-out mode (-loo), if they share at least relafrac proportion of SNPs." << endl;
+    cout << "  -rmrelative: Leave out the reference sample that is the most related to the target sample under leave-one-out mode (-loo), if they share at least relafrac proportion of SNPs." << endl<< endl;
     
-    cout << "  -rmlongmatch: Remove haplotype matches which contains at least longmatchfrac proportion of SNPs." << endl;
+    cout << "  -rmlongmatch: Remove haplotype matches which contains at least longmatchfrac proportion of SNPs." << endl<< endl;
     
-    cout << "(b) Commands with parameters" << endl;
+    cout << "(b) Commands with parameters" << endl<< endl;
     
-    cout << "  -ncores [integer>=0]: The number of CPU cores used for the analysis (default=0). The default ncores uses all the available CPU cores of your device." << endl;
+    cout << "  -ncores [integer>=0]: The number of CPU cores used for the analysis (default=0). The default ncores uses all the available CPU cores of your device." << endl<< endl;
     
-    cout << "  -fixlambda [number>=0]: The value of the fixed recombination scaling constant (default=0). SparsePainter will estimate lambda as the average recombination scaling constant of -indfrac target samples under the default -fixlambda and -diff_lambda." << endl;
+    cout << "  -fixlambda [number>=0]: The value of the fixed recombination scaling constant (default=0). SparsePainter will estimate lambda as the average recombination scaling constant of -indfrac target samples under the default -fixlambda and -diff_lambda." << endl<< endl;
     
-    cout << "  -nmatch [integer>=1]: The number of haplotype matches of at least -L_minmatch SNPs that SparsePainter searches for (default=10). Positions with more than -nmatch matches of at least -L_minmatch SNPs will retain at least the longest -nmatch matches. A larger nmatch slightly improves accuracy but significantly increases the computational time." << endl;
+    cout << "  -nmatch [integer>=1]: The number of haplotype matches of at least -L_minmatch SNPs that SparsePainter searches for (default=10). Positions with more than -nmatch matches of at least -L_minmatch SNPs will retain at least the longest -nmatch matches. A larger nmatch slightly improves accuracy but significantly increases the computational time." << endl<< endl;
     
-    cout << "  -L0 [integer>0]: The initial length of matches (the number of SNPs) that SparsePainter searches for (default=320). -L_initial must be bigger than -L_minmatch and preferrably be a power of 2 of -L_minmatch for computational efficiency." << endl;
+    cout << "  -L0 [integer>0]: The initial length of matches (the number of SNPs) that SparsePainter searches for (default=320). -L_initial must be bigger than -L_minmatch and preferrably be a power of 2 of -L_minmatch for computational efficiency." << endl<< endl;
     
-    cout << "  -Lmin [integer>0]: The minimal length of matches that SparsePainter searches for (default=20). Positions with fewer than -nmatch matches of at least -L_minmatch SNPs will retain all the matches of at least -L_minmatch. A larger -L_minmatch increases both the accuracy and the computational time." << endl;
+    cout << "  -Lmin [integer>0]: The minimal length of matches that SparsePainter searches for (default=20). Positions with fewer than -nmatch matches of at least -L_minmatch SNPs will retain all the matches of at least -L_minmatch. A larger -L_minmatch increases both the accuracy and the computational time." << endl<< endl;
     
-    cout << "  -method [Viterbi/EM]: The algorithm used for estimating the recombination scaling constant (default=Viterbi)." << endl;
+    cout << "  -method [Viterbi/EM]: The algorithm used for estimating the recombination scaling constant (default=Viterbi)." << endl<< endl;
     
-    cout << "  -probstore [raw/constant/linear]: Output the local ancestry probabilities in raw, constant or linear form (default=raw). For each individual, in raw form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in constant form, we output the range of SNP index, and the painting probabilities that those SNPs share; in linear form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than rmsethre. Storing in constant considerably reduces the file size while has the same accuracy compared with storing in raw, and storing in linear has an even smaller file size but loses some accuracy." << endl;
+    cout << "  -probstore [raw/constant/linear]: Output the local ancestry probabilities in raw, constant or linear form (default=raw). For each individual, in raw form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in constant form, we output the range of SNP index, and the painting probabilities that those SNPs share; in linear form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than rmsethre. Storing in constant considerably reduces the file size while has the same accuracy compared with storing in raw, and storing in linear has an even smaller file size but loses some accuracy." << endl<< endl;
     
-    cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This also controls the size of the output file for local ancestry probabilities." << endl;
+    cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This also controls the size of the output file for local ancestry probabilities." << endl<< endl;
     
-    cout << "  -rmsethre [number∈(0,1)]: The upper bound that the root mean squared error of the estimated local ancestry probabilities (default=0.01) when storing them in linear form by argument, i.e. -probstore linear." <<endl;
+    cout << "  -rmsethre [number∈(0,1)]: The upper bound that the root mean squared error of the estimated local ancestry probabilities (default=0.01) when storing them in linear form by argument, i.e. -probstore linear." <<endl<< endl;
     
-    cout << "  -relafrac [number∈(0,1)]: The proportion of total number of SNPs shared between a reference and target haplotype sample (default=0.2). The reference sample will be removed under the leave-one-out (-loo) and remove relative (-rmrelative) modes. " << endl;
+    cout << "  -relafrac [number∈(0,1)]: The proportion of total number of SNPs shared between a reference and target haplotype sample (default=0.2). The reference sample will be removed under the leave-one-out (-loo) and remove relative (-rmrelative) modes. " << endl<< endl;
     
-    cout << "  -longmatchfrac [number∈(0,1)]: The proportion of total number of SNPs contained in a single haplotype shared between a reference and target haplotype sample (default=0.1). SparsePainter will remove this long match when -rmlongmatch is specified. " << endl;
+    cout << "  -longmatchfrac [number∈(0,1)]: The proportion of total number of SNPs contained in a single haplotype shared between a reference and target haplotype sample (default=0.1). SparsePainter will remove this long match when -rmlongmatch is specified. " << endl<< endl;
     
-    cout << "  -SNPfile [file]: File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by probstore." <<endl;
+    cout << "  -SNPfile [file]: File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by probstore." <<endl<< endl;
     
-    cout << "  -indfrac [number∈(0,1)]: The proportion of individuals used to estimate the recombination scaling constant (default=0.1)." << endl;
+    cout << "  -indfrac [number∈(0,1)]: The proportion of individuals used to estimate the recombination scaling constant (default=0.1)." << endl<< endl;
     
-    cout << "  -minsnpEM [integer>0]: The minimum number of SNPs used for EM algorithm if -method EM is specified (default=2000)." << endl;
+    cout << "  -minsnpEM [integer>0]: The minimum number of SNPs used for EM algorithm if -method EM is specified (default=2000)." << endl<< endl;
     
-    cout << "  -EMsnpfrac [number∈(0,1)]: The proportion of SNPs used for EM algorithm if -method EM is specified (default=0.1). Note that if nsnp * -EMsnpfrac < -minsnpEM, -minsnpEM SNPs will be used for EM algorithm." << endl;
+    cout << "  -EMsnpfrac [number∈(0,1)]: The proportion of SNPs used for EM algorithm if -method EM is specified (default=0.1). Note that if nsnp * -EMsnpfrac < -minsnpEM, -minsnpEM SNPs will be used for EM algorithm." << endl<< endl;
     
-    cout << "  -ite_time [integer>0]: The iteration times for EM algorithm if -method EM is specified (default=10)." << endl;
+    cout << "  -ite_time [integer>0]: The iteration times for EM algorithm if -method EM is specified (default=10)." << endl<< endl;
     
-    cout << "  -window [number>0]: The window for calculating LDA score (LDAS) in Morgan (default=0.04)." << endl;
+    cout << "  -window [number>0]: The window for calculating LDA score (LDAS) in Morgan (default=0.04)." << endl<< endl;
     
-    cout << "  -matchfile [file]: The file name of the set-maximal match file which is the output of pbwt -maxWithin. This can only be used for painting reference samples against themselves. When -matchfile is given, there is no need to provide -reffile and -targetfile, because all the match information required for painting is contained in -matchfile. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time." << endl;
+    cout << "  -matchfile [file]: The file name of the set-maximal match file which is the output of pbwt -maxWithin. This can only be used for painting reference samples against themselves. When -matchfile is given, there is no need to provide -reffile and -targetfile, because all the match information required for painting is contained in -matchfile. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time." << endl<< endl;
     
     return 0;
   }

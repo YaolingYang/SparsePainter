@@ -3166,7 +3166,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -AAS: Output the AAS of each SNP. The output file format is a text file (.txt)." << endl<< endl;
     
-    cout << "\nOptional Commands" << endl<< endl;
+    cout << "Optional Commands" << endl<< endl;
     cout << "(a) Commands without parameters" << endl<< endl;
     
     cout << "  -haploid: The individuals are haploid." << endl<< endl;

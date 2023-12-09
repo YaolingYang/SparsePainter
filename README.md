@@ -88,6 +88,10 @@ To run **SparsePainter**, enter the following command:
 
 * **-loo** Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If `-loo` is not specified under reference-vs-reference painting (`reffile=targetfile`), each individual will be automatically left out of painting.
 
+* **-rmrelative**: Leave out the reference sample that is the most related to the target sample under leave-one-out mode (`-loo`), if they share at least ``relafrac`` proportion of SNPs.
+
+* **-rmlongmatch**: Remove haplotype matches which contain at least ``longmatchfrac`` proportion of SNPs.
+
 ### Commands with values
 
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** uses all the available CPU cores of your device.
@@ -107,6 +111,10 @@ To run **SparsePainter**, enter the following command:
 * **-al [number&isin;(0,1)]** The accuracy level of the output of local ancestry probabilities (**default=0.01**). This also controls the size of the output file for local ancestry probabilities.
 
 * **-rmsethre [number&isin(0,1)]**: The upper bound that the root mean squared error of the estimated local ancestry probabilities (**default=0.01**) when storing them in linear form by argument, i.e. ``-probstore linear``.
+
+* **-relafrac [number&isin;(0,1)]**: The proportion of the total number of SNPs shared between a reference and target haplotype sample (**default=0.2**). The reference sample will be removed under the leave-one-out (``-loo``) and remove relative (``-rmrelative``) modes.
+
+* **-longmatchfrac [number&isin;(0,1)]**: The proportion of the total number of SNPs contained in a single haplotype shared between a reference and target haplotype sample (**default=0.1**). SparsePainter will remove this long match when ``-rmlongmatch`` is specified.
 
 * **-SNPfile [file]** File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by ``probstore``. 
 

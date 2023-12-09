@@ -460,6 +460,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
                                                                      const int M,
                                                                      const int qM,
                                                                      const int L_minmatch,
+                                                                     const int Lmax,
                                                                      const int ncores,
                                                                      const bool samefile,
                                                                      const bool phase,
@@ -690,13 +691,15 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
               int end=k-1;
               if(times==0){
                 int start=dZ[prefix[ftemp][k+1]];
-                donoridtemp.push_back(prefix[ftemp][k+1]);
-                startpostemp.push_back(start);
-                endpostemp.push_back(end);
-                ++ftemp;
-                for(int q=start;q<=end;++q){
-                  nmatch[q]++;
+                if(Lmax==0 || end-start<=Lmax){
+                  donoridtemp.push_back(prefix[ftemp][k+1]);
+                  startpostemp.push_back(start);
+                  endpostemp.push_back(end);
+                  for(int q=start;q<=end;++q){
+                    nmatch[q]++;
+                  }
                 }
+                ++ftemp;
               }else{
                 if(addmatch[end]){
                   int start=dZ[prefix[ftemp][k+1]];
@@ -748,13 +751,15 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
           int end2=N-1;
           if(times==0){
             int start2=dZ[prefix[f][N]];
-            donoridtemp.push_back(prefix[f][N]);
-            startpostemp.push_back(start2);
-            endpostemp.push_back(end2);
-            ++f;
-            for(int q=start2;q<=end2;++q){
-              nmatch[q]++;
+            if(Lmax==0 || end2-start2<=Lmax){
+              donoridtemp.push_back(prefix[f][N]);
+              startpostemp.push_back(start2);
+              endpostemp.push_back(end2);
+              for(int q=start2;q<=end2;++q){
+                nmatch[q]++;
+              }
             }
+            ++f;
           }else{
             if(addmatch[end2]){
               int start2=dZ[prefix[f][N]];
@@ -891,6 +896,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
                                                                const int qM,
                                                                int minmatch,
                                                                int L_minmatch,
+                                                               int Lmax,
                                                                const string reffile,
                                                                const string targetfile,
                                                                const bool haploid,
@@ -944,7 +950,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> matchresults=longMatchpbwt(L_initial,panel,prefix,
                                                                                     divergence,u,v,minmatch,
                                                                                     gd,queryidx,N,M,qM,
-                                                                                    L_minmatch,ncores,samefile,
+                                                                                    L_minmatch,Lmax,ncores,samefile,
                                                                                     phase,targetfile);
   
   free_PBWT_memory(panel, prefix, divergence, u, v);
@@ -1165,13 +1171,13 @@ vector<int> randomsample(const vector<int>& popidx,
 
 vector<double> cal_sameprob(const int nsnp, 
                             const double lambda, 
-                            vector<double>& gd,
+                            const vector<double> &gd,
                             const int nref){
   //compute the sameprob
   vector<double> sameprob(nsnp);
   for(int j=0;j<nsnp-1;++j){
     sameprob[j]=exp(-lambda*(gd[j+1]-gd[j]));
-    if(sameprob[j]>1-nref*2e-10){
+    if(sameprob[j]>1-nref*2e-10){ //control the value within the limit of C++
       sameprob[j]=1-nref*2e-10;
     } 
   }
@@ -1227,11 +1233,11 @@ tuple<hMat, vector<double>> forwardProb(const hMat& mat,
       twj=forward_prob.m[j-1].k;
       fprev=forward_prob.m[j-1].getall(twj);
       for(int i=0;i<twj.size();++i){
-        if(log(sameprobuse*fprev[i]+otherprobuse)+log(mu)>-23.026){
+        if(log(sameprobuse*fprev[i]+otherprobuse)+log(mu)>-23.026){ //control the value within the limit of C++
           forward_prob.m[j].set(twj[i],(sameprobuse*fprev[i]+otherprobuse)*mu);
         }else{
-          forward_prob.m[j].set(twj[i],exp(-23.026));
-        }
+          forward_prob.m[j].set(twj[i],exp(-23.026)); //control the value within the limit of C++
+        } 
       }
     }else{
       fprev=forward_prob.m[j-1].getall(twj);
@@ -1280,10 +1286,10 @@ tuple<hMat, vector<double>> backwardProb(const hMat& mat,
       twj=backward_prob.m[j+1].k;
       Bjp1=backward_prob.m[j+1].getall(twj);
       for(int i=0;i<Bjp1.size();++i){
-        if(log(Bjp1[i])+log(mu)>-23.026){
+        if(log(Bjp1[i])+log(mu)>-23.026){ //control the value within the limit of C++
           Bjp1[i]=Bjp1[i]*mu;
         }else{
-          Bjp1[i]=exp(-23.026);
+          Bjp1[i]=exp(-23.026); //control the value within the limit of C++
         }
       }
       double default_val=backward_prob.m[j+1].x0;
@@ -1344,7 +1350,6 @@ hMat matchfiletohMat(const vector<vector<int>>& matchdata,
                      const int& nref, 
                      const int& nsnp){
   hMat mat(nref,nsnp,0.0);
-  int q=0;
   for(int i = 0; i < matchdata.size(); ++i) {
     int val = matchdata[i][0];
     for(int j = matchdata[i][1]; j <= matchdata[i][2]; ++j) {
@@ -1476,7 +1481,7 @@ vector<string> readtargetname(const string& namefile) {
 
 
 double est_lambda_EM(hMat& mat, 
-                     vector<double>& gd,
+                     const vector<double> &gd,
                      const int ite_time){
   //estimate \lambda using EM algorithm
   int nref=mat.d1;
@@ -1570,15 +1575,15 @@ double est_lambda_Viterbi(const vector<int>& startpos,
   return lambda_est;
 }
 
-
 double est_lambda_EM_average(const hAnc& refidx, 
                              const int nref, 
                              const int nsnp,
-                             vector<double>& gd,
+                             const vector<double> &gd,
                              int L_initial,
-                             int minmatch,
-                             int L_minmatch,
-                             int ncores,
+                             const int nmatch,
+                             const int L_minmatch,
+                             const int Lmax,
+                             const int ncores,
                              const double indfrac,
                              const int ite_time, 
                              const int minsnpEM, 
@@ -1595,8 +1600,11 @@ double est_lambda_EM_average(const hAnc& refidx,
   vector<double> lambda_est;
   int count=0;
   double gdall=gd[nsnp-1]-gd[0];
+  int qM=0;
   
+  int lambda_max=static_cast<int>(nsnp/gdall);
   
+
   vector<int> allsamples;
   vector<int> popstart={0}; //the start position of different population samples
   
@@ -1628,11 +1636,9 @@ double est_lambda_EM_average(const hAnc& refidx,
     }
     
     vector<vector<vector<int>>> match_use(samples.size());
-    
     for (int k = 0; k < samples.size(); ++k) {
       match_use[k] = get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samples[k], true,haploid);
     }// this reduces memory
-    
 #pragma omp parallel for reduction(+:count)
     for(int k=0;k<samples.size();++k){
       //leave-one-out
@@ -1684,12 +1690,16 @@ double est_lambda_EM_average(const hAnc& refidx,
         
         double lambda_estimated=est_lambda_EM(mat_use,gd_use,ite_time);
         count++;
-        lambda_est.push_back(lambda_estimated);
+        if(lambda_estimated<lambda_max){
+          lambda_est.push_back(lambda_estimated);
+        }
       }else{
         
         double lambda_estimated=est_lambda_EM(mat,gd,ite_time);
         count++;
-        lambda_est.push_back(lambda_estimated);
+        if(lambda_estimated<lambda_max){
+          lambda_est.push_back(lambda_estimated);
+        }
       }
     }
   }
@@ -1743,7 +1753,7 @@ hMat indpainting(const hMat& mat,
     for(int i=0; i<npop; ++i){
       popprob[i] = round(popprob[i] /al) * al;
     }
-
+    
     //standardize to ensure probs sum to 1
     double probsum=vec_sum(popprob);
     if(probsum==1){
@@ -2056,6 +2066,8 @@ void paintall(const string method,
               bool outputLDAS,
               bool outputAAS,
               bool outputallSNP,
+              bool rmlongmatch,
+              bool rmrelative,
               const string probfile,
               const string aveSNPprobfile,
               const string aveindprobfile,
@@ -2068,6 +2080,8 @@ void paintall(const string method,
               const double window,
               const double al,
               const double rmsethre,
+              const double longmatchfrac,
+              const double relafrac,
               int ncores,
               const string run,
               bool phase){
@@ -2097,6 +2111,8 @@ void paintall(const string method,
   tuple<vector<string>,vector<int>> popinfo = readpopfile(popfile);
   
   vector<int> refindex = get<1>(popinfo);
+  
+  int nref_ind=refindex.size();
   
   vector<string> indnames = readtargetname(namefile);
   
@@ -2141,6 +2157,15 @@ void paintall(const string method,
   double lambda;
   double gdall=gd[nsnp-1]-gd[0];
   
+  int Lmax=0;
+  if(rmlongmatch){
+    Lmax=static_cast<int>(ceil(nsnp*longmatchfrac));
+    if(Lmax<=L_initial){
+      cout<<"Warning: nsnp*longmatchfrac must be bigger than L0. Only matches longer than L0 will be ignored."<<endl;
+      Lmax=L_initial;
+    }
+  }
+  
   bool loo=false;
   
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> pbwtall_target;
@@ -2160,8 +2185,10 @@ void paintall(const string method,
     }
     cout<<"Begin doing PBWT and finding matches for target haplotypes"<<endl;
     pbwtall_target=do_pbwt(L_initial, gd,queryidx,ncores,nref+qM,nsnp,qM,nmatch,
-                           L_minmatch,reffile,targetfile,haploid,phase);
+                           L_minmatch,Lmax,reffile,targetfile,haploid,phase);
     cout<<"Finish finding matches with PBWT"<<endl;
+    
+    
   }else{
     cout<<"Begin reading matches from "<<matchfile<<endl;
     pbwtall_target=readmatchfile(matchfile);
@@ -2183,7 +2210,7 @@ void paintall(const string method,
       cout<<"Begin estimating fixed lambda"<<endl;
       if(method=="EM"){
         if(targetfile==reffile){
-          lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
+          lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,Lmax,ncores,
                                        indfrac,ite_time,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout,pbwtall_target);
         }else{
           cout<<"Begin doing PBWT and finding matches for reference haplotypes"<<endl;
@@ -2194,9 +2221,9 @@ void paintall(const string method,
           }
           
           tuple<vector<int>,vector<int>,vector<int>,vector<int>> pbwtall_ref=do_pbwt(L_initial, gd,queryidx_ref,ncores,nref,nsnp,0,nmatch,
-                                                                                     L_minmatch,reffile,reffile,haploid,phase);
+                                                                                     L_minmatch,0,reffile,reffile,haploid,phase);
           cout<<"Finish finding matches with PBWT"<<endl;
-          lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
+          lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,Lmax,ncores,
                                        indfrac,ite_time,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout,pbwtall_ref);
         }
       }else{
@@ -2214,10 +2241,10 @@ void paintall(const string method,
           for (int ii = v_nsamples - v_nhap_left; ii < v_nsamples - v_nhap_left + v_nsamples_use; ++ii) {
             // leave one out if the donor file is the same as the target file
             v_targetmatch_use[ii - (v_nsamples - v_nhap_left)] = get_matchdata(queryidall_target,
-                                                                               donorid_target,
-                                                                               startpos_target,
-                                                                               endpos_target,
-                                                                               v_samples[ii], loo,haploid);
+                                    donorid_target,
+                                    startpos_target,
+                                    endpos_target,
+                                    v_samples[ii], loo,haploid);
           }
           
 #pragma omp parallel for reduction(+:lambda_sum)
@@ -2378,9 +2405,9 @@ void paintall(const string method,
       // leave one out if the donor file is the same as the target file
       
       targetmatch_use[ii - (nhap_use - nhap_left)] = get_matchdata(queryidall_target,
-                                                                   donorid_target,
-                                                                   startpos_target,
-                                                                   endpos_target,ii, loo,haploid);
+                            donorid_target,
+                            startpos_target,
+                            endpos_target,ii, loo,haploid);
     }
     
     if(run=="prob"){
@@ -2399,6 +2426,33 @@ void paintall(const string method,
       
       vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
       vector<int> removeidx;
+      
+      vector<int> maxind(npop,0);
+      vector<double> maxPHAT(npop,0.0);
+      if(leaveoneout && rmrelative){
+        vector<int> nsameSNP(nref_ind, 0);
+        for(int j = 0; j < targetmatchdata.size(); ++j) {
+          int val = targetmatchdata[j][0];
+          if(haploid){
+            nsameSNP[val]+=targetmatchdata[j][2]-targetmatchdata[j][1]+1;
+          }else{
+            nsameSNP[val/2]+=targetmatchdata[j][2]-targetmatchdata[j][1]+1;
+          }
+        }
+        int refpopidx;
+        for(int j=0;j<nref_ind;++j){
+          if(haploid){
+            refpopidx=refindex[j];
+          }else{
+            refpopidx=refindex[2*j];
+          }
+          if(nsameSNP[j]>maxPHAT[refpopidx]){
+            maxind[refpopidx]=j;
+            maxPHAT[refpopidx]=nsameSNP[j];
+          }
+        }
+      }
+      
       
       if(leaveoneout){
         if(reffile==targetfile){
@@ -2423,19 +2477,24 @@ void paintall(const string method,
           removeRowsWithValue(targetmatchdata,removeidx);
         }else{
           for(int j=0;j<npop;++j){
-            int rmidx1=randomsample(refidx.findrows(j),1)[0];
-            removeidx.push_back(rmidx1);
-            if(!haploid){
-              int rmidx2;
-              if(rmidx1%2==0){
-                rmidx2=rmidx1+1;
-              }else{
-                rmidx2=rmidx1-1;
+            if(rmrelative && maxPHAT[j]/nsnp/2>=relafrac){
+                removeidx.push_back(maxind[j]*2);
+                removeidx.push_back(maxind[j]*2+1);
+            }else{
+              int rmidx1=randomsample(refidx.findrows(j),1)[0];
+              removeidx.push_back(rmidx1);
+              if(!haploid){
+                int rmidx2;
+                if(rmidx1%2==0){
+                  rmidx2=rmidx1+1;
+                }else{
+                  rmidx2=rmidx1-1;
+                }
+                removeidx.push_back(rmidx2);
               }
-              removeidx.push_back(rmidx2);
             }
-          }
-          removeRowsWithValue(targetmatchdata,removeidx);
+            removeRowsWithValue(targetmatchdata,removeidx);
+            }
           
         }
       }
@@ -2691,169 +2750,169 @@ void paintall(const string method,
               }
             }
           }else{
-           // piecewise linear output which is the most sparse version
-           if(haploid){
-             for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-               outputFile << indnames[ii]<<"\n";
-               //output the first SNP's painting
-               outputFile << 1 <<" ";
-               for(int k=0;k<npop;++k){
-                 outputFile << painting_all[ii-nhap_use+nhap_left][k][0];
-                 if(k!=npop-1) outputFile << " ";
-               }
-               outputFile <<"\n";
-               
-               int startidx=0;
-               for (int j = 1; j < nsnp; ++j) {
-                 double rmse=0;
+            // piecewise linear output which is the most sparse version
+            if(haploid){
+              for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+                outputFile << indnames[ii]<<"\n";
+                //output the first SNP's painting
+                outputFile << 1 <<" ";
+                for(int k=0;k<npop;++k){
+                  outputFile << painting_all[ii-nhap_use+nhap_left][k][0];
+                  if(k!=npop-1) outputFile << " ";
+                }
+                outputFile <<"\n";
+                
+                int startidx=0;
+                for (int j = 1; j < nsnp; ++j) {
+                  double rmse=0;
 #pragma omp parallel for reduction(+:rmse)
-                 for(int k=0;k<npop;++k){
-                   double slope=(painting_all[ii-nhap_use+nhap_left][k][j]-painting_all[ii-nhap_use+nhap_left][k][startidx])/(j-startidx);
-                   if(j-startidx>=2){
-                     for(int jj=startidx+1;jj<j;++jj){
-                       double se=painting_all[ii-nhap_use+nhap_left][k][startidx]+slope*(jj-startidx)-painting_all[ii-nhap_use+nhap_left][k][jj];
-                       rmse+=se*se;
-                     }
-                   }
-                 }
-                 if(j-startidx>=2){
-                   rmse=sqrt(rmse/npop/(j-startidx-1));
-                 }
-                 
-                 if(rmse>rmsethre){
-                   startidx=j;
-                   // output the painting of the previous SNP
-                   outputFile << j <<" ";
-                   for(int k=0;k<npop;++k){
-                     outputFile << painting_all[ii-nhap_use+nhap_left][k][j-1];
-                     if(k!=npop-1) outputFile << " ";
-                   }
-                   outputFile <<"\n";
-                   // output the painting of the this SNP
-                   outputFile << j+1 <<" ";
-                   for(int k=0;k<npop;++k){
-                     outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
-                     if(k!=npop-1) outputFile << " ";
-                   }
-                   outputFile <<"\n";
-                 }else if(j==nsnp-1){
-                   outputFile << j+1 <<" ";
-                   for(int k=0;k<npop;++k){
-                     outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
-                     if(k!=npop-1) outputFile << " ";
-                   }
-                   outputFile <<"\n";
-                 }
-               }
-             }
-           }else{
-             for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
-               outputFile << indnames[ii] << "_0 "<<"\n";
-               //output the first SNP's painting
-               outputFile << 1 <<" ";
-               for(int k=0;k<npop;++k){
-                 outputFile << painting_all[2*ii-nhap_use+nhap_left][k][0];
-                 if(k!=npop-1) outputFile << " ";
-               }
-               outputFile <<"\n";
-               
-               int startidx=0;
-               for (int j = 1; j < nsnp; ++j) {
-                 double rmse=0;
-                 for(int k=0;k<npop;++k){
-                   double slope=(painting_all[2*ii-nhap_use+nhap_left][k][j]-painting_all[2*ii-nhap_use+nhap_left][k][startidx])/(j-startidx);
-                   if(j-startidx>=2){
-                     for(int jj=startidx+1;jj<j;++jj){
-                       double se=painting_all[2*ii-nhap_use+nhap_left][k][startidx]+slope*(jj-startidx)-painting_all[2*ii-nhap_use+nhap_left][k][jj];
-                       rmse+=se*se;
-                     }
-                   }
-                 }
-                 if(j-startidx>=2){
-                   rmse=sqrt(rmse/npop/(j-startidx-1));
-                 }
-                 
-                 if(rmse>rmsethre){
-                   startidx=j;
-                   // output the painting of the previous SNP
-                   outputFile << j <<" ";
-                   for(int k=0;k<npop;++k){
-                     outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j-1];
-                     if(k!=npop-1) outputFile << " ";
-                   }
-                   outputFile <<"\n";
-                   // output the painting of the this SNP
-                   outputFile << j+1 <<" ";
-                   for(int k=0;k<npop;++k){
-                     outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
-                     if(k!=npop-1) outputFile << " ";
-                   }
-                   outputFile <<"\n";
-                 }else if(j==nsnp-1){
-                   outputFile << j+1 <<" ";
-                   for(int k=0;k<npop;++k){
-                     outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
-                     if(k!=npop-1) outputFile << " ";
-                   }
-                   outputFile <<"\n";
-                 }
-               }
-               
-               
-               outputFile << indnames[ii] << "_1 "<<"\n";
-               //output the first SNP's painting
-               outputFile << 1 <<" ";
-               for(int k=0;k<npop;++k){
-                 outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][0];
-                 if(k!=npop-1) outputFile << " ";
-               }
-               outputFile <<"\n";
-               
-               startidx=0;
-               for (int j = 1; j < nsnp; ++j) {
-                 double rmse=0;
-                 for(int k=0;k<npop;++k){
-                   double slope=(painting_all[2*ii-nhap_use+nhap_left+1][k][j]-painting_all[2*ii-nhap_use+nhap_left+1][k][startidx])/(j-startidx);
-                   if(j-startidx>=2){
-                     for(int jj=startidx+1;jj<j;++jj){
-                       double se=painting_all[2*ii-nhap_use+nhap_left+1][k][startidx]+slope*(jj-startidx)-painting_all[2*ii-nhap_use+nhap_left+1][k][jj];
-                       rmse+=se*se;
-                     }
-                   }
-                 }
-                 if(j-startidx>=2){
-                   rmse=sqrt(rmse/npop/(j-startidx-1));
-                 }
-                 
-                 
-                 if(rmse>rmsethre){
-                   startidx=j;
-                   // output the painting of the previous SNP
-                   outputFile << j <<" ";
-                   for(int k=0;k<npop;++k){
-                     outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j-1];
-                     if(k!=npop-1) outputFile << " ";
-                   }
-                   outputFile <<"\n";
-                   // output the painting of the this SNP
-                   outputFile << j+1 <<" ";
-                   for(int k=0;k<npop;++k){
-                     outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
-                     if(k!=npop-1) outputFile << " ";
-                   }
-                   outputFile <<"\n";
-                 }else if(j==nsnp-1){
-                   outputFile << j+1 <<" ";
-                   for(int k=0;k<npop;++k){
-                     outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
-                     if(k!=npop-1) outputFile << " ";
-                   }
-                   outputFile <<"\n";
-                 }
-               }
-               
-             }
-           }
+                  for(int k=0;k<npop;++k){
+                    double slope=(painting_all[ii-nhap_use+nhap_left][k][j]-painting_all[ii-nhap_use+nhap_left][k][startidx])/(j-startidx);
+                    if(j-startidx>=2){
+                      for(int jj=startidx+1;jj<j;++jj){
+                        double se=painting_all[ii-nhap_use+nhap_left][k][startidx]+slope*(jj-startidx)-painting_all[ii-nhap_use+nhap_left][k][jj];
+                        rmse+=se*se;
+                      }
+                    }
+                  }
+                  if(j-startidx>=2){
+                    rmse=sqrt(rmse/npop/(j-startidx-1));
+                  }
+                  
+                  if(rmse>rmsethre){
+                    startidx=j;
+                    // output the painting of the previous SNP
+                    outputFile << j <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[ii-nhap_use+nhap_left][k][j-1];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                    // output the painting of the this SNP
+                    outputFile << j+1 <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                  }else if(j==nsnp-1){
+                    outputFile << j+1 <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                  }
+                }
+              }
+            }else{
+              for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+                outputFile << indnames[ii] << "_0 "<<"\n";
+                //output the first SNP's painting
+                outputFile << 1 <<" ";
+                for(int k=0;k<npop;++k){
+                  outputFile << painting_all[2*ii-nhap_use+nhap_left][k][0];
+                  if(k!=npop-1) outputFile << " ";
+                }
+                outputFile <<"\n";
+                
+                int startidx=0;
+                for (int j = 1; j < nsnp; ++j) {
+                  double rmse=0;
+                  for(int k=0;k<npop;++k){
+                    double slope=(painting_all[2*ii-nhap_use+nhap_left][k][j]-painting_all[2*ii-nhap_use+nhap_left][k][startidx])/(j-startidx);
+                    if(j-startidx>=2){
+                      for(int jj=startidx+1;jj<j;++jj){
+                        double se=painting_all[2*ii-nhap_use+nhap_left][k][startidx]+slope*(jj-startidx)-painting_all[2*ii-nhap_use+nhap_left][k][jj];
+                        rmse+=se*se;
+                      }
+                    }
+                  }
+                  if(j-startidx>=2){
+                    rmse=sqrt(rmse/npop/(j-startidx-1));
+                  }
+                  
+                  if(rmse>rmsethre){
+                    startidx=j;
+                    // output the painting of the previous SNP
+                    outputFile << j <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j-1];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                    // output the painting of the this SNP
+                    outputFile << j+1 <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                  }else if(j==nsnp-1){
+                    outputFile << j+1 <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                  }
+                }
+                
+                
+                outputFile << indnames[ii] << "_1 "<<"\n";
+                //output the first SNP's painting
+                outputFile << 1 <<" ";
+                for(int k=0;k<npop;++k){
+                  outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][0];
+                  if(k!=npop-1) outputFile << " ";
+                }
+                outputFile <<"\n";
+                
+                startidx=0;
+                for (int j = 1; j < nsnp; ++j) {
+                  double rmse=0;
+                  for(int k=0;k<npop;++k){
+                    double slope=(painting_all[2*ii-nhap_use+nhap_left+1][k][j]-painting_all[2*ii-nhap_use+nhap_left+1][k][startidx])/(j-startidx);
+                    if(j-startidx>=2){
+                      for(int jj=startidx+1;jj<j;++jj){
+                        double se=painting_all[2*ii-nhap_use+nhap_left+1][k][startidx]+slope*(jj-startidx)-painting_all[2*ii-nhap_use+nhap_left+1][k][jj];
+                        rmse+=se*se;
+                      }
+                    }
+                  }
+                  if(j-startidx>=2){
+                    rmse=sqrt(rmse/npop/(j-startidx-1));
+                  }
+                  
+                  
+                  if(rmse>rmsethre){
+                    startidx=j;
+                    // output the painting of the previous SNP
+                    outputFile << j <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j-1];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                    // output the painting of the this SNP
+                    outputFile << j+1 <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                  }else if(j==nsnp-1){
+                    outputFile << j+1 <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                  }
+                }
+                
+              }
+            }
           }
         }else{
           // output specific SNPs' local ancestry probabilities
@@ -2888,7 +2947,7 @@ void paintall(const string method,
             }
           }
         }
- 
+        
       }
       
       
@@ -3075,7 +3134,7 @@ int main(int argc, char *argv[]){
     cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl;
     
     cout << "Type ./SparsePainter, ./SparsePainter -h or ./SparsePainter -help to see this help file." << endl;
-
+    
     cout << "\nRequired Commands" << endl;
     cout << "SparsePainter has the following 6 required commands together with additional commands that specify the desired output." << endl;
     
@@ -3116,6 +3175,10 @@ int main(int argc, char *argv[]){
     
     cout << "  -loo: Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If -loo is not specified under reference-vs-reference painting (-reffile = -targetfile), each individual will be automatically left out of painting." << endl;
     
+    cout << "  -rmrelative: Leave out the reference sample that is the most related to the target sample under leave-one-out mode (-loo), if they share at least relafrac proportion of SNPs." << endl;
+    
+    cout << "  -rmlongmatch: Remove haplotype matches which contains at least longmatchfrac proportion of SNPs." << endl;
+    
     cout << "(b) Commands with parameters" << endl;
     
     cout << "  -ncores [integer>=0]: The number of CPU cores used for the analysis (default=0). The default ncores uses all the available CPU cores of your device." << endl;
@@ -3135,6 +3198,10 @@ int main(int argc, char *argv[]){
     cout << "  -al [number∈(0,1)]: The accuracy level of the output of local ancestry probabilities (default=0.01). This also controls the size of the output file for local ancestry probabilities." << endl;
     
     cout << "  -rmsethre [number∈(0,1)]: The upper bound that the root mean squared error of the estimated local ancestry probabilities (default=0.01) when storing them in linear form by argument, i.e. -probstore linear." <<endl;
+    
+    cout << "  -relafrac [number∈(0,1)]: The proportion of total number of SNPs shared between a reference and target haplotype sample (default=0.2). The reference sample will be removed under the leave-one-out (-loo) and remove relative (-rmrelative) modes. " << endl;
+    
+    cout << "  -longmatchfrac [number∈(0,1)]: The proportion of total number of SNPs contained in a single haplotype shared between a reference and target haplotype sample (default=0.1). SparsePainter will remove this long match when -rmlongmatch is specified. " << endl;
     
     cout << "  -SNPfile [file]: File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by probstore." <<endl;
     
@@ -3183,11 +3250,15 @@ int main(int argc, char *argv[]){
   bool AAS=false;
   bool phase=false;
   bool outputallSNP=true;
+  bool rmlongmatch=false;
+  bool rmrelative=false;
   string out="SparsePainter";
   double window=4;
   string probstore="constant";
   double al=0.01;
   double rmsethre=0.01;
+  double longmatchfrac=0.1;
+  double relafrac=0.2;
   int ncores=0;
   
   for (int i = 1; i < argc; i++) {
@@ -3202,8 +3273,8 @@ int main(int argc, char *argv[]){
     if(param=="prob" || param=="chunklength" ||
        param=="aveSNP" || param=="aveind" ||
        param=="LDA" || param=="LDAS" ||
-       param=="AAS" || param=="diff_lambda" ||
-       param=="haploid" || param=="loo"){
+       param=="AAS" || param=="diff_lambda" || param=="rmrelative" ||
+       param=="haploid" || param=="loo" || param=="rmlongmatch"){
       if(i!=argc-1){
         if(argv[i+1][0]!='-'){
           cerr << "Error: No values should be given following -"<<param<<endl;
@@ -3216,8 +3287,8 @@ int main(int argc, char *argv[]){
     if(param=="method" || param=="fixlambda" ||
        param=="ite_time" || param=="indfrac" ||
        param=="minsnpEM" || param=="EMsnpfrac" ||
-       param=="L0" || param=="nmatch" ||
-       param=="Lmin" || param=="reffile"||
+       param=="L0" || param=="nmatch" || param=="relafrac" ||
+       param=="Lmin" || param=="reffile"|| param=="longmatchfrac" ||
        param=="targetfile" || param=="mapfile"|| param=="rmsethre"||
        param=="popfile" || param=="namefile"|| param=="SNPfile"||
        param=="matchfile" || param=="out" || param=="probstore" ||
@@ -3259,6 +3330,10 @@ int main(int argc, char *argv[]){
       haploid = true;
     } else if (param == "loo") {
       leaveoneout = true;
+    } else if (param == "rmlongmatch") {
+      rmlongmatch = true;
+    } else if (param == "rmrelative") {
+      rmrelative = true;
     }else if (param == "method") {
       method = argv[++i];
     } else if (param == "fixlambda") {
@@ -3301,10 +3376,14 @@ int main(int argc, char *argv[]){
       al = stod(argv[++i]);
     } else if (param == "rmsethre") {
       rmsethre = stod(argv[++i]);
+    } else if (param == "longmatchfrac") {
+      longmatchfrac = stod(argv[++i]);
+    } else if (param == "relafrac") {
+      relafrac = stod(argv[++i]);
     } else if (param == "ncores") {
       ncores = stoi(argv[++i]);
     } else {
-      cerr << "Unknown parameter: " << param << ".\n";
+      cerr << "Unknown argument: " << param << ".\n";
       cerr<<"Type -h or -help to see the help file"<<endl;
       return 1;
     }
@@ -3333,6 +3412,11 @@ int main(int argc, char *argv[]){
   if(namefile.empty()){
     namefile="targetname.txt";
     cout << "No `-namefile filename' input is found, use targetname.txt as default."<<endl;
+  }
+  
+  if(rmrelative && !leaveoneout){
+    cout<<"Argument rmrelative is invalid because it only works when -loo is specified"<<endl;
+    abort();
   }
   
   
@@ -3408,9 +3492,9 @@ int main(int argc, char *argv[]){
   
   paintall(method, diff_lambda, fixlambda, ite_time, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 
            L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, 
-           SNPfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, 
-           AAS, outputallSNP, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile,
-           LDAfile, LDASfile, AASfile, lambdafile, probstore, window, al, rmsethre,ncores, run, phase);
+           SNPfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputallSNP, rmlongmatch,rmrelative,
+           probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, LDAfile, LDASfile, AASfile, 
+           lambdafile, probstore, window, al, rmsethre, longmatchfrac, relafrac, ncores, run, phase);
   
   return 0;
 } 

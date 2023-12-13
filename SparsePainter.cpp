@@ -1856,7 +1856,7 @@ hMat indpainting(const hMat& mat,
       popidx=refindex[refnumberidx]; 
       // update the probability of this population
       if(correct_painting){
-        popprob[popidx] += marginal_prob.m[j].get(refnumberidx)*refweight[popidx][j];
+        popprob[popidx] += marginal_prob.m[j].get(refnumberidx)*refweight[refnumberidx][j];
       }else{
         popprob[popidx] += marginal_prob.m[j].get(refnumberidx);
       }

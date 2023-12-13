@@ -66,7 +66,7 @@ To run **SparsePainter**, enter the following command:
 
 * **-prob** Output the local ancestry probabilities for each target sample at each SNP. The output file format is a gzipped text file (.txt.gz). The output probabilities need to be standardized by user because of the rounding errors by argument ``al``.
 
-* **-chunklength** Output the chunk length of each local ancestry for each target sample. The output file format is a text file (.txt).
+* **-chunklength** Output the chunk length of each local ancestry for each target sample. The output file format is a gzipped text file (.txt.gz).
 
 * **-aveSNP** Output the average local ancestry probabilities for each SNP. The output file format is a text file (.txt).
 

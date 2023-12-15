@@ -1260,9 +1260,9 @@ vector<double> cal_otherprob(const int nref,
 }
 
 
-tuple<hMat, vector<double>> forwardProb(const hMat& mat,
-                                        const vector<double>& sameprob, 
-                                        const vector<double>& otherprob){
+pair<hMat, vector<double>> forwardProb(const hMat& mat,
+                                       const vector<double>& sameprob, 
+                                       const vector<double>& otherprob){
   //compute normalised forward probability and store in hMat
   int nrow=mat.d1;
   int ncol=mat.d2;
@@ -1313,17 +1313,12 @@ tuple<hMat, vector<double>> forwardProb(const hMat& mat,
     logmultF.push_back(log(sumfp)+logmultF[j-1]);
     hVecScale(forward_prob.m[j],1.0/sumfp);
   }
-  tuple<hMat, vector<double>> results(forward_prob, logmultF);
-  return(results);
+  return(make_pair(forward_prob, logmultF));
 }
 
-
-
-
-
-tuple<hMat, vector<double>> backwardProb(const hMat& mat,
-                                         const vector<double>& sameprob, 
-                                         const vector<double>& otherprob){
+pair<hMat, vector<double>> backwardProb(const hMat& mat,
+                                        const vector<double>& sameprob, 
+                                        const vector<double>& otherprob){
   //compute normalised backward probability and store in hMat
   int nrow=mat.d1;
   int ncol=mat.d2;
@@ -1383,8 +1378,7 @@ tuple<hMat, vector<double>> backwardProb(const hMat& mat,
     }
     
   }
-  tuple<hMat, vector<double>> results(backward_prob, logmultB);
-  return(results);
+  return(make_pair(backward_prob, logmultB));
 }
 
 
@@ -1397,7 +1391,6 @@ hMat marginalProb(hMat& f, hMat& b){
     marginal_prob.m[j]=hVecCirc(f.m[j],b.m[j]);
     hVecScale(marginal_prob.m[j],1.0/hVecSum(marginal_prob.m[j]));
   }
-  
   return(marginal_prob);
 }
 
@@ -1423,7 +1416,7 @@ hMat matchfiletohMat(const vector<vector<int>>& matchdata,
   return(mat);
 }
 
-tuple<vector<double>,vector<double>> readmap(const string& mapfile) {
+pair<vector<double>,vector<double>> readmap(const string& mapfile) {
   ifstream file(mapfile);
   vector<double> pd,gd;
   
@@ -1449,15 +1442,11 @@ tuple<vector<double>,vector<double>> readmap(const string& mapfile) {
   }
   
   file.close();
-  tuple<vector<double>,vector<double>> output(pd,gd);
-  return output;
+  return make_pair(pd,gd);
 }
 
 
-
-
-
-tuple<vector<double>,vector<int>> readSNP(const string& SNPfile, vector<double>& pd) {
+pair<vector<double>,vector<int>> readSNP(const string& SNPfile, vector<double>& pd) {
   ifstream file(SNPfile);
   vector<double> oppd;
   vector<int> oppd_idx;
@@ -1485,13 +1474,11 @@ tuple<vector<double>,vector<int>> readSNP(const string& SNPfile, vector<double>&
   }
   
   file.close();
-  tuple<vector<double>,vector<int>> output(oppd,oppd_idx);
-  return output;
+  return make_pair(oppd,oppd_idx);
 }
 
-tuple<vector<string>,vector<int>> readpopfile(const string popfile) {
+vector<int> readpopfile(const string popfile) {
   ifstream file(popfile);
-  vector<string> indnames;
   vector<int> refindex;
   
   if (!file.is_open()) {
@@ -1508,13 +1495,11 @@ tuple<vector<string>,vector<int>> readpopfile(const string popfile) {
     istringstream lineStream(line);
     lineStream >> column1;
     lineStream >> column2;
-    indnames.push_back(column1);
     refindex.push_back(column2);
   }
   
   file.close();
-  tuple<vector<string>,vector<int>> output(indnames,refindex);
-  return output;
+  return refindex;
 }
 
 
@@ -1563,13 +1548,13 @@ double est_lambda_EM(hMat& mat,
     sameprob=cal_sameprob(nsnp,lambda_ite,gd,nref);
     otherprob=cal_otherprob(nref,sameprob);
     
-    tuple<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
-    hMat forward_prob=get<0>(f);
-    vector<double> logmultF=get<1>(f);
+    pair<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
+    hMat forward_prob=f.first;
+    vector<double> logmultF=f.second;
     
-    tuple<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
-    hMat backward_prob=get<0>(b);
-    vector<double> logmultB=get<1>(b);
+    pair<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
+    hMat backward_prob=b.first;
+    vector<double> logmultB=b.second;
     vector<double> u((nsnp-1),0);
     for(int j=0;j<nsnp-1;++j){
       double al = exp(logmultF[j+1]+logmultB[j+1]-logmultF[nsnp-1]);
@@ -1770,23 +1755,14 @@ double est_lambda_EM_average(const hAnc& refidx,
   return(lambda_ave);
 }
 
-int countDecimalPlaces(double value) {
-  int count = 0;
-  while (value < 1 && count < 15) {
-    value *= 10;
-    count++;
-  }
-  return count;
-}
-
 hMat indpainting(const hMat& mat,
                  vector<double>& gd, 
                  const double lambda,
                  const int npop, 
                  const vector<int>& refindex,
                  const int dp,
-                 tuple<hMat, vector<double>>& forwardprob,
-                 tuple<hMat, vector<double>>& backwardprob)
+                 pair<hMat, vector<double>>& forwardprob,
+                 pair<hMat, vector<double>>& backwardprob)
   {
   
   int precision=pow(10,dp);
@@ -1794,7 +1770,7 @@ hMat indpainting(const hMat& mat,
   // return individual painting
   int nsnp=mat.d2;
   
-  hMat marginal_prob=marginalProb(get<0>(forwardprob),get<0>(backwardprob));
+  hMat marginal_prob=marginalProb(forwardprob.first,backwardprob.first);
   // compute individual painting in terms of different populations
   hMat marginal_prob_pop(npop,nsnp,0.0);
   
@@ -1832,8 +1808,8 @@ vector<double> chunklength_each(vector<double>& gd,
                                 const double lambda, 
                                 const int npop,
                                 const vector<int>& refindex,
-                                tuple<hMat, vector<double>>& forwardprob,
-                                tuple<hMat, vector<double>>& backwardprob,
+                                pair<hMat, vector<double>>& forwardprob,
+                                pair<hMat, vector<double>>& backwardprob,
                                 const double gdall){
   //calculate chunk length for each haplotype
   int nsnp=mat.d2;
@@ -1842,11 +1818,11 @@ vector<double> chunklength_each(vector<double>& gd,
     gl[j]=gd[j+1]-gd[j];
   }
   
-  hMat forward_prob=get<0>(forwardprob);
-  vector<double> logmultF=get<1>(forwardprob);
+  hMat forward_prob=forwardprob.first;
+  vector<double> logmultF=forwardprob.second;
   
-  hMat backward_prob=get<0>(backwardprob);
-  vector<double> logmultB=get<1>(backwardprob);
+  hMat backward_prob=backwardprob.first;
+  vector<double> logmultB=backwardprob.second;
   
   vector<double> suml(npop,0.0);
   
@@ -2145,24 +2121,22 @@ void paintall(const string method,
   }
   
   // read the map data to get the genetic distance in Morgans
-  tuple<vector<double>,vector<double>> mapinfo = readmap(mapfile);
-  vector<double> gd = get<1>(mapinfo);
-  vector<double> pd = get<0>(mapinfo);
+  pair<vector<double>,vector<double>> mapinfo = readmap(mapfile);
+  vector<double> gd = mapinfo.second;
+  vector<double> pd = mapinfo.first;
   
   // read the SNPs to be output if given
   int nsnp_op;
   vector<double> pd_op;
   vector<int> SNPidx_op;
   if(!outputallSNP){
-    tuple<vector<double>,vector<int>> SNPinfo=readSNP(SNPfile,pd);
-    pd_op = get<0>(SNPinfo);
-    SNPidx_op = get<1>(SNPinfo);
+    pair<vector<double>,vector<int>> SNPinfo=readSNP(SNPfile,pd);
+    pd_op = SNPinfo.first;
+    SNPidx_op = SNPinfo.second;
     nsnp_op=SNPidx_op.size();
   }
   
-  tuple<vector<string>,vector<int>> popinfo = readpopfile(popfile);
-  
-  vector<int> refindex = get<1>(popinfo);
+  vector<int> refindex = readpopfile(popfile);
   
   int nref_ind=refindex.size();
   
@@ -2564,8 +2538,8 @@ void paintall(const string method,
       
       vector<double> sameprob=cal_sameprob(nsnp,lambda_use,gd,nref);
       vector<double> otherprob=cal_otherprob(nref,sameprob);
-      tuple<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
-      tuple<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
+      pair<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
+      pair<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
       
       if(run!="chunklength"){
         hMat pind=indpainting(mat,gd,lambda_use,npop,refindex,dp,f,b);

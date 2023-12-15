@@ -90,10 +90,6 @@ To run **SparsePainter**, enter the following command:
 
 * **-rmrelative** Leave out the reference sample that is the most related to the target sample under leave-one-out mode (`-loo`), if they share at least ``relafrac`` proportion of SNPs.
 
-* **-rmlongmatch** Remove haplotype matches which contain at least ``longmatchfrac`` proportion of SNPs.
-
-* **-unknownpop** Retain the unstandardized local ancestry probabilities after correction by providing ``weightfile``.
-
 ### Commands with values
 
 * **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** uses all the available CPU cores of your device.
@@ -108,9 +104,7 @@ To run **SparsePainter**, enter the following command:
 
 * **-method [Viterbi/EM]** The algorithm used for estimating the recombination scaling constant (**default=Viterbi**).
 
-* **-probstore [raw/constant/linear/cluster/weight]** Output the local ancestry probabilities in raw, constant, linear, cluster or weight form (**default=constant**). For each haplotype, in ``raw`` form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in ``constant`` form, we output the range of SNP index, and the painting probabilities that those SNPs share; in ``linear`` form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than ``rmsethre``; in ``cluster`` form, we perform K-means clustering on the painting of each haplotype with ``ncluster`` clusters and maximum ``max_ite`` iterations, and output the average probabilities of each cluster and the cluster of each SNP; in ``weight`` form, we only output the probabilities of the population that the haplotype belongs to, and the weight output file is the required input of ``weightfile`` to correct for local ancestry estimates. Storing in ``constant`` considerably reduces the file size while has the same accuracy compared with storing in ``raw``; storing in ``linear`` has an even smaller file size but becomes slightly slower and loses some accuracy; storing in ``cluster`` has the smallest file size but with slowest speed.
-
-* **-weightfile [file]** File contains the output of ``-probstore weight``. If this file is not specified (**default**), the raw local ancestry probabilities will be output; if this file is provided, the corrected local ancestry probabilities will be output.
+* **-probstore [raw/constant/linear/cluster]** Output the local ancestry probabilities in raw, constant, linear or cluster form (**default=constant**). For each haplotype, in ``raw`` form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in ``constant`` form, we output the range of SNP index, and the painting probabilities that those SNPs share; in ``linear`` form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than ``rmsethre``; in ``cluster`` form, we perform K-means clustering on the painting of each haplotype with ``ncluster`` clusters and maximum ``max_ite`` iterations, and output the average probabilities of each cluster and the cluster of each SNP. Storing in ``constant`` considerably reduces the file size while has the same accuracy compared with storing in ``raw``; storing in ``linear`` has an even smaller file size but becomes slightly slower and loses some accuracy; storing in ``cluster`` has the smallest file size but with slowest speed.
 
 * **-dp [integer>0]** The decimal places of the output of local ancestry probabilities (**default=2**). This also controls the size of the output file for local ancestry probabilities.
 
@@ -121,8 +115,6 @@ To run **SparsePainter**, enter the following command:
 * **-ncluster [integer>0]** The number of clusters (**default=100**) for K-means clustering under ``-probstore cluster`` mode.
 
 * **-kmeans_ite [integer>0]** The number of maximum iterations (**default=30**) for K-means clustering under ``-probstore cluster`` mode.
-
-* **-longmatchfrac [number&isin;(0,1)]** The proportion of the total number of SNPs contained in a single haplotype shared between a reference and target haplotype sample (**default=0.1**). SparsePainter will remove this long match when ``-rmlongmatch`` is specified.
 
 * **-SNPfile [file]** File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by ``probstore``. 
 

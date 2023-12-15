@@ -462,7 +462,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
                                                                      const int M,
                                                                      const int qM,
                                                                      const int L_minmatch,
-                                                                     const int Lmax,
                                                                      const int ncores,
                                                                      const bool samefile,
                                                                      const bool phase,
@@ -693,13 +692,11 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
               int end=k-1;
               if(times==0){
                 int start=dZ[prefix[ftemp][k+1]];
-                if(Lmax==0 || end-start<=Lmax){
-                  donoridtemp.push_back(prefix[ftemp][k+1]);
-                  startpostemp.push_back(start);
-                  endpostemp.push_back(end);
-                  for(int q=start;q<=end;++q){
-                    nmatch[q]++;
-                  }
+                donoridtemp.push_back(prefix[ftemp][k+1]);
+                startpostemp.push_back(start);
+                endpostemp.push_back(end);
+                for(int q=start;q<=end;++q){
+                  nmatch[q]++;
                 }
                 ++ftemp;
               }else{
@@ -753,13 +750,11 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
           int end2=N-1;
           if(times==0){
             int start2=dZ[prefix[f][N]];
-            if(Lmax==0 || end2-start2<=Lmax){
-              donoridtemp.push_back(prefix[f][N]);
-              startpostemp.push_back(start2);
-              endpostemp.push_back(end2);
-              for(int q=start2;q<=end2;++q){
-                nmatch[q]++;
-              }
+            donoridtemp.push_back(prefix[f][N]);
+            startpostemp.push_back(start2);
+            endpostemp.push_back(end2);
+            for(int q=start2;q<=end2;++q){
+              nmatch[q]++;
             }
             ++f;
           }else{
@@ -898,7 +893,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
                                                                const int qM,
                                                                int minmatch,
                                                                int L_minmatch,
-                                                               int Lmax,
                                                                const string reffile,
                                                                const string targetfile,
                                                                const bool haploid,
@@ -952,7 +946,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> matchresults=longMatchpbwt(L_initial,panel,prefix,
                                                                                     divergence,u,v,minmatch,
                                                                                     gd,queryidx,N,M,qM,
-                                                                                    L_minmatch,Lmax,ncores,samefile,
+                                                                                    L_minmatch,ncores,samefile,
                                                                                     phase,targetfile);
   
   free_PBWT_memory(panel, prefix, divergence, u, v);
@@ -1026,40 +1020,6 @@ pair<vector<int>, vector<vector<double>>> kMeans(const mat& data, int ncluster, 
   }
   
   return make_pair(stdVec, centroidsVec);
-}
-
-
-vector<vector<double>> readweightfile(const string weightfile,
-                                      const int nref){
-  
-  vector<vector<double>> refweight(nref);
-  
-  igzstream in(weightfile.c_str());
-  if (!in) {
-    cerr << "Failed to open the file: " << weightfile << endl;
-    return {};
-  }
-  string line;
-  string dummy1;
-  getline(in, line);
-  int k=0;
-  while (getline(in, line)) {
-    // columns are space separated.
-    istringstream lineStream(line);
-    lineStream >> dummy1;
-    double number;
-    while (lineStream >> number) {
-      if(number==0){
-        number=0.001;
-      }
-      refweight[k].push_back(number);
-    }
-    k++;
-  }
-  
-  in.close();
-  
-  return(refweight);
 }
 
 
@@ -1686,7 +1646,6 @@ double est_lambda_EM_average(const hAnc& refidx,
                              int L_initial,
                              const int nmatch,
                              const int L_minmatch,
-                             const int Lmax,
                              const int ncores,
                              const double indfrac,
                              const int EM_ite, 
@@ -1825,12 +1784,10 @@ hMat indpainting(const hMat& mat,
                  const double lambda,
                  const int npop, 
                  const vector<int>& refindex,
-                 bool unknownpop,
                  const int dp,
                  tuple<hMat, vector<double>>& forwardprob,
-                 tuple<hMat, vector<double>>& backwardprob,
-                 bool correct_painting,
-                 vector<vector<double>>& refweight){
+                 tuple<hMat, vector<double>>& backwardprob)
+  {
   
   int precision=pow(10,dp);
   
@@ -1855,29 +1812,15 @@ hMat indpainting(const hMat& mat,
       // search this reference sample belongs to which population
       popidx=refindex[refnumberidx]; 
       // update the probability of this population
-      if(correct_painting){
-        popprob[popidx] += marginal_prob.m[j].get(refnumberidx)*refweight[refnumberidx][j];
-      }else{
-        popprob[popidx] += marginal_prob.m[j].get(refnumberidx);
-      }
+
+      popprob[popidx] += marginal_prob.m[j].get(refnumberidx);
     }
-    
-    if(!correct_painting){
-      for(int i=0; i<npop; ++i){
-        marginal_prob_pop.m[j].set(i,round(popprob[i] * precision)/precision);
-      }
-    }else{
-      if(!unknownpop){
-        double probsum=vec_sum(popprob);
-        for(int i=0; i<npop; ++i){
-          marginal_prob_pop.m[j].set(i,round(popprob[i]/probsum* precision)/precision);
-        }
-      }else{
-        for(int i=0; i<npop; ++i){
-          marginal_prob_pop.m[j].set(i,popprob[i]);
-        }
-      }
+
+    double probsum=vec_sum(popprob);
+    for(int i=0; i<npop; ++i){
+      marginal_prob_pop.m[j].set(i,round(popprob[i]/probsum* precision)/precision);
     }
+
     
   }
   return(marginal_prob_pop);
@@ -2166,7 +2109,6 @@ void paintall(const string method,
               const string popfile,
               const string namefile,
               const string matchfile,
-              const string weightfile,
               const string SNPfile,
               bool outputpainting,
               bool outputaveSNPpainting,
@@ -2175,8 +2117,6 @@ void paintall(const string method,
               bool outputLDAS,
               bool outputAAS,
               bool outputallSNP,
-              bool unknownpop,
-              bool rmlongmatch,
               bool rmrelative,
               const string probfile,
               const string aveSNPprobfile,
@@ -2190,7 +2130,6 @@ void paintall(const string method,
               const double window,
               const int dp,
               const double rmsethre,
-              const double longmatchfrac,
               const double relafrac,
               const int ncluster,
               const int max_ite,
@@ -2271,27 +2210,6 @@ void paintall(const string method,
   double gdall=gd[nsnp-1]-gd[0];
   
   
-  vector<vector<double>> refweight;
-  bool correct_painting=false;
-  if (!weightfile.empty()){
-    correct_painting=true;
-    cout<<"Begin reading weight of reference samples from "<<weightfile<<endl;
-    refweight=readweightfile(weightfile,nref);
-  }
-  
-  
-  
-  
-  int Lmax=0;
-  if(rmlongmatch){
-    Lmax=static_cast<int>(ceil(nsnp*longmatchfrac));
-    if(Lmax<=L_initial){
-      cout<<"Warning: nsnp*longmatchfrac must be bigger than L0. Only matches longer than L0 will be ignored."<<endl;
-      Lmax=L_initial;
-    }
-  }
-  
-  
   bool loo=false;
   
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> pbwtall_target;
@@ -2311,7 +2229,7 @@ void paintall(const string method,
     }
     cout<<"Begin doing PBWT and finding matches for target haplotypes"<<endl;
     pbwtall_target=do_pbwt(L_initial, gd,queryidx,ncores,nref+qM,nsnp,qM,nmatch,
-                           L_minmatch,Lmax,reffile,targetfile,haploid,phase);
+                           L_minmatch,reffile,targetfile,haploid,phase);
     cout<<"Finish finding matches with PBWT"<<endl;
     
     
@@ -2336,7 +2254,7 @@ void paintall(const string method,
       cout<<"Begin estimating fixed lambda"<<endl;
       if(method=="EM"){
         if(targetfile==reffile){
-          lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,Lmax,ncores,
+          lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
                                        indfrac,EM_ite,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout,pbwtall_target);
         }else{
           cout<<"Begin doing PBWT and finding matches for reference haplotypes"<<endl;
@@ -2347,9 +2265,9 @@ void paintall(const string method,
           }
           
           tuple<vector<int>,vector<int>,vector<int>,vector<int>> pbwtall_ref=do_pbwt(L_initial, gd,queryidx_ref,ncores,nref,nsnp,0,nmatch,
-                                                                                     L_minmatch,0,reffile,reffile,haploid,phase);
+                                                                                     L_minmatch,reffile,reffile,haploid,phase);
           cout<<"Finish finding matches with PBWT"<<endl;
-          lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,Lmax,ncores,
+          lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
                                        indfrac,EM_ite,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout,pbwtall_ref);
         }
       }else{
@@ -2489,8 +2407,6 @@ void paintall(const string method,
         for (int j = 0; j < npop; ++j){
           outputFile << "pop"<<j << " ";
         }
-      }else if(probstore=="weight"){
-        outputFile << "#Storage Mode: Weight";
       }
     }else{
       outputFile << "#Storage Mode: Raw" <<"\n";
@@ -2652,7 +2568,7 @@ void paintall(const string method,
       tuple<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
       
       if(run!="chunklength"){
-        hMat pind=indpainting(mat,gd,lambda_use,npop,refindex,unknownpop,dp,f,b,correct_painting,refweight);
+        hMat pind=indpainting(mat,gd,lambda_use,npop,refindex,dp,f,b);
         
         vector<vector<double>> pind_dense=hMatrix2matrix(pind);
         for(int j=0;j<npop;++j){
@@ -3147,35 +3063,6 @@ void paintall(const string method,
                 outputFile <<"\n";
               }
             }
-          }else if(probstore=="weight"){
-            
-            if(haploid){
-              for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-                int selfpop = refindex[ii];
-                outputFile << indnames[ii] << " ";
-                for (int j = 0; j < nsnp; ++j) {
-                  outputFile << painting_all[ii-nhap_use+nhap_left][selfpop][j];
-                  if(j!=nsnp-1) outputFile << " ";
-                }
-                outputFile << "\n";
-              }
-            }else{
-              for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
-                int selfpop = refindex[2*ii];
-                outputFile << indnames[ii] << "_0 ";
-                for (int j = 0; j < nsnp; ++j) {
-                  outputFile << painting_all[2*ii-nhap_use+nhap_left][refindex[selfpop]][j];
-                  if(j!=nsnp-1) outputFile << " ";
-                }
-                outputFile << "\n";
-                outputFile << indnames[ii] << "_1 ";
-                for (int j = 0; j < nsnp; ++j) {
-                  outputFile << painting_all[2*ii-nhap_use+nhap_left+1][refindex[selfpop]][j];
-                  if(j!=nsnp-1) outputFile << " ";
-                }
-                outputFile << "\n";
-              }
-            }
           }
         }else{
           // output specific SNPs' local ancestry probabilities
@@ -3440,10 +3327,6 @@ int main(int argc, char *argv[]){
     
     cout << "  -rmrelative: Leave out the reference sample that is the most related to the target sample under leave-one-out mode [-loo], if they share at least relafrac proportion of SNPs." << endl<< endl;
     
-    cout << "  -rmlongmatch: Remove haplotype matches which contains at least [longmatchfrac] proportion of SNPs." << endl<< endl;
-    
-    cout << "  -unknownpop: Retain the unstandardized local ancestry probabilities after correction by providing [weightfile]." << endl<< endl;
-    
     cout << "(b) Commands with parameters" << endl<< endl;
     
     cout << "  -ncores [integer>=0]: The number of CPU cores used for the analysis (default=0). The default ncores uses all the available CPU cores of your device." << endl<< endl;
@@ -3458,9 +3341,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -method [Viterbi/EM]: The algorithm used for estimating the recombination scaling constant (default=Viterbi)." << endl<< endl;
     
-    cout << "  -probstore [raw/constant/linear/cluster/weight]: Output the local ancestry probabilities in [raw], [constant], [linear], [cluster] or [weight] form (default=constant). For each haplotype, in [raw] form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in [constant] form, we output the range of SNP index, and the painting probabilities that those SNPs share; in [linear] form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than [rmsethre]; in [cluster] form, we perform K-means clustering on the painting of each haplotype with [ncluster] clusters and maximum [max_ite] iterations, and output the average probabilities of each cluster and the cluster of each SNP; in [weight] form, we only output the probabilities of the population that the haplotype belongs to, and the [weight] output file is the required input of [weightfile] to correct for local ancestry estimates. Storing in [constant] considerably reduces the file size while has the same accuracy compared with storing in [raw]; storing in [linear] has an even smaller file size but becomes slightly slower and loses some accuracy; storing in [cluster] has the smallest file size but with slowest speed." << endl<< endl;
-    
-    cout << "  -weightfile [file]: File contains the output of [-probstore weight]. If this file is not specified (default), the raw local ancestry probabilities will be output; if this file is provided, the corrected local ancestry probabilities will be output." <<endl<< endl;
+    cout << "  -probstore [raw/constant/linear/cluster]: Output the local ancestry probabilities in [raw], [constant], [linear] or [cluster] form (default=constant). For each haplotype, in [raw] form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in [constant] form, we output the range of SNP index, and the painting probabilities that those SNPs share; in [linear] form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than [rmsethre]; in [cluster] form, we perform K-means clustering on the painting of each haplotype with [ncluster] clusters and maximum [max_ite] iterations, and output the average probabilities of each cluster and the cluster of each SNP. Storing in [constant] considerably reduces the file size while has the same accuracy compared with storing in [raw]; storing in [linear] has an even smaller file size but becomes slightly slower and loses some accuracy; storing in [cluster] has the smallest file size but with slowest speed." << endl<< endl;
     
     cout << "  -dp [integer>0]: The decimal places of the output of local ancestry probabilities (default=2). This also controls the size of the output file for local ancestry probabilities." << endl<< endl;
     
@@ -3471,8 +3352,6 @@ int main(int argc, char *argv[]){
     cout << "  -ncluster [integer>0]: The number of clusters (default=100) for K-means clustering under [-probstore cluster] mode." << endl<< endl;
     
     cout << "  -kmeans_ite [integer>0]: The number of maximum iterations (default=30) for K-means clustering under [-probstore cluster] mode." << endl<< endl;
-    
-    cout << "  -longmatchfrac [number∈(0,1)]: The proportion of total number of SNPs contained in a single haplotype shared between a reference and target haplotype sample (default=0.1). SparsePainter will remove this long match when [-rmlongmatch] is specified. " << endl<< endl;
     
     cout << "  -SNPfile [file]: File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by [probstore]." <<endl<< endl;
     
@@ -3511,7 +3390,6 @@ int main(int argc, char *argv[]){
   string mapfile={};
   string popfile={};
   string namefile={};
-  string weightfile={};
   string matchfile={};
   string SNPfile={};
   bool outputpainting=false;
@@ -3521,16 +3399,14 @@ int main(int argc, char *argv[]){
   bool LDAS=false;
   bool AAS=false;
   bool phase=false;
-  bool unknownpop=false;
   bool outputallSNP=true;
-  bool rmlongmatch=false;
+
   bool rmrelative=false;
   string out="SparsePainter";
   double window=4;
   string probstore="constant";
   int dp=2;
   double rmsethre=0.01;
-  double longmatchfrac=0.1;
   double relafrac=0.2;
   int ncluster=100;
   int max_ite=30;
@@ -3547,9 +3423,9 @@ int main(int argc, char *argv[]){
     
     if(param=="prob" || param=="chunklength" ||
        param=="aveSNP" || param=="aveind" ||
-       param=="LDA" || param=="LDAS" || param=="unknownpop" ||
+       param=="LDA" || param=="LDAS" || 
        param=="AAS" || param=="diff_lambda" || param=="rmrelative" ||
-       param=="haploid" || param=="loo" || param=="rmlongmatch"){
+       param=="haploid" || param=="loo"){
       if(i!=argc-1){
         if(argv[i+1][0]!='-'){
           cerr << "Error: No values should be given following -"<<param<<endl;
@@ -3559,13 +3435,13 @@ int main(int argc, char *argv[]){
       }
     }
     
-    if(param=="method" || param=="fixlambda" || param=="weightfile"||
+    if(param=="method" || param=="fixlambda" || 
        param=="EM_ite" || param=="indfrac" || param=="max_ite" ||
        param=="minsnpEM" || param=="EMsnpfrac" || param=="ncluster" ||
        param=="L0" || param=="nmatch" || param=="relafrac" ||
-       param=="Lmin" || param=="reffile"|| param=="longmatchfrac" ||
+       param=="Lmin" || param=="reffile"||
        param=="targetfile" || param=="mapfile"|| param=="rmsethre"||
-       param=="popfile" || param=="namefile"|| param=="SNPfile"||
+       param=="popfile" || param=="namefile"|| param=="SNPfile"|| 
        param=="matchfile" || param=="out" || param=="probstore" ||
        param=="window" || param=="ncores" || param=="dp"){
       if(i==argc-1){
@@ -3605,10 +3481,6 @@ int main(int argc, char *argv[]){
       haploid = true;
     } else if (param == "loo") {
       leaveoneout = true;
-    } else if (param == "unknownpop") {
-      unknownpop = true;
-    } else if (param == "rmlongmatch") {
-      rmlongmatch = true;
     } else if (param == "rmrelative") {
       rmrelative = true;
     }else if (param == "method") {
@@ -3639,8 +3511,6 @@ int main(int argc, char *argv[]){
       popfile = argv[++i];
     } else if (param == "namefile") {
       namefile = argv[++i];
-    } else if (param == "weightfile") {
-      weightfile = argv[++i];
     } else if (param == "matchfile") {
       matchfile = argv[++i];
     } else if (param == "SNPfile") {
@@ -3655,8 +3525,6 @@ int main(int argc, char *argv[]){
       dp = stoi(argv[++i]);
     } else if (param == "rmsethre") {
       rmsethre = stod(argv[++i]);
-    } else if (param == "longmatchfrac") {
-      longmatchfrac = stod(argv[++i]);
     } else if (param == "relafrac") {
       relafrac = stod(argv[++i]);
     } else if (param == "ncluster") {
@@ -3717,7 +3585,10 @@ int main(int argc, char *argv[]){
     return 1;
   }
   
-  string probfile = out + "_prob.txt.gz";
+  string probfile;
+
+  probfile=out + "_prob.txt.gz";
+
   string aveSNPprobfile = out + "_aveSNPprob.txt";
   string aveindprobfile = out + "_aveindprob.txt";
   string LDAfile = out + "_LDA.txt.gz";
@@ -3763,13 +3634,8 @@ int main(int argc, char *argv[]){
     cout<<"The maximum number of cores available is "<<ncores_temp<<". SparsePainter will use "<<ncores_temp<<" cores for parallel programming only."<<endl;
   }
   
-  if(probstore!="raw" && probstore!="constant" && probstore!="linear" && probstore!="cluster" && probstore!="weight"){
+  if(probstore!="raw" && probstore!="constant" && probstore!="linear" && probstore!="cluster"){
     cerr<<"Invalid parameter given to probstore, using probstore=constant as default"<<endl;
-    probstore="constant";
-  }
-  
-  if(probstore=="weight" && reffile!=targetfile){
-    cerr<<"probstore=weight is only valid under reference-vs-reference painting. Using probstore=constant as default"<<endl;
     probstore="constant";
   }
   
@@ -3779,10 +3645,10 @@ int main(int argc, char *argv[]){
   }
   
   paintall(method, diff_lambda, fixlambda, EM_ite, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 
-           L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, weightfile,
-           SNPfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputallSNP, unknownpop, rmlongmatch,rmrelative,
+           L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile,
+           SNPfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputallSNP, rmrelative,
            probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, LDAfile, LDASfile, AASfile, 
-           lambdafile, probstore, window, dp, rmsethre, longmatchfrac, relafrac, ncluster,max_ite, ncores, run, phase);
+           lambdafile, probstore, window, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
   
   return 0;
 } 

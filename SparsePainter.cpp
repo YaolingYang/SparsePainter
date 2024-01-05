@@ -1890,7 +1890,7 @@ void doLDAS(hMat &LDA_result,
     }
     double left_distance=gd[i]-gd[i-nsnp_left[i]];
     double right_distance=gd[i+nsnp_right[i]]-gd[i];
-    if(i-nsnp_left[i]>0 && i+nsnp_right[i]<nsnp){
+    if(i-nsnp_left[i]>0 && i+nsnp_right[i]<nsnp-1){
       gdgap.push_back(window-left_distance);
       gdgap.push_back(window-right_distance);
       LDA_ave.push_back((LDA_result.m[i-nsnp_left[i]].get(i)+LDA_result.m[i-nsnp_left[i]-1].get(i))/2);
@@ -1901,7 +1901,7 @@ void doLDAS(hMat &LDA_result,
       LDA_lower.push_back(min(LDA_result.m[i].get(i+nsnp_right[i]),LDA_result.m[i].get(i+nsnp_right[i]+1)));
     }
     
-    if(i-nsnp_left[i]==0 && i+nsnp_right[i]<nsnp){
+    if(i-nsnp_left[i]==0 && i+nsnp_right[i]<nsnp-1){
       // right window
       gdgap.push_back(window-right_distance);
       LDA_ave.push_back((LDA_result.m[i].get(i+nsnp_right[i])+LDA_result.m[i].get(i+nsnp_right[i]+1))/2);
@@ -1937,7 +1937,7 @@ void doLDAS(hMat &LDA_result,
     }
     
     
-    if(i-nsnp_left[i]>0 && i+nsnp_right[i]==nsnp){
+    if(i-nsnp_left[i]>0 && i+nsnp_right[i]==nsnp-1){
       // left window
       gdgap.push_back(window-left_distance);
       LDA_ave.push_back((LDA_result.m[i-nsnp_left[i]].get(i)+LDA_result.m[i-nsnp_left[i]-1].get(i))/2);

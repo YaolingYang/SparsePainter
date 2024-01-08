@@ -830,10 +830,9 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
       vector<int> length_order=getorder(gdmatch);
       
       vector<int> fullidx; // record which SNP fewer than only minmatch matches
-      vector<int> nmatch_output;
+      vector<int> nmatch_output(N, 0);
       for(int q=0;q<N;++q){
         fullidx.push_back(q);
-        nmatch_output.push_back(0);
       }
       for(int mi=length_order.size()-1;mi>=0;--mi){
         
@@ -1267,20 +1266,8 @@ pair<hMat, vector<double>> forwardProb(const hMat& mat,
   int nrow=mat.d1;
   int ncol=mat.d2;
   
-  double sum_use = 0.0;
-  
-  for (int i = 1; i <= nrow; i++) {
-    sum_use += 1.0 / i;
-  }
-  double mu = 0.5 / sum_use / (nrow + 1.0 / sum_use);
-  
   hMat forward_prob(nrow,ncol,0);
   vector<int> twj=mat.m[0].k;
-  if(twj.size()==0){
-    for(int i=0;i<nrow;++i){
-      twj.push_back(i);
-    }
-  }
   vector<double> l(twj.size(),1.0/twj.size());
   forward_prob.m[0].setall(twj,l);
   vector<double> logmultF={0};
@@ -1293,22 +1280,11 @@ pair<hMat, vector<double>> forwardProb(const hMat& mat,
     sameprobuse=sameprob[j-1];
     otherprobuse=otherprob[j-1];
     
-    if(twj.size()==0){
-      twj=forward_prob.m[j-1].k;
-      fprev=forward_prob.m[j-1].getall(twj);
-      for(int i=0;i<twj.size();++i){
-        if(log(sameprobuse*fprev[i]+otherprobuse)+log(mu)>-23.026){ //control the value within the limit of C++
-          forward_prob.m[j].set(twj[i],(sameprobuse*fprev[i]+otherprobuse)*mu);
-        }else{
-          forward_prob.m[j].set(twj[i],exp(-23.026)); //control the value within the limit of C++
-        } 
-      }
-    }else{
-      fprev=forward_prob.m[j-1].getall(twj);
-      for(int i=0;i<twj.size();++i){
-        forward_prob.m[j].set(twj[i],sameprobuse*fprev[i]+otherprobuse);
-      }
+    fprev=forward_prob.m[j-1].getall(twj);
+    for(int i=0;i<twj.size();++i){
+      forward_prob.m[j].set(twj[i],sameprobuse*fprev[i]+otherprobuse);
     }
+    
     sumfp=hVecSum(forward_prob.m[j],twj);
     logmultF.push_back(log(sumfp)+logmultF[j-1]);
     hVecScale(forward_prob.m[j],1.0/sumfp);
@@ -1330,53 +1306,20 @@ pair<hMat, vector<double>> backwardProb(const hMat& mat,
   double otherprobuse;
   vector<double> logmultB(ncol,log(nrow));
   
-  double sum_use = 0.0;
-  
-  for (int i = 1; i <= nrow; i++) {
-    sum_use += 1.0 / i;
-  }
-  double mu = 0.5 / sum_use / (nrow + 1.0 / sum_use);
-  
   for(int j=ncol-2;j>=0;--j){
     sameprobuse=sameprob[j];
     otherprobuse=otherprob[j];
     twj=mat.m[j+1].k;
-    if(twj.size()==0){
-      twj=backward_prob.m[j+1].k;
-      Bjp1=backward_prob.m[j+1].getall(twj);
-      for(int i=0;i<Bjp1.size();++i){
-        if(log(Bjp1[i])+log(mu)>-23.026){ //control the value within the limit of C++
-          Bjp1[i]=Bjp1[i]*mu;
-        }else{
-          Bjp1[i]=exp(-23.026); //control the value within the limit of C++
-        }
-      }
-      double default_val=backward_prob.m[j+1].x0;
-      sumBjp1=vec_sum(Bjp1)+default_val*mu*(nrow-Bjp1.size());
-      vector<double> val(twj.size());
-      for(int i=0;i<twj.size();++i){
-        val[i]=sameprobuse*Bjp1[i]+otherprobuse*sumBjp1;
-        backward_prob.m[j].set(twj[i],val[i]);
-      }
-      
-      double default_backward=default_val*mu*sameprobuse+otherprobuse*sumBjp1;
-      double sum_nc=vec_sum(val)+default_backward*(nrow-twj.size());
-      logmultB[j]=log(sum_nc)+logmultB[j+1];
-      hVecScale(backward_prob.m[j],1.0/sum_nc);
-      backward_prob.m[j].setdefault(default_backward/sum_nc);
-    }else{
-      Bjp1=backward_prob.m[j+1].getall(twj);
-      sumBjp1=vec_sum(Bjp1);
-      vector<double> val(twj.size());
-      for(int i=0;i<twj.size();++i){
-        val[i]=sameprobuse*Bjp1[i]+otherprobuse*sumBjp1;
-        backward_prob.m[j].set(twj[i],val[i]);
-      }
-      logmultB[j]=log(vec_sum(val)+otherprobuse*sumBjp1*(nrow-twj.size()))+logmultB[j+1];
-      hVecScale(backward_prob.m[j],1.0/sumBjp1);
-      backward_prob.m[j].setdefault(otherprobuse);
+    Bjp1=backward_prob.m[j+1].getall(twj);
+    sumBjp1=vec_sum(Bjp1);
+    vector<double> val(twj.size());
+    for(int i=0;i<twj.size();++i){
+      val[i]=sameprobuse*Bjp1[i]+otherprobuse*sumBjp1;
+      backward_prob.m[j].set(twj[i],val[i]);
     }
-    
+    logmultB[j]=log(vec_sum(val)+otherprobuse*sumBjp1*(nrow-twj.size()))+logmultB[j+1];
+    hVecScale(backward_prob.m[j],1.0/sumBjp1);
+    backward_prob.m[j].setdefault(otherprobuse);
   }
   return(make_pair(backward_prob, logmultB));
 }
@@ -1403,17 +1346,64 @@ void removeRowsWithValue(vector<vector<int>>& data,
   data.erase(it, data.end());
 }
 
-hMat matchfiletohMat(const vector<vector<int>>& matchdata, 
-                     const int& nref, 
-                     const int& nsnp){
+pair<hMat,vector<int>> matchfiletohMat(const vector<vector<int>>& matchdata, 
+                                       const int& nref, 
+                                       const int& nsnp,
+                                       const vector<double>& gd){
   hMat mat(nref,nsnp,0.0);
+  vector<int> nmatch;
   for(int i = 0; i < matchdata.size(); ++i) {
     int val = matchdata[i][0];
     for(int j = matchdata[i][1]; j <= matchdata[i][2]; ++j) {
       mat.m[j].set(val, 1.0);
     }
   }
-  return(mat);
+  
+  //impute matches
+  vector<int> nomatch;
+  vector<bool> withmatch;
+  for(int i=0;i<nsnp;++i){
+    int matchsize=mat.m[i].k.size();
+    nmatch.push_back(matchsize);
+    if(matchsize==0){
+      nomatch.push_back(i);
+      withmatch.push_back(false);
+    }else{
+      withmatch.push_back(true);
+    }
+  }
+  
+  for(int i=0;i<nomatch.size();++i){
+    double gd_this=gd[nomatch[i]];
+    int left = nomatch[i] - 1;
+    int right = nomatch[i] + 1;
+    while (left >= 0 && !withmatch[left]) {
+      left--;
+    }
+    
+    while (right <=nsnp-1 && !withmatch[right]) {
+      right++;
+    }
+    if(left<0){
+      vector<int> twj=mat.m[right].k;
+      mat.m[nomatch[i]].setall(twj,vector<double>(1.0,twj.size()));
+    }else if(right>nsnp-1){
+      vector<int> twj=mat.m[left].k;
+      mat.m[nomatch[i]].setall(twj,vector<double>(1.0,twj.size()));
+    }else{
+      double gd_left=gd_this-gd[left];
+      double gd_right=gd[right]-gd_this;
+      if(gd_left>gd_right){
+        vector<int> twj=mat.m[right].k;
+        mat.m[nomatch[i]].setall(twj,vector<double>(1.0,twj.size()));
+      }else{
+        vector<int> twj=mat.m[left].k;
+        mat.m[nomatch[i]].setall(twj,vector<double>(1.0,twj.size()));
+      }
+    }
+  }
+  
+  return(make_pair(mat,nmatch));
 }
 
 pair<vector<double>,vector<double>> readmap(const string& mapfile) {
@@ -1712,7 +1702,8 @@ double est_lambda_EM_average(const hAnc& refidx,
         removeRowsWithValue(matchdata,removeidx);
       }
       
-      hMat mat=matchfiletohMat(matchdata,nref-npop,nsnp);
+      pair<hMat,vector<int>> matall=matchfiletohMat(matchdata,nref-npop,nsnp,gd);
+      hMat mat=matall.first;
       int nsnp_use=nsnp;
       if(nsnp>minsnpEM){
         if(nsnp*EMsnpfrac<minsnpEM){
@@ -2086,12 +2077,14 @@ void paintall(const string method,
               const string namefile,
               const string matchfile,
               const string SNPfile,
+              const string nmatchfile,
               bool outputpainting,
               bool outputaveSNPpainting,
               bool outputaveindpainting,
               bool outputLDA,
               bool outputLDAS,
               bool outputAAS,
+              bool outputnmatch,
               bool outputallSNP,
               bool rmrelative,
               const string probfile,
@@ -2411,6 +2404,18 @@ void paintall(const string method,
     outputclFile << "\n";
   }
   
+  //output nmatch file
+  ogzstream outputnmatchFile;
+  if(outputnmatch){
+    outputnmatchFile.open(nmatchfile.c_str());
+    outputnmatchFile << "haplotype_name" << " ";
+    for (int k = 0; k < nsnp; ++k) {
+      outputnmatchFile << fixed << setprecision(0) << pd[k];
+      if(k != nsnp-1) outputnmatchFile << " ";
+    }
+    outputnmatchFile << "\n";
+  }
+  
   int looptime=0;
   
   while(nhap_left>0){
@@ -2442,6 +2447,9 @@ void paintall(const string method,
         cout<<"Calculating chunk length for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
       }
     }
+    
+    vector<vector<int>> nmatch_use(nsamples_use);
+    
 #pragma omp parallel for
     for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
       
@@ -2522,7 +2530,9 @@ void paintall(const string method,
         }
       }
       
-      hMat mat=matchfiletohMat(targetmatchdata,nref,nsnp); 
+      pair<hMat,vector<int>> matall=matchfiletohMat(targetmatchdata,nref,nsnp,gd); 
+      hMat mat=matall.first;
+      nmatch_use[ii - (nhap_use - nhap_left)]=matall.second;
       
       if(diff_lambda){
         vector<int> startpos, endpos;
@@ -3110,8 +3120,41 @@ void paintall(const string method,
       vector<vector<double>>().swap(chunklength);
     }
     
+    //output nmatch file
+    if(outputnmatch){
+      if(haploid){
+        for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+          outputnmatchFile << indnames[ii] << " ";
+          for(int j=0;j<nsnp;++j){
+            outputnmatchFile << fixed << setprecision(0) << nmatch_use[ii-nhap_use+nhap_left][j];
+            if(j!=nsnp-1) outputnmatchFile << " ";
+          }
+          outputnmatchFile << "\n";
+        }
+      }else{
+        for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+          outputnmatchFile << indnames[ii] <<"_0 ";
+          for(int j=0;j<nsnp;++j){
+            outputnmatchFile << fixed << setprecision(0) << nmatch_use[2*ii-nhap_use+nhap_left][j];
+            if(j!=nsnp-1) outputnmatchFile << " ";
+          }
+          outputnmatchFile << "\n";
+          
+          outputnmatchFile << indnames[ii] <<"_1 ";
+          for(int j=0;j<nsnp;++j){
+            outputnmatchFile << fixed << setprecision(0) << nmatch_use[2*ii-nhap_use+nhap_left+1][j];
+            if(j!=nsnp-1) outputnmatchFile << " ";
+          }
+          outputnmatchFile << "\n";
+        }
+      }
+    }
+    
     nhap_left=nhap_left-nsamples_use;
     looptime++;
+  }
+  if(outputnmatch){
+    outputnmatchFile.close();
   }
   
   if(run!="prob"){
@@ -3290,6 +3333,8 @@ int main(int argc, char *argv[]){
     
     cout << "  -AAS: Output the AAS of each SNP. The output file format is a text file (.txt)." << endl<< endl;
     
+    cout << "  -nmatch: Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz)." << endl<< endl;
+    
     cout << "Optional Commands" << endl<< endl;
     cout << "(a) Commands without parameters" << endl<< endl;
     
@@ -3374,7 +3419,7 @@ int main(int argc, char *argv[]){
   bool AAS=false;
   bool phase=false;
   bool outputallSNP=true;
-
+  bool outputnmatch=false;
   bool rmrelative=false;
   string out="SparsePainter";
   double window=4;
@@ -3397,7 +3442,7 @@ int main(int argc, char *argv[]){
     
     if(param=="prob" || param=="chunklength" ||
        param=="aveSNP" || param=="aveind" ||
-       param=="LDA" || param=="LDAS" || 
+       param=="LDA" || param=="LDAS" || param=="nmatch" || 
        param=="AAS" || param=="diff_lambda" || param=="rmrelative" ||
        param=="haploid" || param=="loo"){
       if(i!=argc-1){
@@ -3453,6 +3498,8 @@ int main(int argc, char *argv[]){
       diff_lambda = true;
     } else if (param == "haploid") {
       haploid = true;
+    } else if (param == "nmatch") {
+      nmatch = true;
     } else if (param == "loo") {
       leaveoneout = true;
     } else if (param == "rmrelative") {
@@ -3570,6 +3617,7 @@ int main(int argc, char *argv[]){
   string AASfile = out + "_AAS.txt";
   string chunklengthfile = out+ "_chunklength.txt.gz";
   string lambdafile = out+ "_fixedlambda.txt";
+  string nmatchfile = out + "_nmatches.txt.gz";
   
   if (!matchfile.empty()){
     targetfile=reffile;
@@ -3619,9 +3667,9 @@ int main(int argc, char *argv[]){
   }
   
   paintall(method, diff_lambda, fixlambda, EM_ite, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 
-           L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile,
-           SNPfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputallSNP, rmrelative,
-           probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, LDAfile, LDASfile, AASfile, 
+           L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, 
+           SNPfile, nmatchfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, nmatch,
+           outputallSNP, rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, LDAfile, LDASfile, AASfile, 
            lambdafile, probstore, window, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
   
   return 0;

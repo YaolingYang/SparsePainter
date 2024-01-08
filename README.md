@@ -78,6 +78,8 @@ To run **SparsePainter**, enter the following command:
 
 * **-AAS** Output the AAS of each SNP. The output file format is a text file (.txt).
 
+* **-nmatch** Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz).
+
 ## Optional Commands
 
 ### Commands without values

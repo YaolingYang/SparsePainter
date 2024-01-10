@@ -3333,7 +3333,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -AAS: Output the AAS of each SNP. The output file format is a text file (.txt)." << endl<< endl;
     
-    cout << "  -nmatch: Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz)." << endl<< endl;
+    cout << "  -outmatch: Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz)." << endl<< endl;
     
     cout << "Optional Commands" << endl<< endl;
     cout << "(a) Commands without parameters" << endl<< endl;
@@ -3442,7 +3442,7 @@ int main(int argc, char *argv[]){
     
     if(param=="prob" || param=="chunklength" ||
        param=="aveSNP" || param=="aveind" ||
-       param=="LDA" || param=="LDAS" || param=="nmatch" || 
+       param=="LDA" || param=="LDAS" || param=="outmatch" || 
        param=="AAS" || param=="diff_lambda" || param=="rmrelative" ||
        param=="haploid" || param=="loo"){
       if(i!=argc-1){
@@ -3498,8 +3498,8 @@ int main(int argc, char *argv[]){
       diff_lambda = true;
     } else if (param == "haploid") {
       haploid = true;
-    } else if (param == "nmatch") {
-      nmatch = true;
+    } else if (param == "outmatch") {
+      outputnmatch = true;
     } else if (param == "loo") {
       leaveoneout = true;
     } else if (param == "rmrelative") {
@@ -3668,7 +3668,7 @@ int main(int argc, char *argv[]){
   
   paintall(method, diff_lambda, fixlambda, EM_ite, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 
            L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, 
-           SNPfile, nmatchfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, nmatch,
+           SNPfile, nmatchfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputnmatch,
            outputallSNP, rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, LDAfile, LDASfile, AASfile, 
            lambdafile, probstore, window, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
   

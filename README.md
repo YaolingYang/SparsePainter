@@ -128,7 +128,7 @@ To run **SparsePainter**, enter the following command:
 
 * **-EM_ite [integer>0]** The iteration times for EM algorithm if ``-method EM`` is specified (**default=10**).
 
-* **-window [number>0]** The window for calculating LDA score (LDAS) in Morgan (**default=0.04**).
+* **-window [number>0]** The window for calculating LDA score (LDAS) in centiMorgan (**default=4**).
 
 * **-matchfile [file]** The file name of the set-maximal match file which is the output of [pbwt -maxWithin](https://github.com/danjlawson/pbwt/blob/master/pbwtMain.c). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time.
 

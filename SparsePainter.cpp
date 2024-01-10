@@ -3382,7 +3382,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -EM_ite [integer>0]: The iteration times for EM algorithm if [-method EM] is specified (default=10)." << endl<< endl;
     
-    cout << "  -window [number>0]: The window for calculating LDA score (LDAS) in Morgan (default=0.04)." << endl<< endl;
+    cout << "  -window [number>0]: The window for calculating LDA score (LDAS) in centiMorgan (default=4)." << endl<< endl;
     
     cout << "  -matchfile [file]: The file name of the set-maximal match file which is the output of pbwt -maxWithin. This can only be used for painting reference samples against themselves. When [-matchfile] is given, there is no need to provide [-reffile] and [-targetfile], because all the match information required for painting is contained in [-matchfile]. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time." << endl<< endl;
     

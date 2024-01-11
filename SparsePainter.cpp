@@ -1864,9 +1864,9 @@ void doLDAS(hMat &LDA_result,
             const int nsnp){
   
   // calculate LDA score
-  vector<double> LDAS_score(nsnp);
-  vector<double> LDAS_upper(nsnp);
-  vector<double> LDAS_lower(nsnp);
+  vector<double> LDAS_score(nsnp,0);
+  vector<double> LDAS_upper(nsnp,0);
+  vector<double> LDAS_lower(nsnp,0);
 #pragma omp parallel for
   for(int i=0;i<nsnp;++i){
     vector<double> gdgap;
@@ -1963,9 +1963,9 @@ void doLDAS(hMat &LDA_result,
       //endif
     }
     for(int q=0;q<gdgap.size();++q){
-      LDAS_score[i]+=LDA_ave[q]*gdgap[q];
-      LDAS_upper[i]+=LDA_upper[q]*gdgap[q];
-      LDAS_lower[i]+=LDA_lower[q]*gdgap[q];
+      LDAS_score[i]+=LDA_ave[q]*gdgap[q]*100;
+      LDAS_upper[i]+=LDA_upper[q]*gdgap[q]*100;
+      LDAS_lower[i]+=LDA_lower[q]*gdgap[q]*100;
     }
   }
   
@@ -2111,6 +2111,7 @@ void paintall(const string method,
   
   if(outputLDA||outputLDAS){
     LDAfactor=24/ncores+1;
+    if(LDAfactor<10) LDAfactor=10;
   }
   
   // read the map data to get the genetic distance in Morgans
@@ -3239,7 +3240,10 @@ void paintall(const string method,
         LDA_result.m[i].set(i,1.0);
         if(nsnp_right[i]!=0){
           for(int j=i+1;j<=i+nsnp_right[i];++j){
-            LDA_result.m[i].set(j,1-Dscore[i][j-i-1]/Dprime[i][j-i-1]);
+            double val=1-Dscore[i][j-i-1]/Dprime[i][j-i-1];
+            if(val>0){
+              LDA_result.m[i].set(j,val);
+            }
           }
         }
       }
@@ -3670,7 +3674,7 @@ int main(int argc, char *argv[]){
            L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, 
            SNPfile, nmatchfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputnmatch,
            outputallSNP, rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, LDAfile, LDASfile, AASfile, 
-           lambdafile, probstore, window, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
+           lambdafile, probstore, window/100, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
   
   return 0;
 } 

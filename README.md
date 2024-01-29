@@ -26,6 +26,7 @@ SparsePainter depends on
 [Armadillo-v12.6.5](https://arma.sourceforge.net/download.html) to compute AAS;   
 [gzstream-v1.5](https://www.cs.unc.edu/Research/compgeom/gzstream/) to read and write gzipped files.
 
+You do not need to download or install them for using SparsePainter.
 
 
 # Usage

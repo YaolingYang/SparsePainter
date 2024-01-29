@@ -181,4 +181,10 @@ Then we should specify 4 arguments: `npop` (the number of reference populations)
 
 Then the probabilities for each reference population (for all the individuals and selected SNPs) are extracted in one gzipped text file.
 
-It works similarly for extracting paintings in the linear form. We do not suggest storing in the raw form, as it's not memory-efficient.
+It works similarly for extracting paintings in the linear form:
+
+``g++ extract_prob_linear.cpp -o extract_linear -lz -std=c++0x -g -O3``
+
+``./extract_linear -npop 26 -probfile chr19_1000G_linear_10inds_prob.txt.gz -SNPfile chr19_GWAS_SNPs.txt -out chr19_1000G_linear``
+
+We do not suggest storing in the raw form, as it's not memory-efficient.

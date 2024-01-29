@@ -1,4 +1,4 @@
-// g++ ../../../extract_prob_linear.cpp -o ../../../extract_linear -lz -std=c++0x -g -O3
+// g++ extract_prob_linear.cpp -o extract_linear -lz -std=c++0x -g -O3
 
 #include <iostream>
 #include <fstream>
@@ -42,19 +42,44 @@ vector<int> readSNP(const string& SNPfile) {
   return SNPindex;
 }
 
-int main(){
-  int npop=26;
-  vector<int> SNPidx=readSNP("chr19_GWAS_SNPs.txt");
-  int nsnp=SNPidx.size();
-
-  string probfile="chr19_1000G_linear_10inds_prob.txt.gz";
-  vector<vector<double>> painting(vector<vector<double>>(nsnp, vector<double>(npop)));
+int main(int argc, char *argv[]){
+  int npop;
+  string SNPfile;
+  string probfile;
+  string out;
   
+  
+  for (int i = 1; i < argc; i++) {
+    string param = argv[i];
+    if (param[0] != '-') {
+      cerr << "Invalid argument format. Expected -param value or -param \n";
+      return 1;
+    }
+    param = param.substr(1);  // Remove the -
+    
+    if (param == "npop") {
+      npop=stoi(argv[++i]);
+    }else if (param == "SNPfile") {
+      SNPfile = argv[++i];
+    }else if (param == "probfile") {
+      probfile = argv[++i];
+    }else if (param == "out") {
+      out = argv[++i];
+    } else {
+      cerr << "Unknown argument: " << param << ".\n";
+      return 1;
+    }
+  }
+  
+  vector<int> SNPidx=readSNP(SNPfile);  //start from 1
+  int nsnp=SNPidx.size();
+  
+  vector<vector<double>> painting(vector<vector<double>>(nsnp, vector<double>(npop)));
   
   //open files
   vector<string> filename;
   for(int k=0;k<npop;++k){
-    filename.push_back("chr19_1000G_linear_pop"+to_string(k)+".txt.gz");
+    filename.push_back(out+"pop"+to_string(k)+".txt.gz");
   }
   vector<ogzstream> files(npop);
   for(int k=0;k<npop;++k){
@@ -93,13 +118,13 @@ int main(){
       if(end==1){
         for(int k=0;k<npop;++k){
           lineStream >> vl;
-          prev_prob[k]=vl;
-          current_prob[k]=vl;
+          prev_prob[k]=vl*0.01;
+          current_prob[k]=vl*0.01;
         }
       }else{
         for(int k=0;k<npop;++k){
           lineStream >> vl;
-          current_prob[k]=vl;
+          current_prob[k]=vl*0.01;
         }
       }
       if(SNPidx[j]>=start && SNPidx[j]<=end){

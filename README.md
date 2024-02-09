@@ -172,7 +172,7 @@ The output file for this example includes ``ref_vs_ref_prob.txt.gz``, ``ref_vs_r
 # Extract the local ancestry probabilities of certain SNPs from the output files
 We have provided the C++ and R codes (C++ is much faster than R) to extract the local ancestry probabilities of certain SNPs from different output formats (constant, linear or raw) in the folder ``process_output``, which also includes the example data files.
 
-The .cpp files with suffix ``_hap.cpp`` extract probabilities for each haplotype, and those without ``_hap.cpp`` extract probabilities for each diploid individual.
+The .cpp files with suffix ``_hap.cpp`` extract probabilities for each haplotype, and those without ``_hap.cpp`` extract probabilities for each diploid individual, i.e. average over two copies.
 
 For example, to extract the local ancestry probabilities of 5000 SNPs (whose indices are contained in ``chr19_GWAS_SNPs.txt``) stored in constant form with C++, we first compile with
 

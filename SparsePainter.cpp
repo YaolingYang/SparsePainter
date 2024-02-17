@@ -3388,7 +3388,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -window [number>0]: The window for calculating LDA score (LDAS) in centiMorgan (default=4)." << endl<< endl;
     
-    cout << "  -matchfile [file]: The file name of the set-maximal match file which is the output of pbwt -maxWithin. This can only be used for painting reference samples against themselves. When [-matchfile] is given, there is no need to provide [-reffile] and [-targetfile], because all the match information required for painting is contained in [-matchfile]. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time." << endl<< endl;
+    cout << "  -matchfile [file]: The file name of the set-maximal match file which is the output of pbwt -maxWithin (https://github.com/richarddurbin/pbwt). This can only be used for painting reference samples against themselves. When [-matchfile] is given, there is no need to provide [-reffile] and [-targetfile], because all the match information required for painting is contained in [-matchfile]. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time." << endl<< endl;
     
     return 0;
   }
@@ -3438,7 +3438,7 @@ int main(int argc, char *argv[]){
   for (int i = 1; i < argc; i++) {
     string param = argv[i];
     if (param[0] != '-') {
-      cerr << "Invalid argument format. Expected -param value or -param \n";
+      cerr << "Error: Invalid argument format. Expected -param value or -param \n";
       cerr<<"Type -h or -help to see the help file"<<endl;
       return 1;
     }
@@ -3559,7 +3559,7 @@ int main(int argc, char *argv[]){
     } else if (param == "ncores") {
       ncores = stoi(argv[++i]);
     } else {
-      cerr << "Unknown argument: " << param << ".\n";
+      cerr << "Error: Unknown argument: " << param << ".\n";
       cerr<<"Type -h or -help to see the help file"<<endl;
       return 1;
     }
@@ -3567,31 +3567,31 @@ int main(int argc, char *argv[]){
   
   if(reffile.empty()){
     reffile="donor.vcf.gz";
-    cout << "No `-reffile filename' input is found, use donor.vcf.gz as default."<<endl;
+    cout << "Warning: No `-reffile filename' input is found, use donor.vcf.gz as default."<<endl;
   }
   
   if(targetfile.empty()){
     targetfile="target.vcf.gz";
-    cout << "No `-targetfile filename' input is found, use target.vcf.gz as default."<<endl;
+    cout << "Warning: No `-targetfile filename' input is found, use target.vcf.gz as default."<<endl;
   }
   
   if(mapfile.empty()){
     mapfile="map.txt";
-    cout << "No `-mapfile filename' input is found, use map.txt as default."<<endl;
+    cout << "Warning: No `-mapfile filename' input is found, use map.txt as default."<<endl;
   }
   
   if(popfile.empty()){
     popfile="popnames.txt";
-    cout << "No `-popfile filename' input is found, use popnames.txt as default."<<endl;
+    cout << "Warning: No `-popfile filename' input is found, use popnames.txt as default."<<endl;
   }
   
   if(namefile.empty()){
     namefile="targetname.txt";
-    cout << "No `-namefile filename' input is found, use targetname.txt as default."<<endl;
+    cout << "Warning: No `-namefile filename' input is found, use targetname.txt as default."<<endl;
   }
   
   if(rmrelative && !leaveoneout){
-    cout<<"Argument rmrelative is invalid because it only works when -loo is specified"<<endl;
+    cout<<"Error: Argument rmrelative is invalid because it only works when -loo is specified"<<endl;
     abort();
   }
   
@@ -3632,7 +3632,7 @@ int main(int argc, char *argv[]){
   }
   
   if(!runpaint && !chunklength){
-    cerr<<"Please specify at least one of the following command in order to run SparsePainter:"<<endl;
+    cerr<<"Please give at least one of the following command in order to run SparsePainter:"<<endl;
     cerr<<"-prob: output the local ancestry probabilities for each target sample at each SNP."<<endl;
     cerr<<"-chunklength: output the chunk length of each local ancestry for each target sample."<<endl;
     cerr<<"-aveSNP: output the average local ancestry probabilities for each SNP."<<endl;
@@ -3657,23 +3657,23 @@ int main(int argc, char *argv[]){
   }
   if(ncores>ncores_temp){
     ncores = ncores_temp;
-    cout<<"The maximum number of cores available is "<<ncores_temp<<". SparsePainter will use "<<ncores_temp<<" cores for parallel programming only."<<endl;
+    cout<<"Warning: The maximum number of cores available is "<<ncores_temp<<". SparsePainter will use "<<ncores_temp<<" cores for parallel programming only."<<endl;
   }
   
   if(probstore!="raw" && probstore!="constant" && probstore!="linear" && probstore!="cluster"){
-    cerr<<"Invalid parameter given to probstore, using probstore=constant as default"<<endl;
+    cerr<<"Warning: Invalid parameter given to probstore, using probstore=constant as default"<<endl;
     probstore="constant";
   }
   
   if(method!="Viterbi" && method!="EM"){
-    cerr<<"Invalid parameter given to method, using method=Viterbi as default"<<endl;
+    cerr<<"Warning: Invalid parameter given to method, using method=Viterbi as default"<<endl;
     probstore="Viterbi";
   }
   
-  paintall(method, diff_lambda, fixlambda, EM_ite, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, 
-           L_minmatch, haploid, leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, 
-           SNPfile, nmatchfile, outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputnmatch,
-           outputallSNP, rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, LDAfile, LDASfile, AASfile, 
+  paintall(method, diff_lambda, fixlambda, EM_ite, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, L_minmatch, haploid, 
+           leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, SNPfile, nmatchfile, 
+           outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputnmatch,outputallSNP, 
+           rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, LDAfile, LDASfile, AASfile, 
            lambdafile, probstore, window/100, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
   
   return 0;

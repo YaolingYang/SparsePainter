@@ -8,7 +8,10 @@ all: armadillo $(TARGET)
 #.PHONY: setup_armadillo
 
 armadillo:
-	tar -xf armadillo-12.6.5.tar.xz && rm armadillo-12.6.5.tar.xz
+	tar -xf armadillo-12.6.5.tar.xz
+	cd armadillo-12.6.5 && cmake . -DCMAKE_INSTALL_PREFIX=$(ARMA_DIR) -DBUILD_SHARED_LIBS=ON
+	cd armadillo-12.6.5 && make && make install
+	rm -rf armadillo-12.6.5
 
 # Compiler
 CXX = g++

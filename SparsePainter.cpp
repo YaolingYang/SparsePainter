@@ -3364,7 +3364,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -method [Viterbi/EM]: The algorithm used for estimating the recombination scaling constant (default=Viterbi)." << endl<< endl;
     
-    cout << "  -probstore [raw/constant/linear/cluster]: Output the local ancestry probabilities in [raw], [constant], [linear] or [cluster] form (default=constant). For each haplotype, in [raw] form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in [constant] form, we output the range of SNP index, and the painting probabilities that those SNPs share; in [linear] form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than [rmsethre]; in [cluster] form, we perform K-means clustering on the painting of each haplotype with [ncluster] clusters and maximum [max_ite] iterations, and output the average probabilities of each cluster and the cluster of each SNP. Storing in [constant] considerably reduces the file size while has the same accuracy compared with storing in [raw]; storing in [linear] has an even smaller file size but becomes slightly slower and loses some accuracy; storing in [cluster] has the smallest file size but with slowest speed." << endl<< endl;
+    cout << "  -probstore [raw/constant/linear/ASCII/cluster]: Output the local ancestry probabilities in [raw], [constant], [linear], [ASCII] or [cluster] form (default=constant). For each haplotype, in [raw] form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in [constant] form, we output the range of SNP index, and the painting probabilities that those SNPs share; in [linear] form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than [rmsethre]; in [ASCII] form, we store the same results as [linear] form but converted probabilities with ASCII characters; in [cluster] form, we perform K-means clustering on the painting of each haplotype with [ncluster] clusters and maximum [max_ite] iterations, and output the average probabilities of each cluster and the cluster of each SNP. Storing in [constant] considerably reduces the file size while has the same accuracy compared with storing in [raw]; storing in [linear] has an even smaller file size but becomes slightly slower and loses some accuracy; storing in [cluster] has the smallest file size but with slowest speed." << endl<< endl;
     
     cout << "  -dp [integer>0]: The decimal places of the output of local ancestry probabilities (default=2). This also controls the size of the output file for local ancestry probabilities." << endl<< endl;
     
@@ -3438,8 +3438,8 @@ int main(int argc, char *argv[]){
   for (int i = 1; i < argc; i++) {
     string param = argv[i];
     if (param[0] != '-') {
-      cerr << "Error: Invalid argument format. Expected -param value or -param \n";
-      cerr<<"Type -h or -help to see the help file"<<endl;
+      cerr << "Error: Invalid argument format. Expected -param value or -param. \n";
+      cerr<<"Type -h or -help to see the help file."<<endl;
       return 1;
     }
     param = param.substr(1);  // Remove the -
@@ -3451,8 +3451,8 @@ int main(int argc, char *argv[]){
        param=="haploid" || param=="loo"){
       if(i!=argc-1){
         if(argv[i+1][0]!='-'){
-          cerr << "Error: No values should be given following -"<<param<<endl;
-          cerr<<"Type -h or -help to see the help file"<<endl;
+          cerr << "Error: No values should be given following -"<<param<<"."<<endl;
+          cerr<<"Type -h or -help to see the help file."<<endl;
           return 0;
         }
       }
@@ -3468,12 +3468,12 @@ int main(int argc, char *argv[]){
        param=="matchfile" || param=="out" || param=="probstore" ||
        param=="window" || param=="ncores" || param=="dp"){
       if(i==argc-1){
-        cerr << "Error: Parameters should be given following -"<<param<<endl;
-        cerr<<"Type -h or -help to see the help file"<<endl;
+        cerr << "Error: Parameters should be given following -"<<param<<"."<<endl;
+        cerr<<"Type -h or -help to see the help file."<<endl;
         return 0;
       }else if(argv[i+1][0]=='-'){
-        cerr << "Error: Parameters should be given following -"<<param<<endl;
-        cerr<<"Type -h or -help to see the help file"<<endl;
+        cerr << "Error: Parameters should be given following -"<<param<<"."<<endl;
+        cerr<<"Type -h or -help to see the help file."<<endl;
         return 0;
       }
     }
@@ -3560,7 +3560,7 @@ int main(int argc, char *argv[]){
       ncores = stoi(argv[++i]);
     } else {
       cerr << "Error: Unknown argument: " << param << ".\n";
-      cerr<<"Type -h or -help to see the help file"<<endl;
+      cerr<<"Type -h or -help to see the help file."<<endl;
       return 1;
     }
   }
@@ -3591,7 +3591,7 @@ int main(int argc, char *argv[]){
   }
   
   if(rmrelative && !leaveoneout){
-    cout<<"Error: Argument rmrelative is invalid because it only works when -loo is specified"<<endl;
+    cout<<"Error: Argument rmrelative is invalid because it only works when -loo is specified."<<endl;
     abort();
   }
   
@@ -3606,7 +3606,7 @@ int main(int argc, char *argv[]){
   }
   if (!((reffile_vcf && targetfile_vcf) || (reffile_phase && targetfile_phase))) {
     cerr << "The reffile and targetfile should both be vcf (including gzipped vcf) or phase (including gzipped phase) format." << endl;
-    cerr<<"Type -h or -help to see the help file"<<endl;
+    cerr<<"Type -h or -help to see the help file."<<endl;
     return 1;
   }
   
@@ -3640,7 +3640,7 @@ int main(int argc, char *argv[]){
     cerr<<"-LDA: output the LDA of each pair of SNPs."<<endl;
     cerr<<"-LDAS: output the LDAS of each SNP."<<endl;
     cerr<<"-AAS: output the AAS of each SNP."<<endl;
-    cerr<<"Type -h or -help to see the help file"<<endl;
+    cerr<<"Type -h or -help to see the help file."<<endl;
     return 1;
   }
   
@@ -3661,12 +3661,12 @@ int main(int argc, char *argv[]){
   }
   
   if(probstore!="raw" && probstore!="constant" && probstore!="linear" && probstore!="cluster"){
-    cerr<<"Warning: Invalid parameter given to probstore, using probstore=constant as default"<<endl;
+    cerr<<"Warning: Invalid parameter given to probstore, using probstore=constant as default."<<endl;
     probstore="constant";
   }
   
   if(method!="Viterbi" && method!="EM"){
-    cerr<<"Warning: Invalid parameter given to method, using method=Viterbi as default"<<endl;
+    cerr<<"Warning: Invalid parameter given to method, using method=Viterbi as default."<<endl;
     probstore="Viterbi";
   }
   

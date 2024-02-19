@@ -3317,7 +3317,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -popfile [file]: Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as [reffile]). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel." << endl<< endl;
     
-    cout << "  -namefile [file]: Name file that contains the names of samples to be painted." << endl<< endl;
+    cout << "  -namefile [file]: Name file that contains the names of samples to be painted, following the same order as they appear in [targetfile].." << endl<< endl;
     
     cout << "  -out [string]: Prefix of the output file names (default=SparsePainter)." << endl<< endl;
     

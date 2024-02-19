@@ -3313,7 +3313,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -targetfile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set [targetfile] to be the same as [reffile]. The file type of [targetfile] and [reffile] should be the same." << endl<< endl;
     
-    cout << "  -mapfile [file]: Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The number of SNPs must be the same as that in [reffile] and [targetfile]." << endl<< endl;
+    cout << "  -mapfile [file]: Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The SNPs must be the same and of the same order as those in [reffile] and [targetfile]." << endl<< endl;
     
     cout << "  -popfile [file]: Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as [reffile]). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel." << endl<< endl;
     

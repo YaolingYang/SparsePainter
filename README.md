@@ -57,7 +57,7 @@ To run **SparsePainter**, enter the following command:
 
 * **-popfile [file]** Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as ``reffile``). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel.
 
-* **-namefile [file]** Name file that contains the names of samples to be painted, following the same order as the appear in ``targetfile``.
+* **-namefile [file]** Name file that contains the names of samples to be painted, following the same order as they appear in ``targetfile``.
 
 * **-out [string]** Prefix of the output file names (**default=SparsePainter**).
 

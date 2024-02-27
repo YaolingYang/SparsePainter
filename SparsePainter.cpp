@@ -2002,6 +2002,9 @@ void doAAS(vector<double>& pd,
            vector<vector<double>>& aveSNPpainting,
            const string AASfile) {
   
+  default_random_engine generator;
+  normal_distribution<double> distribution(0.0, 1e-6);
+  
   int nsnp = pd.size();
   int npop = aveSNPpainting.size();
   
@@ -2014,7 +2017,8 @@ void doAAS(vector<double>& pd,
   for (int i = 0; i < npop; ++i) {
 #pragma omp parallel for
     for (int j = 0; j < nsnp; ++j) {
-      Astar(j, i) = aveSNPpainting[i][j] - mu[i]; // compute A*(j,k) for all j,k and store it in Astar
+      double random_error = distribution(generator);
+      Astar(j, i) = aveSNPpainting[i][j] - mu[i] + random_error; // compute A*(j,k) for all j,k and store it in Astar
     }
   }
   
@@ -3346,9 +3350,9 @@ int main(int argc, char *argv[]){
     
     cout << "  -diff_lambda: Use different recombination scaling constants for each target sample. If this parameter is not given, the fixed lambda will be output in a text file (.txt) for future reference." << endl<< endl;
     
-    cout << "  -loo: Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If [-loo] is not specified under reference-vs-reference painting ([reffile] = [targetfile]), each individual will be automatically left out of painting." << endl<< endl;
+    cout << "  -loo: Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If [-loo] is not specified under reference-vs-reference painting ([reffile] = [targetfile]), each individual will be automatically left out of painting. For accuracy, please do not use this command if any of the reference populations has very few (e.g. <=5) samples." << endl<< endl;
     
-    cout << "  -rmrelative: Leave out the reference sample that is the most related to the target sample under leave-one-out mode [-loo], if they share at least relafrac proportion of SNPs." << endl<< endl;
+    cout << "  -rmrelative: Leave out the reference sample that is the most related to the target sample under leave-one-out mode [-loo], if they share at least [relafrac] proportion of SNPs of a continuous segment. Please do not use this command for reference-vs-reference painting." << endl<< endl;
     
     cout << "(b) Commands with parameters" << endl<< endl;
     

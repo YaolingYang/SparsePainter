@@ -133,7 +133,7 @@ To run **SparsePainter**, enter the following command:
 
 
 
-# Example
+# Examples
 Here we provide examples to run SparsePainter. Examples are explained in more detail on our [SparsePainter website](https://sparsepainter.github.io/).  
 
 The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (Both vcf version ``donor.vcf.gz`` and phase version ``donor.phase.gz`` are available), and the aim is to paint 500 target individuals (Both vcf version ``target.vcf.gz`` and phase version ``target.phase.gz`` are available). Remember we have compiled SparsePainter in ``SparsePainter``, then we can paint with the following command:

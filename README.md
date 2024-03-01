@@ -18,7 +18,7 @@ To install SparsePainter, please follow the below steps.
 ``cd SparsePainter``  
 ``make``  
 
-
+You can remove lines 10-12 of Makefile when you compile SparsePainter for newer versions, since armadillo has already been installed during your first installation.
 
 # Dependencies
 

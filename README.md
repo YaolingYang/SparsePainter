@@ -191,3 +191,30 @@ It works similarly for extracting paintings in the linear form:
 ``./extract_linear -npop 26 -probfile chr19_1000G_linear_10inds_prob.txt.gz -SNPfile chr19_GWAS_SNPs.txt -out chr19_1000G_linear``
 
 We do not suggest storing in the raw form, as it's not memory-efficient.
+
+# Combine the output of multiple subfiles if you split the target files to run SparsePainter
+To paint large biobanks, it is suggested to split the target samples into multiple (hundreds of) subfiles and paint them separately, which saves memory and computational time. However, people may prefer merge the results of those analyses into a single file for subsequent analysis. Here we explain how to do this for each output.
+
+-prob (for any storage mode): 
+Retain the first subfile, and then append the rows (excluding the first two rows) of the other subfiles.  
+
+-chunklength:
+Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles.  
+
+-aveindpainting:
+Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles.  
+
+-aveSNPpainting:
+Compute the weighted average of all subfiles (weighted by the number of samples in each subfile).
+
+-LDAS:
+Compute the weighted average of all subfiles (weighted by the number of samples in each subfile).
+
+-AAS:
+AAS cannot be directly merged. To obtain the overall AAS, please run SparsePainter without -AAS, but with -aveSNPpainting. Then compute the weighted average of all subfiles (weighted by the number of samples in each subfile). Then compile doAAS.cpp with below or similar commands (depending on your device):
+
+``g++ -I./armadillo-12.6.5/include doAAS.cpp -o doAAS -lz -fopenmp -lpthread -L./armadillo-12.6.5 -larmadillo -llapack -lblas -std=c++0x -g -O3 -Wl,-rpath=./armadillo-12.6.5``
+
+Finally run the code:
+
+``./doAAS -aveSNPfile [your weighted average aveSNPpainting file] -out [your outputfile prefix]``

@@ -193,7 +193,7 @@ It works similarly for extracting paintings in the linear form:
 We do not suggest storing in the raw form, as it's not memory-efficient.
 
 # Combine the output of multiple subfiles if you split the target files to run SparsePainter
-To paint large biobanks, it is suggested to split the target samples into multiple (hundreds of) subfiles and paint them separately, which saves memory and computational time. However, people may prefer merge the results of those analyses into a single file for subsequent analysis. Here we explain how to do this for each output.
+To paint large biobanks, it is suggested to split the target samples into multiple (hundreds of) subfiles and paint them separately, which saves memory and computational time. However, people may prefer to merge the results of those analyses into a single file for subsequent analysis. Here we explain how to do this for each output.
 
 -prob (for any storage mode): 
 Retain the first subfile, and then append the rows (excluding the first two rows) of the other subfiles.  
@@ -207,7 +207,7 @@ Retain the first subfile, and then append the rows (excluding the first row) of 
 -aveSNPpainting:
 Compute the weighted average of all subfiles (weighted by the number of samples in each subfile).
 
--LDAS:
+-LDA and -LDAS:
 Compute the weighted average of all subfiles (weighted by the number of samples in each subfile).
 
 -AAS:

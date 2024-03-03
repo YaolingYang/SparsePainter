@@ -63,19 +63,19 @@ To run **SparsePainter**, enter the following command:
 
 **At least one of the below commands should also be given in order to run SparsePainter**
 
-* **-prob** Output the local ancestry probabilities for each target sample at each SNP. The output file format is a gzipped text file (.txt.gz). The output probabilities need to be standardized by user because of the rounding errors by argument ``dp``.
+* **-prob** Output the local ancestry probabilities for each target sample at each SNP. The output is a gzipped text file (.txt.gz) with format specified in `-probstore`.
 
-* **-chunklength** Output the chunk length of each local ancestry for each target sample. The output file format is a gzipped text file (.txt.gz).
+* **-chunklength** Output the expected length of copied chunks (in centiMorgan) of each local ancestry for each target sample. The output is a gzipped text file (.txt.gz).
 
-* **-aveSNP** Output the average local ancestry probabilities for each SNP. The output file format is a text file (.txt).
+* **-aveSNP** Output the average local ancestry probabilities for each SNP. The output is a text file (.txt).
 
-* **-aveind** Output the average local ancestry probabilities for each target individual. The output file format is a text file (.txt).
+* **-aveind** Output the average local ancestry probabilities for each target individual. The output is a text file (.txt).
 
-* **-LDA** Output the LDA of each pair of SNPs. The output file format is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome.
+* **-LDA** Output the Linakage Disequilibrium of Ancestry (LDA) of each pair of SNPs. The output is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome.
 
-* **-LDAS** Output the LDAS of each SNP. The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome.
+* **-LDAS** Output the Linakage Disequilibrium of Ancestry Score (LDAS) of each SNP. The output is a text file (.txt), including the LDAS and its lower and upper bound, which can be used for quality control. It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome.
 
-* **-AAS** Output the AAS of each SNP. The output file format is a text file (.txt).
+* **-AAS** Output the test statistic of Ancestry Anomaly Score (AAS) of each SNP. The output is a text file (.txt). The AAS test statistic follows chi-squared distribution with K degrees of freedom under the null, where K is the number of reference populations.
 
 * **-outmatch** Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz).
 

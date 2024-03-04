@@ -3327,22 +3327,20 @@ int main(int argc, char *argv[]){
     
     cout << "At least one of the below commands should also be given in order to run SparsePainter" << endl<< endl;
     
-    cout << "  -prob: Output the local ancestry probabilities for each target sample at each SNP. The output file format is a gzipped text file (.txt.gz). The output probabilities need to be standardized by user because of the rounding errors by argument [dp]." << endl<< endl;
+    cout << "  -prob: Output the local ancestry probabilities for each target sample at each SNP. The output is a gzipped text file (.txt.gz) with format specified in [probstore]." << endl<< endl;
     
-    cout << "  -chunklength: Output the chunk length of each local ancestry for each target sample. The output file format is a gzipped text file (.txt.gz)." << endl<< endl;
+    cout << "  -chunklength: Output the expected length of copied chunks (in centiMorgan) of each local ancestry for each target sample. The output is a gzipped text file (.txt.gz)." << endl<< endl;
     
-    cout << "  -aveSNP: Output the average local ancestry probabilities for each SNP. The output file format is a text file (.txt)." << endl<< endl;
+    cout << "  -aveSNP: Output the average local ancestry probabilities for each SNP. The output is a text file (.txt)." << endl<< endl;
     
-    cout << "  -aveind: Output the average local ancestry probabilities for each target individual. The output file format is a text file (.txt)." << endl<< endl;
+    cout << "  -aveind: Output the average local ancestry probabilities for each target individual. The output is a text file (.txt)." << endl<< endl;
     
-    cout << "  -LDA: Output the LDA of each pair of SNPs. The output file format is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome." << endl<< endl;
+    cout << "  -LDA: Output the Linakage Disequilibrium of Ancestry (LDA) of each pair of SNPs. The output is a gzipped text file (.txt.gz). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the chromosome." << endl<< endl;
     
-    cout << "  -LDAS: Output the LDAS of each SNP. The output file format is a text file (.txt). It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome." << endl<< endl;
+    cout << "  -LDAS: Output the Linakage Disequilibrium of Ancestry Score (LDAS) of each SNP. The output is a text file (.txt), including the LDAS and its lower and upper bound, which can be used for quality control. It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome." << endl<< endl;
     
-    cout << "  -AAS: Output the AAS of each SNP. The output file format is a text file (.txt)." << endl<< endl;
-    
-    cout << "  -outmatch: Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz)." << endl<< endl;
-    
+    cout << "  -AAS: Output the test statistic of Ancestry Anomaly Score (AAS) of each SNP. The output is a text file (.txt). The AAS test statistic follows chi-squared distribution with K degrees of freedom under the null, where K is the number of reference populations." << endl<< endl;
+
     cout << "Optional Commands" << endl<< endl;
     cout << "(a) Commands without parameters" << endl<< endl;
     
@@ -3353,6 +3351,8 @@ int main(int argc, char *argv[]){
     cout << "  -loo: Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If [-loo] is not specified under reference-vs-reference painting ([reffile] = [targetfile]), each individual will be automatically left out of painting. For accuracy, please do not use this command if any of the reference populations has very few (e.g. <=5) samples." << endl<< endl;
     
     cout << "  -rmrelative: Leave out the reference sample that is the most related to the target sample under leave-one-out mode [-loo], if they share at least [relafrac] proportion of SNPs of a continuous segment. Please do not use this command for reference-vs-reference painting." << endl<< endl;
+    
+    cout << "  -outmatch: Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz)." << endl<< endl;
     
     cout << "(b) Commands with parameters" << endl<< endl;
     

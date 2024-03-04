@@ -77,8 +77,6 @@ To run **SparsePainter**, enter the following command:
 
 * **-AAS** Output the test statistic of Ancestry Anomaly Score (AAS) of each SNP. The output is a text file (.txt). The AAS test statistic follows chi-squared distribution with K degrees of freedom under the null, where K is the number of reference populations.
 
-* **-outmatch** Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz).
-
 ## Optional Commands
 
 ### Commands without values
@@ -90,6 +88,8 @@ To run **SparsePainter**, enter the following command:
 * **-loo** Paint with leave-one-out strategy: one individual is left out of each population (self from own population). If `-loo` is not specified under reference-vs-reference painting (`reffile=targetfile`), each individual will be automatically left out of painting. For accuracy, please do not use this command if any of the reference populations has very few (e.g. <=5) samples.
 
 * **-rmrelative** Leave out the reference sample that is the most related to the target sample under leave-one-out mode (`-loo`), if they share at least ``relafrac`` proportion of SNPs of a continuous segment. Please do not use this command for reference-vs-reference painting.
+
+* **-outmatch** Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz).
 
 ### Commands with values
 

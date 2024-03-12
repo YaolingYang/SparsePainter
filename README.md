@@ -211,7 +211,7 @@ Compute the weighted average of all subfiles (weighted by the number of samples 
 Compute the weighted average of all subfiles (weighted by the number of samples in each subfile).
 
 ``-AAS``:
-AAS cannot be directly merged. To obtain the overall AAS, please run SparsePainter without -AAS, but with -aveSNPpainting. Then compute the weighted average of all subfiles (weighted by the number of samples in each subfile). Then compile ``doAAS.cpp`` with below or similar commands (depending on your device, see ``Makefile``):
+AAS cannot be directly merged. To obtain the overall AAS, please run SparsePainter without -AAS, but with -aveSNPpainting. Then compute the weighted average of all subfiles (weighted by the number of samples in each subfile). Then compile ``doAAS.cpp`` (contained in the folder ``process_output``) with below or similar commands (depending on your device, see ``Makefile``):
 
 ``g++ -I./armadillo-12.6.5/include doAAS.cpp -o doAAS -lz -fopenmp -lpthread -L./armadillo-12.6.5 -larmadillo -llapack -lblas -std=c++0x -g -O3 -Wl,-rpath=./armadillo-12.6.5``
 

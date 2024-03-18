@@ -856,6 +856,9 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
         }
       }
       
+      //record the position of the next start position of query haplotype
+      //such that we know how many matches are there for this query haplotype
+      
       LoopResult result;
       result.donorid = local_donorid;
       result.startpos = local_startpos;
@@ -863,8 +866,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
       result.queryid = local_startpos.size();
       allResults[idx] = result;
       
-      //record the position of the next start position of query haplotype
-      //such that we know how many matches are there for this query haplotype
     }
     
     nind_left=nind_left-ncores_use;
@@ -954,6 +955,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
   
 }
 
+/////////////////////end of pbwt contents///////////////////////////
 
 
 pair<vector<int>, vector<vector<double>>> kMeans(const mat& data, int ncluster, int max_ite) {
@@ -1113,8 +1115,6 @@ vector<vector<int>> get_matchdata(vector<int>& queryidall,
   }
   return(matchinfo);
 }
-
-/////////////////////end of pbwt contents///////////////////////////
 
 
 

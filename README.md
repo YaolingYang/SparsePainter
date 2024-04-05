@@ -12,7 +12,11 @@
 
 -   Version: 1.0.0
 
--   Reference: [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024).](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v1.article-info)
+-   SparsePainter and PBWTpaint Reference: [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024).](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v1.article-info)
+
+-   LDA, LDA score and AAS Reference: [Barrie, W., Yang, Y., Irving-Pease, E.K. et al. Elevated genetic risk for multiple sclerosis emerged in steppe pastoralist populations. Nature 625, 321–328 (2024)](https://www.nature.com/articles/s41586-023-06618-z)
+
+-   PBWTpaint GitHub Repository: [https://github.com/richarddurbin/pbwt](https://github.com/richarddurbin/pbwt)
 
 ![overview](overview.png)
 

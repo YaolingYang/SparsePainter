@@ -209,10 +209,10 @@ To paint large biobanks, it is suggested to split the target samples into multip
 Retain the first subfile, and then append the rows (excluding the first two rows) of the other subfiles.  
 
 ``-chunklength``:
-Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles.  
+Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles. To obtain genome-wide chunklength, please sum over all chromosomes. 
 
 ``-aveindpainting``:
-Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles.  
+Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles.  To obtain genome-wide average painting for individuals, please compute the weighted average of all chromosomes (weighted by the number of SNPs in each chromosome).
 
 ``-aveSNPpainting``:
 Compute the weighted average of all subfiles (weighted by the number of samples in each subfile).

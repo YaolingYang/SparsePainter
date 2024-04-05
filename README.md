@@ -18,6 +18,7 @@
 
 -   **PBWTpaint GitHub Repository:** [https://github.com/richarddurbin/pbwt](https://github.com/richarddurbin/pbwt)
 
+-   Overview of SparsePainter and PBWTpaint
 ![overview](overview.png)
 
 # Installation

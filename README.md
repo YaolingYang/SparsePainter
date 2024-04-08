@@ -129,11 +129,11 @@ To run **SparsePainter**, enter the following command:
 
 * **-SNPfile [file]** File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by ``probstore``. 
 
-* **-indfrac [number&isin;(0,1)]** The proportion of individuals used to estimate the recombination scaling constant (**default=0.1**).
+* **-indfrac [number&isin;(0,1]]** The proportion of individuals used to estimate the recombination scaling constant (**default=0.1**).
 
 * **-minsnpEM [integer>0]** The minimum number of SNPs used for EM algorithm if ``-method EM`` is specified (**default=2000**).
 
-* **-EMsnpfrac [number&isin;(0,1)]** The proportion of SNPs used for EM algorithm if ``-method EM`` is specified (**default=0.1**). Note that if ``nsnp*EMsnpfrac < minsnpEM``, ``minsnpEM`` SNPs will be used for EM algorithm.
+* **-EMsnpfrac [number&isin;(0,1]]** The proportion of SNPs used for EM algorithm if ``-method EM`` is specified (**default=0.1**). Note that if ``nsnp*EMsnpfrac < minsnpEM``, ``minsnpEM`` SNPs will be used for EM algorithm.
 
 * **-EM_ite [integer>0]** The iteration times for EM algorithm if ``-method EM`` is specified (**default=10**).
 

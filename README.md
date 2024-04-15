@@ -103,7 +103,7 @@ To run **SparsePainter**, enter the following command:
 
 ### Commands with values
 
-* **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default **ncores** uses all the available CPU cores of your device.
+* **-ncores [integer&ge;0]** The number of CPU cores used for the analysis (**default=0**). The default ``ncores`` uses all the available CPU cores of your device.
 
 * **-fixlambda [number&ge;0]** The value of the fixed recombination scaling constant (**default=0**). **SparsePainter** will estimate lambda as the average recombination scaling constant of ``indfrac`` target samples under the default ``fixlambda`` and ``diff_lambda``.
 
@@ -127,7 +127,7 @@ To run **SparsePainter**, enter the following command:
 
 * **-kmeans_ite [integer>0]** The number of maximum iterations (**default=30**) for K-means clustering under ``-probstore cluster`` mode.
 
-* **-SNPfile [file]** File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the raw form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by ``probstore``. 
+* **-SNPfile [file]** File contains the specific physical position (in base) of the SNPs whose local ancestry probabilities are output in the ``raw`` form. If this file is not specified (default), then all the SNPs' local ancestry probabilities will be output in the form specified by ``probstore``. 
 
 * **-indfrac [number&isin;(0,1]]** The proportion of individuals used to estimate the recombination scaling constant (**default=0.1**).
 

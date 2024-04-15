@@ -3313,9 +3313,9 @@ int main(int argc, char *argv[]){
     cout << "Required Commands" << endl<< endl;
     cout << "SparsePainter has the following 6 required commands together with additional commands that specify the desired output." << endl<< endl;
     
-    cout << "  -reffile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples." << endl<< endl;
+    cout << "  -reffile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the (phased non-missing) genotype data for the reference samples." << endl<< endl;
     
-    cout << "  -targetfile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set [targetfile] to be the same as [reffile]. The file type of [targetfile] and [reffile] should be the same." << endl<< endl;
+    cout << "  -targetfile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the (phased non-missing) genotype data for target samples. To paint reference samples against themselves, please set [targetfile] to be the same as [reffile]. The file type of [targetfile] and [reffile] should be the same." << endl<< endl;
     
     cout << "  -mapfile [file]: Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The SNPs must be the same and of the same order as those in [reffile] and [targetfile]." << endl<< endl;
     

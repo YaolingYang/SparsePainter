@@ -59,9 +59,9 @@ To run **SparsePainter**, enter the following command:
 
 **SparsePainter** has below 6 required commands together with additional commands that specify the desired output.
 
-* **-reffile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for all the reference samples.
+* **-reffile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the (phased non-missing) genotype data for the reference samples.
 
-* **-targetfile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the genotype data for each target sample. To paint reference samples against themselves, please set ``targetfile`` to be the same as ``reffile``. The file type of ``targetfile`` and ``reffile`` should be the same.
+* **-targetfile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the (phased non-missing) genotype data for the target samples. To paint reference samples against themselves, please set ``targetfile`` to be the same as ``reffile``. The file type of ``targetfile`` and ``reffile`` should be the same.
 
 * **-mapfile [file]** Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The SNPs must be the same and of the same order as those in ``reffile`` and ``targetfile``.
 

@@ -75,7 +75,9 @@ To run **SparsePainter**, enter the following command:
 
 * **-prob** Output the local ancestry probabilities for each target sample at each SNP. The output is a gzipped text file (.txt.gz) with format specified in `-probstore`.
 
-* **-chunk** Output the expected length (in centiMorgan) and number of copied chunks of each local ancestry for each target sample. The output are two gzipped text files (.txt.gz).
+* **-chunklength** Output the expected length (in centiMorgan) of copied chunks of each local ancestry for each target sample. The output is a gzipped text file (.txt.gz).
+
+* **-chunkcount** Output the expected number of copied chunks of each local ancestry for each target sample. The output is a gzipped text file (.txt.gz).
 
 * **-aveSNP** Output the average local ancestry probabilities for each SNP. The output is a text file (.txt).
 
@@ -151,13 +153,13 @@ The example dataset is contained in the /example folder. This example includes 8
 *  If your input file is in vcf or vcf.gz format:
 
 ``
-./SparsePainter -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunk -aveSNP -aveind
+./SparsePainter -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunklength -chunkcount -aveSNP -aveind
 ``
 
 *  If your input file is in phase of phase.gz format:
 
 ``
-./SparsePainter -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunk -aveSNP -aveind
+./SparsePainter -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunklength -chunkcount -aveSNP -aveind
 ``
 
 The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_chunkcount.txt.gz``, ``target_vs_ref_aveSNPprob.txt``, ``target_vs_ref_aveindprob.txt`` and ``target_vs_ref_fixedlambda.txt``.
@@ -167,13 +169,13 @@ To paint the reference individuals against themselves with leave-one-out strateg
 *  If your input file is in vcf or vcf.gz format:
 
 ``
-./SparsePainter -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile refname.txt -out ref_vs_ref -prob -chunk -aveSNP -aveind -loo
+./SparsePainter -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile refname.txt -out ref_vs_ref -prob -chunklength -chunkcount -aveSNP -aveind -loo
 ``
 
 *  If your input file is in phase or phase.gz format:
 
 ``
-./SparsePainter -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -namefile refname.txt -out ref_vs_ref -prob -chunk -aveSNP -aveind -loo
+./SparsePainter -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -namefile refname.txt -out ref_vs_ref -prob -chunklength -chunkcount -aveSNP -aveind -loo
 ``
 
 The output file for this example includes ``ref_vs_ref_prob.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_chunkcount.txt.gz``, ``ref_vs_ref_aveSNPprob.txt``, ``ref_vs_ref_aveindprob.txt`` and ``ref_vs_ref_fixedlambda.txt``.
@@ -208,7 +210,7 @@ To paint large biobanks, it is suggested to split the target samples into multip
 * ``-prob`` (for any storage mode): 
 Retain the first subfile, and then append the rows (excluding the first two rows) of the other subfiles.  
 
-* ``-chunk``:
+* ``-chunklength`` and ``-chunkcount``:
 Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles. To obtain genome-wide chunk length and chunk count, please sum over all chromosomes. 
 
 * ``-aveindpainting``:
@@ -232,6 +234,6 @@ Finally run the code:
 <a id="changelog"></a>
 # Changelog
 * **2024-04-24 Version 1.1.0**  
-Enable the output of expected number of copied chunks. We replaced command ``-chunklength`` with ``-chunk``. When given ``chunk``, both expected length and number of copied chunks will be computed and output.  
+Enable the output of expected number of copied chunks by command ``-chunkcount``.
 * **2024-03-12 Version 1.0.0**  
 Release SparsePainter and preprint.

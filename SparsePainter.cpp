@@ -2512,7 +2512,7 @@ void paintall(const string method,
       if(run=="both"){
         cout<<"Calculating painting, chunk length, and chunk count for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
       }else{
-        cout<<"Calculating chunk length for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        cout<<"Calculating chunk length and chunk count for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
       }
     }
     

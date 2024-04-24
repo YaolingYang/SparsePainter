@@ -10,7 +10,7 @@
 
 -   **SparsePainter website:**  https://sparsepainter.github.io/
 
--   Version: 1.1.0 (Please find **Changelog** at the bottom to track updates)
+-   Version: 1.1.0 (**[Changelog](#changelog)**)
 
 -   **SparsePainter and PBWTpaint Reference:** [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024).](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v1.article-info)
 
@@ -229,7 +229,9 @@ Finally run the code:
 
 ``./doAAS -aveSNPfile [your weighted average aveSNPpainting file] -out [your output file prefix]``
 
-
+<a id="changelog"></a>
 # Changelog
-* **2024-04-24 Version 1.1.0** Enable the output of expected number of copied chunks. We replaced command ``-chunklength`` with ``-chunk``. When given ``chunk``, both expected length and number of copied chunks will be computed and output.  
-* **2024-03-12 Version 1.0.0** Release SparsePainter and preprint.
+* **2024-04-24 Version 1.1.0**  
+Enable the output of expected number of copied chunks. We replaced command ``-chunklength`` with ``-chunk``. When given ``chunk``, both expected length and number of copied chunks will be computed and output.  
+* **2024-03-12 Version 1.0.0**  
+Release SparsePainter and preprint.

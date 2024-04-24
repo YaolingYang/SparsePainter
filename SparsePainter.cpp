@@ -1869,13 +1869,13 @@ vector<double> chunkcount_each(hMat& mat,
   
   vector<double> sumc(npop,0.0);
   
-  double sumF = exp(-logmultF[nsnp-1]);
+  double sF = exp(logmultF[1]+logmultB[1]-logmultF[nsnp-1]);
   vector<int> twj1=mat.m[1].k;
   vector<double> valuef1=forward_prob.m[1].getall(twj1);
   vector<double> valueb1=backward_prob.m[1].getall(twj1);
   
   for(int i=0;i<twj1.size();++i){
-    sumc[refindex[twj1[i]]]+=sumF*valuef1[i]*valueb1[i]*exp(logmultF[1])*exp(logmultB[1]);
+    sumc[refindex[twj1[i]]]+=sF*valuef1[i]*valueb1[i];
   }
   
   for(int j=0;j<nsnp-1;++j){
@@ -3630,10 +3630,10 @@ int main(int argc, char *argv[]){
     if (param == "prob") {
       runpaint=true;
       outputpainting=true;
-    }else if (param == "chunklength") {
+    } else if (param == "chunklength") {
       clength=true;
       chunk=true;
-    }else if (param == "chunkcount") {
+    } else if (param == "chunkcount") {
       ccount=true;
       chunk=true;
     } else if (param == "aveSNP") {
@@ -3830,6 +3830,6 @@ int main(int argc, char *argv[]){
            outputpainting, clength,ccount, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputnmatch,outputallSNP, 
            rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, chunkcountfile, LDAfile, LDASfile, AASfile, 
            lambdafile, probstore, window/100, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
-  
+  cout<<"SparsePainter completed successfully!"<<endl;
   return 0;
 } 

@@ -10,7 +10,7 @@
 
 -   **SparsePainter website:**  https://sparsepainter.github.io/
 
--   Version: 1.0.0
+-   Version: 1.1.0 (Please find **Changelog** at the bottom to track updates)
 
 -   **SparsePainter and PBWTpaint Reference:** [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024).](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v1.article-info)
 
@@ -75,7 +75,7 @@ To run **SparsePainter**, enter the following command:
 
 * **-prob** Output the local ancestry probabilities for each target sample at each SNP. The output is a gzipped text file (.txt.gz) with format specified in `-probstore`.
 
-* **-chunklength** Output the expected length of copied chunks (in centiMorgan) of each local ancestry for each target sample. The output is a gzipped text file (.txt.gz).
+* **-chunk** Output the expected length (in centiMorgan) and number of copied chunks of each local ancestry for each target sample. The output are two gzipped text files (.txt.gz).
 
 * **-aveSNP** Output the average local ancestry probabilities for each SNP. The output is a text file (.txt).
 
@@ -148,35 +148,35 @@ Here we provide examples to run SparsePainter. Examples are explained in more de
 
 The example dataset is contained in the /example folder. This example includes 8000 reference individuals from 4 populations with 2091 SNPs (Both vcf version ``donor.vcf.gz`` and phase version ``donor.phase.gz`` are available), and the aim is to paint 500 target individuals (Both vcf version ``target.vcf.gz`` and phase version ``target.phase.gz`` are available). Remember we have compiled SparsePainter in ``SparsePainter``, then we can paint with the following command:
 
-(a) If your input file is in vcf or vcf.gz format:
+*  If your input file is in vcf or vcf.gz format:
 
 ``
-./SparsePainter -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunklength -aveSNP -aveind
+./SparsePainter -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunk -aveSNP -aveind
 ``
 
-(b) If your input file is in phase of phase.gz format:
+*  If your input file is in phase of phase.gz format:
 
 ``
-./SparsePainter -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunklength -aveSNP -aveind
+./SparsePainter -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunk -aveSNP -aveind
 ``
 
-The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_aveSNPprob.txt``, ``target_vs_ref_aveindprob.txt`` and ``target_vs_ref_fixedlambda.txt``.
+The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_chunkcount.txt.gz``, ``target_vs_ref_aveSNPprob.txt``, ``target_vs_ref_aveindprob.txt`` and ``target_vs_ref_fixedlambda.txt``.
 
 To paint the reference individuals against themselves with leave-one-out strategy, run with:
 
-(a) If your input file is in vcf or vcf.gz format:
+*  If your input file is in vcf or vcf.gz format:
 
 ``
-./SparsePainter -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile refname.txt -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
+./SparsePainter -reffile donor.vcf.gz -targetfile donor.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile refname.txt -out ref_vs_ref -prob -chunk -aveSNP -aveind -loo
 ``
 
-(b) If your input file is in phase or phase.gz format:
+*  If your input file is in phase or phase.gz format:
 
 ``
-./SparsePainter -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -namefile refname.txt -out ref_vs_ref -prob -chunklength -aveSNP -aveind -loo
+./SparsePainter -reffile donor.phase.gz -targetfile donor.phase.gz -popfile popnames.txt -mapfile map.txt -namefile refname.txt -out ref_vs_ref -prob -chunk -aveSNP -aveind -loo
 ``
 
-The output file for this example includes ``ref_vs_ref_prob.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_aveSNPprob.txt``, ``ref_vs_ref_aveindprob.txt`` and ``ref_vs_ref_fixedlambda.txt``.
+The output file for this example includes ``ref_vs_ref_prob.txt.gz``, ``ref_vs_ref_chunklength.txt.gz``, ``ref_vs_ref_chunkcount.txt.gz``, ``ref_vs_ref_aveSNPprob.txt``, ``ref_vs_ref_aveindprob.txt`` and ``ref_vs_ref_fixedlambda.txt``.
 
 
 # Extract the local ancestry probabilities of certain SNPs from the output files
@@ -205,22 +205,22 @@ We do not suggest storing in the raw form, as it's not memory-efficient.
 # Combine the output of multiple subfiles if you split the target files to run SparsePainter
 To paint large biobanks, it is suggested to split the target samples into multiple (hundreds of) subfiles and paint them separately, which saves memory and computational time. However, people may prefer merge the results of those analyses into a single file for subsequent analysis. Here we explain how to do this for each output.
 
-``-prob`` (for any storage mode): 
+* ``-prob`` (for any storage mode): 
 Retain the first subfile, and then append the rows (excluding the first two rows) of the other subfiles.  
 
-``-chunklength``:
-Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles. To obtain genome-wide chunklength, please sum over all chromosomes. 
+* ``-chunk``:
+Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles. To obtain genome-wide chunk length and chunk count, please sum over all chromosomes. 
 
-``-aveindpainting``:
+* ``-aveindpainting``:
 Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles.  To obtain genome-wide average painting for individuals, please compute the weighted average of all chromosomes (weighted by the number of SNPs in each chromosome).
 
-``-aveSNPpainting``:
+* ``-aveSNPpainting``:
 Compute the weighted average of all subfiles (weighted by the number of samples in each subfile).
 
-``-LDA`` and ``-LDAS``:
+* ``-LDA`` and ``-LDAS``:
 Compute the weighted average of all subfiles (weighted by the number of samples in each subfile).
 
-``-AAS``:
+* ``-AAS``:
 AAS cannot be directly merged. To obtain the overall AAS, please run SparsePainter without -AAS, but with -aveSNPpainting. Then compute the weighted average of all subfiles (weighted by the number of samples in each subfile). Then compile ``doAAS.cpp`` (contained in the folder ``process_output``) with below or similar commands (depending on your device, see ``Makefile``):
 
 ``g++ -I./armadillo-12.6.5/include doAAS.cpp -o doAAS -lz -fopenmp -lpthread -L./armadillo-12.6.5 -larmadillo -llapack -lblas -std=c++0x -g -O3 -Wl,-rpath=./armadillo-12.6.5``
@@ -228,3 +228,8 @@ AAS cannot be directly merged. To obtain the overall AAS, please run SparsePaint
 Finally run the code:
 
 ``./doAAS -aveSNPfile [your weighted average aveSNPpainting file] -out [your output file prefix]``
+
+
+# Changelog
+* **2024-04-24 Version 1.1.0** Enable the output of expected number of copied chunks. We replaced command ``-chunklength`` with ``-chunk``. When given ``chunk``, both expected length and number of copied chunks will be computed and output.  
+* **2024-03-12 Version 1.0.0** Release SparsePainter and preprint.

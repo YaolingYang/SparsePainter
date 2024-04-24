@@ -1642,7 +1642,7 @@ double est_lambda_EM_average(const hAnc& refidx,
   
   int lambda_max=static_cast<int>(nsnp/gdall);
   
-
+  
   vector<int> allsamples;
   vector<int> popstart={0}; //the start position of different population samples
   
@@ -1754,7 +1754,7 @@ hMat indpainting(const hMat& mat,
                  const int dp,
                  pair<hMat, vector<double>>& forwardprob,
                  pair<hMat, vector<double>>& backwardprob)
-  {
+{
   
   int precision=pow(10,dp);
   
@@ -1771,23 +1771,23 @@ hMat indpainting(const hMat& mat,
     vector<double> popprob(npop,0);
     int popidx;
     int refnumberidx;
-
+    
     for(int k=0;k<margidx.size();++k){
       // the number of the reference samples
       refnumberidx=margidx[k]; 
-        
+      
       // search this reference sample belongs to which population
       popidx=refindex[refnumberidx]; 
       // update the probability of this population
-
+      
       popprob[popidx] += marginal_prob.m[j].get(refnumberidx);
     }
-
+    
     double probsum=vec_sum(popprob);
     for(int i=0; i<npop; ++i){
       marginal_prob_pop.m[j].set(i,round(popprob[i]/probsum* precision)/precision);
     }
-
+    
     
   }
   return(marginal_prob_pop);
@@ -1796,7 +1796,6 @@ hMat indpainting(const hMat& mat,
 
 vector<double> chunklength_each(vector<double>& gd, 
                                 hMat& mat, 
-                                const double lambda, 
                                 const int npop,
                                 const vector<int>& refindex,
                                 pair<hMat, vector<double>>& forwardprob,
@@ -1851,6 +1850,55 @@ vector<double> chunklength_each(vector<double>& gd,
     suml[k]=suml[k]*standardize_factor;
   }
   return(suml);
+}
+
+vector<double> chunkcount_each(hMat& mat, 
+                               const int npop,
+                               const vector<int>& refindex,
+                               pair<hMat, vector<double>>& forwardprob,
+                               pair<hMat, vector<double>>& backwardprob,
+                               const vector<double>& sameprob){
+  //calculate chunk length for each haplotype
+  int nsnp=mat.d2;
+  
+  hMat forward_prob=forwardprob.first;
+  vector<double> logmultF=forwardprob.second;
+  
+  hMat backward_prob=backwardprob.first;
+  vector<double> logmultB=backwardprob.second;
+  
+  vector<double> sumc(npop,0.0);
+  
+  double sumF = exp(-logmultF[nsnp-1]);
+  vector<int> twj1=mat.m[1].k;
+  vector<double> valuef1=forward_prob.m[1].getall(twj1);
+  vector<double> valueb1=backward_prob.m[1].getall(twj1);
+  
+  for(int i=0;i<twj1.size();++i){
+    sumc[refindex[twj1[i]]]+=sumF*valuef1[i]*valueb1[i]*exp(logmultF[1])*exp(logmultB[1]);
+  }
+  
+  for(int j=0;j<nsnp-1;++j){
+    
+    double al = exp(logmultF[j+1]+logmultB[j+1]-logmultF[nsnp-1]);
+    double ar = exp(logmultF[j]+logmultB[j+1]-logmultF[nsnp-1]);
+    vector<int> twj=mat.m[j+1].k;
+    vector<double> valuefprev=forward_prob.m[j].getall(twj);
+    vector<double> valuef=forward_prob.m[j+1].getall(twj);
+    vector<double> valueb=backward_prob.m[j+1].getall(twj);
+    
+    // different chunk length for different populations
+    vector<double> sumcright(npop,0.0);
+    
+    for(int i=0;i<twj.size();++i){
+      sumcright[refindex[twj[i]]]+=al*valuef[i]*valueb[i]-ar*valuefprev[i]*valueb[i]*sameprob[j];
+    }
+    
+    for(int k=0;k<npop;++k){
+      sumc[k]+=sumcright[k];
+    }
+  }
+  return(sumc);
 }
 
 
@@ -2095,6 +2143,7 @@ void paintall(const string method,
               const string aveSNPprobfile,
               const string aveindprobfile,
               const string chunklengthfile,
+              const string chunkcountfile,
               const string LDAfile,
               const string LDASfile,
               const string AASfile,
@@ -2347,7 +2396,7 @@ void paintall(const string method,
   
   //output the painting into probfile
   ogzstream outputFile;
-  if(outputpainting && run!="chunklength"){
+  if(outputpainting && run!="chunk"){
     outputFile.open(probfile.c_str());
     if (!outputFile) {
       cerr << "Error: unable to open file: " << probfile << endl;
@@ -2394,19 +2443,32 @@ void paintall(const string method,
   }
   
   ogzstream outputclFile;
+  ogzstream outputccFile;
   if(run!="prob"){
     outputclFile.open(chunklengthfile.c_str());
+    outputccFile.open(chunkcountfile.c_str());
     if (!outputclFile) {
       cerr << "Error: unable to open file: " << chunklengthfile << endl;
       abort();
     }
+    if (!outputccFile) {
+      cerr << "Error: unable to open file: " << chunkcountfile << endl;
+      abort();
+    }
     outputclFile << "indnames" << " ";
+    outputccFile << "indnames" << " ";
     for (int i = 0; i < npop; ++i) {
       outputclFile <<"pop";
+      outputccFile <<"pop";
       outputclFile << fixed << setprecision(0) << i;
-      if(i != npop-1) outputclFile << " ";
+      outputccFile << fixed << setprecision(0) << i;
+      if(i != npop-1){
+        outputclFile << " ";
+        outputccFile << " ";
+      } 
     }
     outputclFile << "\n";
+    outputccFile << "\n";
   }
   
   //output nmatch file
@@ -2430,6 +2492,7 @@ void paintall(const string method,
                                                 vector<vector<double>>(npop, vector<double>(nsnp)));
     
     vector<vector<double>> chunklength(nsamples_use, vector<double>(npop));
+    vector<vector<double>> chunkcount(nsamples_use, vector<double>(npop));
     
     // get the matches before the loop
     vector<vector<vector<int>>> targetmatch_use(nsamples_use);
@@ -2447,7 +2510,7 @@ void paintall(const string method,
       cout<<"Calculating painting for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
     }else{
       if(run=="both"){
-        cout<<"Calculating painting and chunk length for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        cout<<"Calculating painting, chunk length, and chunk count for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
       }else{
         cout<<"Calculating chunk length for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
       }
@@ -2514,8 +2577,8 @@ void paintall(const string method,
         }else{
           for(int j=0;j<npop;++j){
             if(rmrelative && maxPHAT[j]/nsnp/2>=relafrac){
-                removeidx.push_back(maxind[j]*2);
-                removeidx.push_back(maxind[j]*2+1);
+              removeidx.push_back(maxind[j]*2);
+              removeidx.push_back(maxind[j]*2+1);
             }else{
               int rmidx1=randomsample(refidx.findrows(j),1)[0];
               removeidx.push_back(rmidx1);
@@ -2530,7 +2593,7 @@ void paintall(const string method,
               }
             }
             removeRowsWithValue(targetmatchdata,removeidx);
-            }
+          }
           
         }
       }
@@ -2556,7 +2619,7 @@ void paintall(const string method,
       pair<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
       pair<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
       
-      if(run!="chunklength"){
+      if(run!="chunk"){
         hMat pind=indpainting(mat,gd,lambda_use,npop,refindex,dp,f,b);
         
         vector<vector<double>> pind_dense=hMatrix2matrix(pind);
@@ -2568,14 +2631,18 @@ void paintall(const string method,
       }
       
       if(run!="prob"){
-        vector<double> cl=chunklength_each(gd,mat,lambda_use,npop,refindex,f,b,gdall);
+        vector<double> cl=chunklength_each(gd,mat,npop,refindex,f,b,gdall);
         for(int j=0;j<npop;++j){
           chunklength[ii-nhap_use+nhap_left][j]=cl[j];
+        }
+        vector<double> cc=chunkcount_each(mat,npop,refindex,f,b,sameprob);
+        for(int j=0;j<npop;++j){
+          chunkcount[ii-nhap_use+nhap_left][j]=cc[j];
         }
       }
     }
     
-    if(run!="chunklength"){
+    if(run!="chunk"){
       //compute average painting for each SNP
       if(outputaveSNPpainting||outputAAS){
         for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
@@ -3099,30 +3166,49 @@ void paintall(const string method,
       if(haploid){
         for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
           outputclFile << indnames[ii] << " ";
+          outputccFile << indnames[ii] << " ";
           for(int j=0;j<npop;++j){
             outputclFile << fixed << setprecision(5) << chunklength[ii-nhap_use+nhap_left][j];
-            if(j!=npop-1) outputclFile << " ";
+            outputccFile << fixed << setprecision(5) << chunkcount[ii-nhap_use+nhap_left][j];
+            if(j!=npop-1){
+              outputclFile << " ";
+              outputccFile << " ";
+            } 
           }
           outputclFile << "\n";
+          outputccFile << "\n";
         }
       }else{
         for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
           outputclFile << indnames[ii] <<"_0 ";
+          outputccFile << indnames[ii] <<"_0 ";
           for(int j=0;j<npop;++j){
             outputclFile << fixed << setprecision(3) << chunklength[2*ii-nhap_use+nhap_left][j];
-            if(j!=npop-1) outputclFile << " ";
+            outputccFile << fixed << setprecision(3) << chunkcount[2*ii-nhap_use+nhap_left][j];
+            if(j!=npop-1){
+              outputclFile << " ";
+              outputccFile << " ";
+            }
           }
           outputclFile << "\n";
+          outputccFile << "\n";
           
           outputclFile << indnames[ii] <<"_1 ";
+          outputccFile << indnames[ii] <<"_1 ";
           for(int j=0;j<npop;++j){
             outputclFile << fixed << setprecision(3) << chunklength[2*ii-nhap_use+nhap_left+1][j];
-            if(j!=npop-1) outputclFile << " ";
+            outputccFile << fixed << setprecision(3) << chunkcount[2*ii-nhap_use+nhap_left+1][j];
+            if(j!=npop-1){
+              outputclFile << " ";
+              outputccFile << " ";
+            }
           }
           outputclFile << "\n";
+          outputccFile << "\n";
         }
       }
       vector<vector<double>>().swap(chunklength);
+      vector<vector<double>>().swap(chunkcount);
     }
     
     //output nmatch file
@@ -3164,10 +3250,11 @@ void paintall(const string method,
   
   if(run!="prob"){
     outputclFile.close();
+    outputccFile.close();
   }
   
   
-  if(run!="chunklength"){
+  if(run!="chunk"){
     if(outputpainting){
       outputFile.close();
     }
@@ -3304,7 +3391,7 @@ int main(int argc, char *argv[]){
   // Check if no commands are provided
   if (argc == 1 || string(argv[1]) == "-help" || string(argv[1]) == "-h") {
     cout << "Program: SparsePainter" << endl<< endl;
-    cout << "Version: 1.0.0" << endl<< endl;
+    cout << "Version: 1.1.0" << endl<< endl;
     cout << "SparsePainter reference: Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024)." << endl<< endl;
     cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl<< endl;
     cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl<< endl;
@@ -3330,7 +3417,7 @@ int main(int argc, char *argv[]){
     
     cout << "  -prob: Output the local ancestry probabilities for each target sample at each SNP. The output is a gzipped text file (.txt.gz) with format specified in [probstore]." << endl<< endl;
     
-    cout << "  -chunklength: Output the expected length of copied chunks (in centiMorgan) of each local ancestry for each target sample. The output is a gzipped text file (.txt.gz)." << endl<< endl;
+    cout << "  -chunk: Output the expected length (in centiMorgan) and number of copied chunks of each local ancestry for each target sample. The output are two gzipped text files (.txt.gz)." << endl<< endl;
     
     cout << "  -aveSNP: Output the average local ancestry probabilities for each SNP. The output is a text file (.txt)." << endl<< endl;
     
@@ -3341,7 +3428,7 @@ int main(int argc, char *argv[]){
     cout << "  -LDAS: Output the Linakage Disequilibrium of Ancestry Score (LDAS) of each SNP. The output is a text file (.txt), including the LDAS and its lower and upper bound, which can be used for quality control. It might be slow: the computational time is proportional to the number of local ancestries and the density of SNPs in the genome." << endl<< endl;
     
     cout << "  -AAS: Output the test statistic of Ancestry Anomaly Score (AAS) of each SNP. The output is a text file (.txt). The AAS test statistic follows chi-squared distribution with K degrees of freedom under the null, where K is the number of reference populations." << endl<< endl;
-
+    
     cout << "Optional Commands" << endl<< endl;
     cout << "(a) Commands without parameters" << endl<< endl;
     
@@ -3400,7 +3487,7 @@ int main(int argc, char *argv[]){
   
   string run="prob";
   bool runpaint=false;
-  bool chunklength=false;
+  bool chunk=false;
   string method="Viterbi";
   bool haploid=false;
   bool leaveoneout=false;
@@ -3449,7 +3536,7 @@ int main(int argc, char *argv[]){
     }
     param = param.substr(1);  // Remove the -
     
-    if(param=="prob" || param=="chunklength" ||
+    if(param=="prob" || param=="chunk" ||
        param=="aveSNP" || param=="aveind" ||
        param=="LDA" || param=="LDAS" || param=="outmatch" || 
        param=="AAS" || param=="diff_lambda" || param=="rmrelative" ||
@@ -3486,8 +3573,8 @@ int main(int argc, char *argv[]){
     if (param == "prob") {
       runpaint=true;
       outputpainting=true;
-    }else if (param == "chunklength") {
-      chunklength=true;
+    }else if (param == "chunk") {
+      chunk=true;
     } else if (param == "aveSNP") {
       aveSNPpainting = true;
       runpaint=true;
@@ -3616,15 +3703,16 @@ int main(int argc, char *argv[]){
   }
   
   string probfile;
-
+  
   probfile=out + "_prob.txt.gz";
-
+  
   string aveSNPprobfile = out + "_aveSNPprob.txt";
   string aveindprobfile = out + "_aveindprob.txt";
   string LDAfile = out + "_LDA.txt.gz";
   string LDASfile = out + "_LDAS.txt";
   string AASfile = out + "_AAS.txt";
   string chunklengthfile = out+ "_chunklength.txt.gz";
+  string chunkcountfile = out+ "_chunkcount.txt.gz";
   string lambdafile = out+ "_fixedlambda.txt";
   string nmatchfile = out + "_nmatches.txt.gz";
   
@@ -3636,10 +3724,10 @@ int main(int argc, char *argv[]){
     outputallSNP=false;
   }
   
-  if(!runpaint && !chunklength){
+  if(!runpaint && !chunk){
     cerr<<"Please give at least one of the following command in order to run SparsePainter:"<<endl;
     cerr<<"-prob: output the local ancestry probabilities for each target sample at each SNP."<<endl;
-    cerr<<"-chunklength: output the chunk length of each local ancestry for each target sample."<<endl;
+    cerr<<"-chunk: output the expected chunk length and chunk connts of each local ancestry for each target sample."<<endl;
     cerr<<"-aveSNP: output the average local ancestry probabilities for each SNP."<<endl;
     cerr<<"-aveind: output the average local ancestry probabilities for each target sample."<<endl;
     cerr<<"-LDA: output the LDA of each pair of SNPs."<<endl;
@@ -3649,11 +3737,11 @@ int main(int argc, char *argv[]){
     return 1;
   }
   
-  if(runpaint && chunklength){
+  if(runpaint && chunk){
     run="both";
   }
-  if(!runpaint && chunklength){
-    run="chunklength";
+  if(!runpaint && chunk){
+    run="chunk";
   }
   
   int ncores_temp= omp_get_num_procs();
@@ -3678,7 +3766,7 @@ int main(int argc, char *argv[]){
   paintall(method, diff_lambda, fixlambda, EM_ite, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, L_minmatch, haploid, 
            leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, SNPfile, nmatchfile, 
            outputpainting, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputnmatch,outputallSNP, 
-           rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, LDAfile, LDASfile, AASfile, 
+           rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, chunkcountfile, LDAfile, LDASfile, AASfile, 
            lambdafile, probstore, window/100, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
   
   return 0;

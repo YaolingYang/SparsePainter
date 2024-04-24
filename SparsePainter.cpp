@@ -3593,7 +3593,7 @@ int main(int argc, char *argv[]){
     }
     param = param.substr(1);  // Remove the -
     
-    if(param=="prob" || param=="chunk" ||
+    if(param=="prob" || param=="chunklength" || param=="chunkcount" ||
        param=="aveSNP" || param=="aveind" ||
        param=="LDA" || param=="LDAS" || param=="outmatch" || 
        param=="AAS" || param=="diff_lambda" || param=="rmrelative" ||

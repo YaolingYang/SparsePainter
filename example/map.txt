@@ -1,4 +1,4 @@
-"pd "gd"
+position(base) genetic_distance(Morgan)
 2741 2.741e-05
 15909 0.00015909
 58401 0.00058401

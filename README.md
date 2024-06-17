@@ -62,9 +62,9 @@ To run **SparsePainter**, enter the following command:
 
 * **-targetfile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the (phased non-missing) genotype data for the target samples. To paint reference samples against themselves, please set ``targetfile`` to be the same as ``reffile``. The file type of ``targetfile`` and ``reffile`` should be the same.
 
-* **-mapfile [file]** Genetic map file that contains two columns with the first line specifying the column names. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The SNPs must be the same and of the same order as those in ``reffile`` and ``targetfile``.
+* **-mapfile [file]** Genetic map file that contains two columns **with headers**. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in **Morgan**). The SNPs must be the same and of the same order as those in ``reffile`` and ``targetfile``.
 
-* **-popfile [file]** Population file of reference individuals that contains two columns. The first column is the names of reference samples (must be in the same order as ``reffile``). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel.
+* **-popfile [file]** Population file of reference individuals that contains two columns **without headers**. The first column is the names of all the reference samples (must be in the same order as ``reffile``). The second column is the population indices of the reference samples. **The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel**.
 
 * **-namefile [file]** Name file that contains the names of samples to be painted, following the same order as they appear in ``targetfile``.
 

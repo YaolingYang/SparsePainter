@@ -10,7 +10,7 @@
 
 -   **SparsePainter website:**  https://sparsepainter.github.io/
 
--   Version: 1.2.0 (**[Changelog](#changelog)**) <font color="red">This version has important changes to the input files.</font>
+-   Version: 1.2.0 (**[Changelog](#changelog)**) <span style="color: red;">This version has important changes to the input files.</span>
 
 -   **SparsePainter and PBWTpaint Reference:** [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024).](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v1.article-info)
 

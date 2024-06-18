@@ -1427,8 +1427,18 @@ pair<vector<double>,vector<double>> readmap(const string& mapfile) {
     lineStream >> column1;
     lineStream >> column2;
     
+    if(!pd.empty() && column1<pd.back()){
+      cerr<<"Error: The physical distance of SNPfile is of the wrong order!"<<endl;
+      abort();
+    }
+    
+    if(!gd.empty() && column2<gd.back()){
+      cerr<<"Error: The genetic distance of SNPfile should be increasing!"<<endl;
+      abort();
+    }
+    
     pd.push_back(column1);
-    gd.push_back(column2);
+    gd.push_back(column2/100);
   }
   
   file.close();
@@ -1467,9 +1477,9 @@ pair<vector<double>,vector<int>> readSNP(const string& SNPfile, vector<double>& 
   return make_pair(oppd,oppd_idx);
 }
 
-vector<int> readpopfile(const string popfile) {
+pair<vector<int>,vector<string>> readpopfile(const string popfile) {
   ifstream file(popfile);
-  vector<int> refindex;
+  vector<string> refindex_raw;
   
   if (!file.is_open()) {
     cerr << "Error: Unable to open file " << popfile << endl;
@@ -1478,18 +1488,32 @@ vector<int> readpopfile(const string popfile) {
   
   string line;
   string column1;
-  int column2;
+  string column2;
   
   // Read the data lines
   while (getline(file, line)) {
     istringstream lineStream(line);
     lineStream >> column1;
     lineStream >> column2;
-    refindex.push_back(column2);
+    refindex_raw.push_back(column2);
   }
   
   file.close();
-  return refindex;
+
+  map<string, int> ref_map;
+  vector<int> refindex;
+  vector<string> refidmatch;
+  int current_index = 0;
+  for (const string& ref : refindex_raw) {
+    if (ref_map.find(ref) == ref_map.end()) {
+      ref_map[ref] = current_index;
+      refidmatch.push_back(ref);
+      current_index++;
+    }
+    refindex.push_back(ref_map[ref]);
+  }
+  
+  return make_pair(refindex,refidmatch);
 }
 
 
@@ -2185,7 +2209,10 @@ void paintall(const string method,
     nsnp_op=SNPidx_op.size();
   }
   
-  vector<int> refindex = readpopfile(popfile);
+  pair<vector<int>,vector<string>> refindex_read = readpopfile(popfile);
+
+  vector<int> refindex=refindex_read.first;
+  vector<string> refmatch=refindex_read.second;
   
   int nref_ind=refindex.size();
   
@@ -2409,7 +2436,7 @@ void paintall(const string method,
         outputFile << "#Storage Mode: Constant" <<"\n";
         outputFile << "SNPidx_start"<< " "<<"SNPidx_end"<< " ";
         for (int j = 0; j < npop; ++j){
-          outputFile << "pop"<<j << " ";
+          outputFile << refmatch[j] << " ";
         }
       }else if(probstore=="raw"){
         outputFile << "#Storage Mode: Raw" <<"\n";
@@ -2423,12 +2450,12 @@ void paintall(const string method,
         outputFile << "#Storage Mode: Linear" <<"\n";
         outputFile << "SNPidx"<< " ";
         for (int j = 0; j < npop; ++j){
-          outputFile << "pop"<<j << " ";
+          outputFile << refmatch[j] << " ";
         }
       }else if (probstore=="cluster"){
         outputFile << "#Storage Mode: Cluster" <<"\n";
         for (int j = 0; j < npop; ++j){
-          outputFile << "pop"<<j << " ";
+          outputFile << refmatch[j] << " ";
         }
       }
     }else{
@@ -2466,15 +2493,13 @@ void paintall(const string method,
     
       for (int i = 0; i < npop; ++i) {
         if(clength){
-          outputclFile <<"pop";
-          outputclFile << fixed << setprecision(0) << i;
+          outputclFile << refmatch[i];
           if(i != npop-1){
             outputclFile << " ";
           } 
         }
         if(ccount){
-          outputccFile <<"pop";
-          outputccFile << fixed << setprecision(0) << i;
+          outputccFile << refmatch[i];
           if(i != npop-1){
             outputccFile << " ";
           } 
@@ -3444,7 +3469,7 @@ int main(int argc, char *argv[]){
   // Check if no commands are provided
   if (argc == 1 || string(argv[1]) == "-help" || string(argv[1]) == "-h") {
     cout << "Program: SparsePainter" << endl<< endl;
-    cout << "Version: 1.1.0" << endl<< endl;
+    cout << "Version: 1.2.0" << endl<< endl;
     cout << "SparsePainter reference: Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024)." << endl<< endl;
     cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl<< endl;
     cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl<< endl;
@@ -3458,9 +3483,9 @@ int main(int argc, char *argv[]){
     
     cout << "  -targetfile [file]: Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the (phased non-missing) genotype data for target samples. To paint reference samples against themselves, please set [targetfile] to be the same as [reffile]. The file type of [targetfile] and [reffile] should be the same." << endl<< endl;
     
-    cout << "  -mapfile [file]: Genetic map file that contains two columns with headers. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in Morgan). The SNPs must be the same and of the same order as those in [reffile] and [targetfile]." << endl<< endl;
+    cout << "  -mapfile [file]: Genetic map file that contains two columns with headers. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in centiMorgan). The SNPs must be the same and of the same order as those in [reffile] and [targetfile]." << endl<< endl;
     
-    cout << "  -popfile [file]: Population file of reference individuals that contains two columns without headers. The first column is the names of all the reference samples (must be in the same order as [reffile]). The second column is the population indices of the reference samples. The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel." << endl<< endl;
+    cout << "  -popfile [file]: Population file of reference individuals that contains two columns without headers. The first column is the names of all the reference samples (must be in the same order as [reffile]). The second column is the population labels of the reference samples, which can be either strings or numbers." << endl<< endl;
     
     cout << "  -namefile [file]: Name file that contains the names of samples to be painted, following the same order as they appear in [targetfile].." << endl<< endl;
     

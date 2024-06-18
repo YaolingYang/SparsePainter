@@ -10,7 +10,7 @@
 
 -   **SparsePainter website:**  https://sparsepainter.github.io/
 
--   Version: 1.1.0 (**[Changelog](#changelog)**)
+-   Version: 1.2.0 (**[Changelog](#changelog)**) <font color="red">This version has important changes to the input files.</font>
 
 -   **SparsePainter and PBWTpaint Reference:** [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024).](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v1.article-info)
 
@@ -62,9 +62,9 @@ To run **SparsePainter**, enter the following command:
 
 * **-targetfile [file]** Reference vcf (including gzipped vcf), or phase (including gzipped phase) file that contains the (phased non-missing) genotype data for the target samples. To paint reference samples against themselves, please set ``targetfile`` to be the same as ``reffile``. The file type of ``targetfile`` and ``reffile`` should be the same.
 
-* **-mapfile [file]** Genetic map file that contains two columns **with headers**. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in **Morgan**). The SNPs must be the same and of the same order as those in ``reffile`` and ``targetfile``.
+* **-mapfile [file]** Genetic map file that contains two columns **with headers**. The first column is the SNP position (in base) and the second column is the genetic distance of each SNP (in **centiMorgan**). The SNPs must be the same and of the same order as those in ``reffile`` and ``targetfile``.
 
-* **-popfile [file]** Population file of reference individuals that contains two columns **without headers**. The first column is the names of all the reference samples (must be in the same order as ``reffile``). The second column is the population indices of the reference samples. **The population indices must be non-positive integers ranging from 0 to k-1, assuming there are k different populations in the reference panel**.
+* **-popfile [file]** Population file of reference individuals that contains two columns **without headers**. The first column is the names of all the reference samples (must be in the same order as ``reffile``). The second column is the population labels of the reference samples, which can be either strings or numbers.
 
 * **-namefile [file]** Name file that contains the names of samples to be painted, following the same order as they appear in ``targetfile``.
 
@@ -232,6 +232,9 @@ Finally run the code:
 
 <a id="changelog"></a>
 # Changelog
+* **2024-06-18 Version 1.2.0**  
+Enable string population labels (the 2nd column of ``popfile``).  
+In the 2nd column of ``mapfile``, change the unit of genetic distance from Morgan to **centiMorgan**.
 * **2024-04-24 Version 1.1.0**  
 Enable the output of expected number of copied chunks by command ``-chunkcount``.
 * **2024-03-12 Version 1.0.0**  

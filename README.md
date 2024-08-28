@@ -12,7 +12,7 @@
 
 -   Version: 1.2.0 (**[Changelog](#changelog)**) ${\color{red}This \space version \space has \space important \space changes \space to \space the \space input \space file \space formats!}$
 
--   **SparsePainter and PBWTpaint Reference:** [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024).](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v2)
+-   **SparsePainter and PBWTpaint Reference:** [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024). doi:10.1101/2024.03.13.24304206](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v2)
 
 -   **Pipeline for** [biobank-scale painting](https://github.com/YaolingYang/SparsePainter/tree/main/painting-pipeline/standard%20painting) and [computing haplotype components (HCs)](https://github.com/YaolingYang/SparsePainter/tree/main/painting-pipeline/Compute%20haplotype%20components%20(HCs)) **are available.**
 

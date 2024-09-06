@@ -145,14 +145,16 @@ To run **SparsePainter**, enter the following command:
 * **-matchfile [file]** The file name of the set-maximal match file which is the output of [pbwt -maxWithin](https://github.com/richarddurbin/pbwt). This can only be used for painting reference samples against themselves. When ``matchfile`` is given, there is no need to provide ``reffile`` and ``targetfile``, because all the match information required for painting is contained in ``matchfile``. Using set-maximal matches is not recommended because set-maximal matches are extremely sparse and will significantly reduce the accuracy, despite saving compute time.
 
 
-# Generate mapfile
-In most scenarios, we suggest using the real recombination map with varying recombinatio rate throughout the genome.   
+# Generate mapfile with fixed recombination rate
+When analysing human genomes, we suggest using the real human recombination map (available from various online resources) which has varying recombination rates throughout the genome. Please follow the file formats of `mapfile` for generating it.  
 
-In certain scenarios, for example for non-human species, using a fixed recombination rate throughout the genome is common. Below we provide the commands for generating the ``mapfile`` from ``input.vcf`` with a fixed recombination rate of 1e-6 cM/bp.  
+In certain scenarios, for example when analysing non-human species, you may use a fixed recombination rate throughout the genome. Below we provide the commands for generating the ``mapfile`` from ``input.vcf`` with a fixed recombination rate of 1e-6 cM/bp.  
 
 ``
 bcftools query -f '%POS\n' input.vcf > sites.txt  
+
 echo -e "pd\tgd" > map.txt  
+
 awk '{print $1"\t"1e-6*$1}' sites.txt >> map.txt  
 ``
 

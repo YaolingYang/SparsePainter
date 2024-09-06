@@ -150,15 +150,11 @@ When analysing human genomes, we suggest using the real human recombination map 
 
 In certain scenarios, for example when analysing non-human species, you may use a fixed recombination rate throughout the genome. Below we provide the commands for generating the ``mapfile`` from ``input.vcf`` with a fixed recombination rate of 1e-6 cM/bp.  
 
-``
+```
 bcftools query -f '%POS\n' input.vcf > sites.txt  
-``
-``
 echo -e "pd\tgd" > map.txt  
-``
-``
 awk '{print $1"\t"1e-6*$1}' sites.txt >> map.txt  
-``
+```
 
 # Examples
 Here we provide examples to run SparsePainter. Examples are explained in more detail on our [SparsePainter website](https://sparsepainter.github.io/).  

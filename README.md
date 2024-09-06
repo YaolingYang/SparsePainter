@@ -151,9 +151,9 @@ In most scenarios, we suggest using the real recombination map with varying reco
 In certain scenarios, for example for non-human species, using a fixed recombination rate throughout the genome is common. Below we provide the commands for generating the ``mapfile`` from ``input.vcf`` with a fixed recombination rate of 1e-6 cM/bp.  
 
 ``
-bcftools query -f '%POS\n' input.vcf > sites.txt
-echo -e "pd\tgd" > map.txt
-awk '{print $1"\t"1e-6*$1}' sites.txt >> map.txt
+bcftools query -f '%POS\n' input.vcf > sites.txt  
+echo -e "pd\tgd" > map.txt  
+awk '{print $1"\t"1e-6*$1}' sites.txt >> map.txt  
 ``
 
 # Examples

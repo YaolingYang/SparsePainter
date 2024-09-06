@@ -146,7 +146,10 @@ To run **SparsePainter**, enter the following command:
 
 
 # Generate mapfile
-In most scenarios, we suggest using the real recombination map. In certain scenarios, for example for non-human species, using fixed recombination rate is common. Below we provide the commands for generating the ``mapfile`` from ``input.vcf`` with a fixed recombination rate of 1e-6 cM/bp.
+In most scenarios, we suggest using the real recombination map with varying recombinatio rate throughout the genome.   
+
+In certain scenarios, for example for non-human species, using a fixed recombination rate throughout the genome is common. Below we provide the commands for generating the ``mapfile`` from ``input.vcf`` with a fixed recombination rate of 1e-6 cM/bp.  
+
 ``
 bcftools query -f '%POS\n' input.vcf > sites.txt
 echo -e "pd\tgd" > map.txt

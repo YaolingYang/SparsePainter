@@ -152,9 +152,11 @@ In certain scenarios, for example when analysing non-human species, you may use 
 
 ``
 bcftools query -f '%POS\n' input.vcf > sites.txt  
-
+``
+``
 echo -e "pd\tgd" > map.txt  
-
+``
+``
 awk '{print $1"\t"1e-6*$1}' sites.txt >> map.txt  
 ``
 

@@ -205,7 +205,7 @@ Then we should specify 4 arguments: `npop` (the number of reference populations)
 
 ``./extract_constant -npop 26 -probfile chr19_1000G_constant_10inds_prob.txt.gz -SNPfile chr19_GWAS_SNPs.txt -out chr19_1000G_constant``
 
-Then the probabilities for each reference population (for all the individuals and selected SNPs) are extracted in one gzipped text file.
+Then we got K files (K is the number of populations), and the probabilities for each reference population (for all the individuals and selected SNPs) are extracted in one gzipped text file. Note that the C++ code averages the probabilities of each individual over its 2 haplotypes (if it's diploid).
 
 It works similarly for extracting paintings in the linear form:
 

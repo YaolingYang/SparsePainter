@@ -281,14 +281,29 @@ for(int j = 0; j<N; ++j){
   if(!haploid){
     for (int i = 0; i<(M-qM)/2; ++i){
       linestr >> x >> y;
-      panel[i*2][j] = (bool)x;
+      if(x!=0 && x!=1){
+        panel[i*2][j] = (bool)x;
+      }else{
+        cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+        abort();
+      }
       linestr >> x;
-      panel[i*2 + 1][j] = (bool)x;
+      if(x!=0 && x!=1){
+        panel[i*2 + 1][j] = (bool)x;
+      }else{
+        cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+        abort();
+      }
     }
   }else{
     for (int i = 0; i<M-qM; ++i){
       linestr >> x;
-      panel[i][j] = (bool)x;
+      if(x!=0 && x!=1){
+        panel[i][j] = (bool)x;
+      }else{
+        cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+        abort();
+      }
     }
   }
 }
@@ -327,24 +342,54 @@ in.close();
       if(!haploid){
         for (int i = 0; i<(M-qM)/2; ++i){
           linestr >> x >> y;
-          panel[i*2][j] = (bool)x;
+          if(x!=0 && x!=1){
+            panel[i*2][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
           linestr >> x;
-          panel[i*2 + 1][j] = (bool)x;
+          if(x!=0 && x!=1){
+            panel[i*2 + 1][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
         }
         for (int i = (M-qM)/2; i < M/2; ++i){
           qlinestr >> x >> y;
-          panel[i*2][j] = (bool)x;
+          if(x!=0 && x!=1){
+            panel[i*2][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << qinFile << endl;
+            abort();
+          }
           qlinestr >> x;
-          panel[i*2+1][j] = (bool)x;
+          if(x!=0 && x!=1){
+            panel[i*2 + 1][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << qinFile << endl;
+            abort();
+          }
         }
       }else{
         for (int i = 0; i<M-qM; ++i){
           linestr >> x;
-          panel[i][j] = (bool)x;
+          if(x!=0 && x!=1){
+            panel[i][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
         }
         for (int i = (M-qM); i < M; ++i){
           qlinestr >> x;
-          panel[i][j] = (bool)x;
+          if(x!=0 && x!=1){
+            panel[i][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << qinFile << endl;
+            abort();
+          }
         }
       }
       
@@ -388,7 +433,7 @@ void Readphase_donor(const string inFile,
     
     // convert SNP data to binary
     for (char c : line) {
-      panelsnp.push_back(c == '1');
+      panelsnp.push_back(c == '1'); 
     }
     
     int Oid = i;

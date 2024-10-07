@@ -10,7 +10,7 @@
 
 -   **SparsePainter website:**  https://sparsepainter.github.io/
 
--   Version: 1.2.0 (**[Changelog](#changelog)**) ${\color{red}This \space version \space has \space important \space changes \space to \space the \space input \space file \space formats!}$
+-   Version: 1.2.1 (**[Changelog](#changelog)**)
 
 -   **SparsePainter and PBWTpaint Reference:** [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024). doi:10.1101/2024.03.13.24304206](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v2)
 
@@ -244,6 +244,8 @@ Finally run the code:
 
 <a id="changelog"></a>
 # Changelog
+* **2024-06-18 Version 1.2.1**  
+Check if the VCF data input includes genotypes that are not 0 or 1, then return the error.
 * **2024-06-18 Version 1.2.0**  
 Enable string population labels (the 2nd column of ``popfile``).  
 In the 2nd column of ``mapfile``, change the unit of genetic distance from Morgan to **centiMorgan**.

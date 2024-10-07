@@ -281,29 +281,14 @@ for(int j = 0; j<N; ++j){
   if(!haploid){
     for (int i = 0; i<(M-qM)/2; ++i){
       linestr >> x >> y;
-      if(x!=0 && x!=1){
-        panel[i*2][j] = (bool)x;
-      }else{
-        cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
-        abort();
-      }
+      panel[i*2][j] = (bool)x;
       linestr >> x;
-      if(x!=0 && x!=1){
-        panel[i*2 + 1][j] = (bool)x;
-      }else{
-        cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
-        abort();
-      }
+      panel[i*2 + 1][j] = (bool)x;
     }
   }else{
     for (int i = 0; i<M-qM; ++i){
       linestr >> x;
-      if(x!=0 && x!=1){
-        panel[i][j] = (bool)x;
-      }else{
-        cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
-        abort();
-      }
+      panel[i][j] = (bool)x
     }
   }
 }
@@ -342,54 +327,24 @@ in.close();
       if(!haploid){
         for (int i = 0; i<(M-qM)/2; ++i){
           linestr >> x >> y;
-          if(x!=0 && x!=1){
-            panel[i*2][j] = (bool)x;
-          }else{
-            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
-            abort();
-          }
+          panel[i*2][j] = (bool)x
           linestr >> x;
-          if(x!=0 && x!=1){
-            panel[i*2 + 1][j] = (bool)x;
-          }else{
-            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
-            abort();
-          }
+          panel[i*2 + 1][j] = (bool)x
         }
         for (int i = (M-qM)/2; i < M/2; ++i){
           qlinestr >> x >> y;
-          if(x!=0 && x!=1){
-            panel[i*2][j] = (bool)x;
-          }else{
-            cerr << "Error: Genotypes are not represented as 0 or 1 in " << qinFile << endl;
-            abort();
-          }
+          panel[i*2][j] = (bool)x;
           qlinestr >> x;
-          if(x!=0 && x!=1){
-            panel[i*2 + 1][j] = (bool)x;
-          }else{
-            cerr << "Error: Genotypes are not represented as 0 or 1 in " << qinFile << endl;
-            abort();
-          }
+          panel[i*2 + 1][j] = (bool)x;
         }
       }else{
         for (int i = 0; i<M-qM; ++i){
           linestr >> x;
-          if(x!=0 && x!=1){
-            panel[i][j] = (bool)x;
-          }else{
-            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
-            abort();
-          }
+          panel[i][j] = (bool)x;
         }
         for (int i = (M-qM); i < M; ++i){
           qlinestr >> x;
-          if(x!=0 && x!=1){
-            panel[i][j] = (bool)x;
-          }else{
-            cerr << "Error: Genotypes are not represented as 0 or 1 in " << qinFile << endl;
-            abort();
-          }
+          panel[i][j] = (bool)x;
         }
       }
       

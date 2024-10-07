@@ -244,7 +244,7 @@ Finally run the code:
 
 <a id="changelog"></a>
 # Changelog
-* **2024-06-18 Version 1.2.1**  
+* **2024-10-07 Version 1.2.1**  
 Check if the VCF data input includes genotypes that are not 0 or 1, then return the error.
 * **2024-06-18 Version 1.2.0**  
 Enable string population labels (the 2nd column of ``popfile``).  

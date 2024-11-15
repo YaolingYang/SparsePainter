@@ -879,7 +879,9 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
       for(int q=0;q<N;++q){
         fullidx.push_back(q);
       }
-      for(int mi=length_order.size()-1;mi>=0;--mi){
+      // here we skip the longest match; instead of length_order.size()-1, we
+      // use length_order.size()-2
+      for(int mi=length_order.size()-2;mi>=0;--mi){
         
         int starttemp=startpostemp[length_order[mi]];
         int endtemp=endpostemp[length_order[mi]];

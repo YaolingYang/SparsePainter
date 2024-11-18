@@ -6,6 +6,8 @@ The first step is to run the below command for each chromosome (i from 1 to 22, 
 
 ```pbwt -readVcfGT chr${i}_UKBall.vcf.gz -paintSparse chr${i}_UKBall 100 2 500```
 
+The last parameter controls the sparsity of matches (the larger, the sparser), which is important for datasets with large numbers of individuals, such as the UK Biobank.
+
 (for other input formats please just follow the pbwt instructions on reading data)  
 
 The last parameter controls the sparsity.  
@@ -31,7 +33,7 @@ This may take few hours to run, and afterwards we obtain the output ``full_chunk
 
 The last step is to do SVD to obtain HCs. Here we provide an example code in R, please **replace nsnp=487409 with the actual N**. 
 
-Note that if ``full_chunklength_UKBall.txt.gz`` has more than 2^31 rows (the limit of R), then we need to remove some weakly associated individual pairs (i.e. removing the rows with the smallest numbers of the last column of ``full_chunklength_UKBall.txt.gz``) and re-weight (each row of the sparse matrix should sum up to be the total genetic distance in centiMorgan, which is 3545.04 in the standard genetic map that we use). 
+Note that if ``full_chunklength_UKBall.txt.gz`` has more than 2^31 rows (the limit of R), then we need to remove some weakly associated individual pairs (i.e. removing the rows with the smallest numbers of the last column of ``full_chunklength_UKBall.txt.gz``) and re-weight (each row of the sparse matrix should sum up to be the total genetic distance in centiMorgan, which is 3545.04 in the standard genetic map that we use), with e.g. data chunking approach.
 
 ```
 library(data.table)  

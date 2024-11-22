@@ -467,8 +467,8 @@ vector<int> getorder(const vector<double>& vec) {
     groups[vec[i]].push_back(i);
   }
   
-  random_device rd;
-  mt19937 g(rd());
+  // random_device rd;
+  mt19937 g(0);
   for (auto& group : groups) {
     shuffle(group.second.begin(), group.second.end(), g);
   }
@@ -1339,8 +1339,8 @@ vector<int> randomsample(const vector<int>& popidx,
   // sample number from popidx
   if(number>popidx.size()) cout<<"Number cannot be greater than the size of popidx. Please check the populations' indices are continuous integers start from 0, as provided by the popfile."<<endl;
   // Initialize the random number generator
-  random_device rd;
-  mt19937 gen(rd());
+  // random_device rd;
+  mt19937 gen(0);
   
   // Shuffle the elements of the vector randomly
   vector<int> shuffled_popidx = popidx;

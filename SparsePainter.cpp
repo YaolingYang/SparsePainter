@@ -489,6 +489,7 @@ bool containsIndex(const vector<int>& fullidx,
   for(int i : fullidx) {
     if(i >= starttemp && i <= endtemp) {
       contain=true;
+      break;
     }
   }
   return(contain);

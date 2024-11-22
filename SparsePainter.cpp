@@ -7,6 +7,7 @@
 #endif
 
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 #include <vector>
 #include <string>
@@ -931,6 +932,69 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
 }
 
 
+void load_pbwt(int **&prefix, int **&divergence, int **&u, int **&v, int &num, int &N, ifstream &infile) {
+    // Read the dimensions
+    infile.read(reinterpret_cast<char*>(&num), sizeof(int));
+    infile.read(reinterpret_cast<char*>(&N), sizeof(int));
+
+    // Read prefix data
+    for (int i = 0; i < num; ++i) {
+        infile.read(reinterpret_cast<char*>(prefix[i]), sizeof(int) * (N + 1));
+    }
+
+    // Read divergence data
+    for (int i = 0; i < num; ++i) {
+        infile.read(reinterpret_cast<char*>(divergence[i]), sizeof(int) * (N + 1));
+    }
+
+    // Read u data
+    for (int i = 0; i < num; ++i) {
+        infile.read(reinterpret_cast<char*>(u[i]), sizeof(int) * N);
+    }
+
+    // Read v data
+    for (int i = 0; i < num; ++i) {
+        infile.read(reinterpret_cast<char*>(v[i]), sizeof(int) * N);
+    }
+
+    // Close the file
+    infile.close();
+    cout << "PBWT data successfully loaded." << endl;
+}
+
+void write_pbwt(int **&prefix, int **&divergence, int **&u, int **&v, int &num, int &N, const string &pbwtfile) {
+    // Open the file
+    ofstream outfile(pbwtfile, ios::binary);
+
+    // Write the dimensions
+    outfile.write(reinterpret_cast<const char*>(&num), sizeof(int));
+    outfile.write(reinterpret_cast<const char*>(&N), sizeof(int));
+
+    // Write prefix data
+    for (int i = 0; i < num; ++i) {
+        outfile.write(reinterpret_cast<const char*>(prefix[i]), sizeof(int) * (N + 1));
+    }
+
+    // Write divergence data
+    for (int i = 0; i < num; ++i) {
+        outfile.write(reinterpret_cast<const char*>(divergence[i]), sizeof(int) * (N + 1));
+    }
+
+    // Write u data
+    for (int i = 0; i < num; ++i) {
+        outfile.write(reinterpret_cast<const char*>(u[i]), sizeof(int) * N);
+    }
+
+    // Write v data
+    for (int i = 0; i < num; ++i) {
+        outfile.write(reinterpret_cast<const char*>(v[i]), sizeof(int) * N);
+    }
+
+    // Close the file
+    outfile.close();
+    cout << "PBWT data successfully written to "<<pbwtfile<<"."<<endl;
+}
+
 tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial, 
                                                                vector<double> gd,
                                                                vector<int>& queryidx,
@@ -943,7 +1007,8 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
                                                                const string reffile,
                                                                const string targetfile,
                                                                const bool haploid,
-                                                               const bool phase){
+                                                               const bool phase,
+                                                               const string pbwtfile){
   
   int nrow_panel;
   bool samefile;
@@ -981,7 +1046,14 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
     v[i] = &(temp4[i*(N)]);
   }
   
-  PBWT(panel, prefix, divergence, u, v, M-qM, N);
+  ifstream infile(pbwtfile, ios::binary);
+  if (!infile) {
+      infile.close();
+      PBWT(panel, prefix, divergence, u, v, M-qM, N, pbwtfile);
+      write_pbwt(prefix, divergence, u, v, M-qM, N, pbwtfile);
+  } else {
+      load_pbwt(prefix, divergence, u, v, M-qM, N, infile);
+  }
   
   cout<<"Finish building PBWT for reference haplotypes"<<endl;
   
@@ -2221,6 +2293,7 @@ void paintall(const string method,
               const string LDASfile,
               const string AASfile,
               const string lambdafile,
+              const string outprefix,
               const string probstore,
               const double window,
               const int dp,
@@ -2324,10 +2397,11 @@ void paintall(const string method,
         qM=2*nind;
       }
     }
-    cout<<"Begin doing PBWT and finding matches for target haplotypes"<<endl;
+    const string target_pbwtfile = outprefix + "_target.pbwt";
+
     pbwtall_target=do_pbwt(L_initial, gd,queryidx,ncores,nref+qM,nsnp,qM,nmatch,
-                           L_minmatch,reffile,targetfile,haploid,phase);
-    cout<<"Finish finding matches with PBWT"<<endl;
+                           L_minmatch,reffile,targetfile,haploid,phase, target_pbwtfile);
+
     
     
   }else{
@@ -3901,7 +3975,7 @@ int main(int argc, char *argv[]){
            leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, SNPfile, nmatchfile, 
            outputpainting, clength,ccount, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputnmatch,outputallSNP, 
            rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, chunkcountfile, LDAfile, LDASfile, AASfile, 
-           lambdafile, probstore, window/100, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
+           lambdafile, out, probstore, window/100, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
   cout<<"SparsePainter completed successfully!"<<endl;
   return 0;
 } 

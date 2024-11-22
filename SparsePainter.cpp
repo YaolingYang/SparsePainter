@@ -2436,8 +2436,9 @@ void paintall(const string method,
             queryidx_ref.push_back(i);
           }
           
+          const string ref_pbwtfile = outprefix + "_ref.pbwt";
           tuple<vector<int>,vector<int>,vector<int>,vector<int>> pbwtall_ref=do_pbwt(L_initial, gd,queryidx_ref,ncores,nref,nsnp,0,nmatch,
-                                                                                     L_minmatch,reffile,reffile,haploid,phase);
+                                                                                     L_minmatch,reffile,reffile,haploid,phase, ref_pbwtfile);
           cout<<"Finish finding matches with PBWT"<<endl;
           lambda=est_lambda_EM_average(refidx,nref,nsnp,gd,L_initial,nmatch,L_minmatch,ncores,
                                        indfrac,EM_ite,minsnpEM,EMsnpfrac,haploid,reffile,phase,leaveoneout,pbwtall_ref);

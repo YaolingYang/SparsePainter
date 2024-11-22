@@ -963,7 +963,7 @@ void load_pbwt(int **&prefix, int **&divergence, int **&u, int **&v, int &num, i
     cout << "PBWT data successfully loaded." << endl;
 }
 
-void write_pbwt(int **&prefix, int **&divergence, int **&u, int **&v, int &num, int &N, const string &pbwtfile) {
+void write_pbwt(int **&prefix, int **&divergence, int **&u, int **&v, int num, int N, const string &pbwtfile) {
     // Open the file
     ofstream outfile(pbwtfile, ios::binary);
 

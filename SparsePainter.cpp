@@ -1050,7 +1050,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
   ifstream infile(pbwtfile, ios::binary);
   if (!infile) {
       infile.close();
-      PBWT(panel, prefix, divergence, u, v, M-qM, N, pbwtfile);
+      PBWT(panel, prefix, divergence, u, v, M-qM, N);
       write_pbwt(prefix, divergence, u, v, M-qM, N, pbwtfile);
   } else {
       load_pbwt(prefix, divergence, u, v, M-qM, N, infile);

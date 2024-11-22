@@ -933,7 +933,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
 }
 
 
-void load_pbwt(int **&prefix, int **&divergence, int **&u, int **&v, int &num, int &N, ifstream &infile) {
+void load_pbwt(int **&prefix, int **&divergence, int **&u, int **&v, int num, int N, ifstream &infile) {
     // Read the dimensions
     infile.read(reinterpret_cast<char*>(&num), sizeof(int));
     infile.read(reinterpret_cast<char*>(&N), sizeof(int));

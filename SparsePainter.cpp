@@ -1340,7 +1340,7 @@ vector<int> randomsample(const vector<int>& popidx,
   if(number>popidx.size()) cout<<"Number cannot be greater than the size of popidx. Please check the populations' indices are continuous integers start from 0, as provided by the popfile."<<endl;
   // Initialize the random number generator
   // random_device rd;
-  mt19937 gen(0);
+  mt19937 gen(1);
   
   // Shuffle the elements of the vector randomly
   vector<int> shuffled_popidx = popidx;

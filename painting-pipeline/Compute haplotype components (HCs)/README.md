@@ -6,7 +6,7 @@ The first step is to run the below command for each chromosome (i from 1 to 22, 
 
 ```pbwt -readVcfGT chr${i}_UKBall.vcf.gz -paintSparse chr${i}_UKBall 100 2 500```
 
-The last parameter controls the sparsity of matches (the larger, the sparser), which is important for datasets with large numbers of individuals, such as the UK Biobank.
+The explanation of each parameter can be found by typing `pbwt`. In specific, the last parameter controls the sparsity of matches (the larger, the sparser), which is important for datasets with large numbers of individuals, such as the UK Biobank.
 
 (for other input formats please just follow the pbwt instructions on reading data)  
 

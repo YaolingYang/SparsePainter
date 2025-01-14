@@ -201,7 +201,7 @@ For example, to extract the local ancestry probabilities of 5000 SNPs (whose ind
 
 ``g++ extract_prob_constant.cpp -o extract_constant -lz -std=c++0x -g -O3``
 
-Then we should specify 4 arguments: `npop` (the number of reference populations), `probfile` (local ancestry probabilities file), `SNPfile` (the indices (starting from 1) of the SNPs whose local ancestry probabilities are to be extracted) and `out` (the prefix of the output file).
+Then we should specify 4 arguments: `npop` (the number of reference populations), `probfile` (local ancestry probabilities file), `SNPfile` (the indices (starting from 1, in ascending order) of the SNPs whose local ancestry probabilities are to be extracted) and `out` (the prefix of the output file).
 
 ``./extract_constant -npop 26 -probfile chr19_1000G_constant_10inds_prob.txt.gz -SNPfile chr19_GWAS_SNPs.txt -out chr19_1000G_constant``
 

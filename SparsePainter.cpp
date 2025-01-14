@@ -488,6 +488,7 @@ bool containsIndex(const vector<int>& fullidx,
   for(int i : fullidx) {
     if(i >= starttemp && i <= endtemp) {
       contain=true;
+      break;
     }
   }
   return(contain);
@@ -3515,7 +3516,7 @@ int main(int argc, char *argv[]){
   if (argc == 1 || string(argv[1]) == "-help" || string(argv[1]) == "-h") {
     cout << "Program: SparsePainter" << endl<< endl;
     cout << "Version: 1.2.1" << endl<< endl;
-    cout << "SparsePainter reference: Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. medRxiv (2024)." << endl<< endl;
+    cout << "SparsePainter reference: Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. Nature Communications (in press) (2025)." << endl<< endl;
     cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl<< endl;
     cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl<< endl;
     

@@ -27,8 +27,8 @@ using namespace std;
 using namespace arma;
 
 class hVec { // A sparse vector format
-  public:
-    vector<int> k; // the keys that are in the vector
+public:
+  vector<int> k; // the keys that are in the vector
   unordered_map<int, double> v; // the values, stored as a map from keys to values
   int len; // nominal length of the vector; currently unused
   double x0; // default value for entries
@@ -108,8 +108,8 @@ class hVec { // A sparse vector format
 };
 
 class hMat {
-  public:
-    vector<hVec> m; // sparse matrix, i.e. a vector of hVec's
+public:
+  vector<hVec> m; // sparse matrix, i.e. a vector of hVec's
   int d1; // number of rows; currently nominal
   int d2; // Number of columns; should be equal to length(m)
   hMat(int d1){
@@ -153,19 +153,19 @@ public:
     for (int i = 0; i < ref.size(); i++) {
       int value = ref[i];
       if (pos.find(value) == pos.end()) { //if this value doesn't exist
-  pos[value] = vector<int>{i};
-} else {
-  pos[value].push_back(i);
-}
-}
-};
-vector<int> findrows(int value) const {
-  // here the class of it is unordered_map<int, vector<int>>::const_iterator
-  // we use auto to simplify
-  auto it = pos.find(value);
-  if (it != pos.end()) {
-    return it->second;
-  } else { // if the value doesn't exist, return an empty vector
+        pos[value] = vector<int>{i};
+      } else {
+        pos[value].push_back(i);
+      }
+    }
+  };
+  vector<int> findrows(int value) const {
+    // here the class of it is unordered_map<int, vector<int>>::const_iterator
+    // we use auto to simplify
+    auto it = pos.find(value);
+    if (it != pos.end()) {
+      return it->second;
+    } else { // if the value doesn't exist, return an empty vector
       return vector<int>();
     }
   };
@@ -192,8 +192,8 @@ void free_PBWT_memory(vector<vector<bool>> &panel, int** &prefix, int** &diverge
   // Clear the panel vector and minimize its memory usage
   panel.clear();
   vector<vector<bool>>().swap(panel); // This technique is used to shrink the vector's capacity to fit its size.
-    
-    // Nullify the pointers to ensure that they don't dangle.
+  
+  // Nullify the pointers to ensure that they don't dangle.
   prefix = nullptr;
   divergence = nullptr;
   u = nullptr;
@@ -270,44 +270,44 @@ void ReadVCF(const string inFile,
     char y = 0;
     
     while (line[1] == '#')
-getline(in, line);
-for(int j = 0; j<N; ++j){
-  getline(in, line);
-  linestr.str(line);
-  linestr.clear();
-  for (int i = 0; i<9; ++i){
-    linestr >> line;
-  }
-  if(!haploid){
-    for (int i = 0; i<(M-qM)/2; ++i){
-      linestr >> x >> y;
-      if(x==0 || x==1){
-        panel[i*2][j] = (bool)x;
-      }else{
-        cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
-        abort();
+      getline(in, line);
+    for(int j = 0; j<N; ++j){
+      getline(in, line);
+      linestr.str(line);
+      linestr.clear();
+      for (int i = 0; i<9; ++i){
+        linestr >> line;
       }
-      linestr >> x;
-      if(x==0 || x==1){
-        panel[i*2 + 1][j] = (bool)x;
+      if(!haploid){
+        for (int i = 0; i<(M-qM)/2; ++i){
+          linestr >> x >> y;
+          if(x==0 || x==1){
+            panel[i*2][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
+          linestr >> x;
+          if(x==0 || x==1){
+            panel[i*2 + 1][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
+        }
       }else{
-        cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
-        abort();
+        for (int i = 0; i<M-qM; ++i){
+          linestr >> x;
+          if(x==0 || x==1){
+            panel[i][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
+        }
       }
     }
-  }else{
-    for (int i = 0; i<M-qM; ++i){
-      linestr >> x;
-      if(x==0 || x==1){
-        panel[i][j] = (bool)x;
-      }else{
-        cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
-        abort();
-      }
-    }
-  }
-}
-in.close();
+    in.close();
   }else{
     string line = "##", qline = "##";
     in.open(inFile.c_str());
@@ -595,7 +595,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
     
     cout<<"Finding matches with PBWT for target haplotypes "<<nind-nind_left<<"-"<<nind-nind_left+ncores_use-1<<endl;
     
-    #pragma omp parallel for
+#pragma omp parallel for
     
     for (int idx=nind-nind_left; idx<nind-nind_left+ncores_use; ++idx) {
       
@@ -620,13 +620,13 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
         if (t[k]!=M-qM)
           if (!panelsnp[Oid-nind+nind_left][k])
             t[k+1] = u[t[k]][k];
-        else
-          t[k+1] = v[t[k]][k];
-        else
-          if (!panelsnp[Oid-nind+nind_left][k])
-            t[k+1] = v[0][k];
           else
-            t[k+1] = M-qM;
+            t[k+1] = v[t[k]][k];
+          else
+            if (!panelsnp[Oid-nind+nind_left][k])
+              t[k+1] = v[0][k];
+            else
+              t[k+1] = M-qM;
       }
       
       
@@ -638,14 +638,14 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
         if (t[k]!=0)
           while(zd[k]>0 && 
                 panelsnp[Oid-nind+nind_left][zd[k]-1]
-                == panel[prefix[t[k]-1][k]][zd[k]-1])
+                  == panel[prefix[t[k]-1][k]][zd[k]-1])
             zd[k]--;
         else
           zd[k] = k;
         if (t[k]!=M-qM)
           while(bd[k]>0 && 
                 panelsnp[Oid-nind+nind_left][bd[k]-1] 
-                == panel[prefix[t[k]][k]][bd[k]-1])
+                  == panel[prefix[t[k]][k]][bd[k]-1])
             bd[k]--;
         else
           bd[k] = k;
@@ -726,70 +726,70 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
               f = u[f][k];
               g = u[g][k];
             }
-          else{
-            ftemp = u[f][k];
-            gtemp = u[g][k];
-            f = v[f][k];
-            g = v[g][k];
-          }
-          
-          
-          while (ftemp != gtemp){
-            int end=k-1;
-            if(times==0){
-              int start=dZ[prefix[ftemp][k+1]];
-              donoridtemp.push_back(prefix[ftemp][k+1]);
-              startpostemp.push_back(start);
-              endpostemp.push_back(end);
-              for(int q=start;q<=end;++q){
-                nmatch[q]++;
-              }
-              ++ftemp;
-            }else{
-              if(addmatch[end]){
+            else{
+              ftemp = u[f][k];
+              gtemp = u[g][k];
+              f = v[f][k];
+              g = v[g][k];
+            }
+            
+            
+            while (ftemp != gtemp){
+              int end=k-1;
+              if(times==0){
                 int start=dZ[prefix[ftemp][k+1]];
-                //add new matches with new L
-                if(end-start+1<prevL){
-                  donoridtemp.push_back(prefix[ftemp][k+1]);
-                  startpostemp.push_back(start);
-                  endpostemp.push_back(end);
-                  ++ftemp;
-                  for(int q=start;q<=end;++q){
-                    nmatch[q]++;
+                donoridtemp.push_back(prefix[ftemp][k+1]);
+                startpostemp.push_back(start);
+                endpostemp.push_back(end);
+                for(int q=start;q<=end;++q){
+                  nmatch[q]++;
+                }
+                ++ftemp;
+              }else{
+                if(addmatch[end]){
+                  int start=dZ[prefix[ftemp][k+1]];
+                  //add new matches with new L
+                  if(end-start+1<prevL){
+                    donoridtemp.push_back(prefix[ftemp][k+1]);
+                    startpostemp.push_back(start);
+                    endpostemp.push_back(end);
+                    ++ftemp;
+                    for(int q=start;q<=end;++q){
+                      nmatch[q]++;
+                    }
+                  }else{
+                    ++ftemp;
                   }
                 }else{
                   ++ftemp;
                 }
-              }else{
-                ++ftemp;
               }
             }
-          }
-          
-          if (f==g){
-            if (k+1-zd[k+1] == L){
-              --f;
-              //store divergence
-              dZ[prefix[f][k+1]] = k+1-L;
+            
+            if (f==g){
+              if (k+1-zd[k+1] == L){
+                --f;
+                //store divergence
+                dZ[prefix[f][k+1]] = k+1-L;
+              }
+              if (k+1-bd[k+1] == L){
+                //store divergence
+                dZ[prefix[g][k+1]] = k+1-L;
+                ++g;
+              }
             }
-            if (k+1-bd[k+1] == L){
-              //store divergence
-              dZ[prefix[g][k+1]] = k+1-L;
-              ++g;
+            if (f!=g) {
+              while (divergence[f][k+1] <= k+1 - L){
+                --f;
+                //store divergence
+                dZ[prefix[f][k+1]] = k+1-L;
+              }
+              while (g<M-qM && divergence[g][k+1] <= k+1-L){
+                //store divergence
+                dZ[prefix[g][k+1]] = k+1-L;
+                ++g;
+              }
             }
-          }
-          if (f!=g) {
-            while (divergence[f][k+1] <= k+1 - L){
-              --f;
-              //store divergence
-              dZ[prefix[f][k+1]] = k+1-L;
-            }
-            while (g<M-qM && divergence[g][k+1] <= k+1-L){
-              //store divergence
-              dZ[prefix[g][k+1]] = k+1-L;
-              ++g;
-            }
-          }
         }
         
         while (f != g){
@@ -1002,72 +1002,72 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
 }
 
 /////////////////////end of pbwt contents///////////////////////////
+
+
+pair<vector<int>, vector<vector<double>>> kMeans(const mat& data, int ncluster, int max_ite) {
+  int n_samples = data.n_rows;
+  int n_features = data.n_cols;
   
-  
-  pair<vector<int>, vector<vector<double>>> kMeans(const mat& data, int ncluster, int max_ite) {
-    int n_samples = data.n_rows;
-    int n_features = data.n_cols;
-    
-    mat centroids(ncluster, n_features);
-    for (int j = 0; j < ncluster; ++j) {
-      centroids.row(j) = data.row(randi<uword>(distr_param(0, n_samples - 1)));
-    }
-    
-    vec labels = zeros<vec>(n_samples);
-    bool converged = false;
-    int iterations = 0;
-    
-    while (!converged && iterations < max_ite) {
-      converged = true;
-      ++iterations;
-      
-      for (int i = 0; i < n_samples; ++i) {
-        rowvec sample = data.row(i);
-        vec distances = sum(square(centroids.each_row() - sample), 1);
-        uword min_index;
-        double min_distance = distances.min(min_index);
-        
-        if (min_index != labels[i]) {
-          labels[i] = min_index;
-          converged = false;
-        }
-      }
-      
-      vector<int> empty_clusters;
-      for (int j = 0; j < ncluster; ++j) {
-        uvec cluster_indices = find(labels == j);
-        if (!cluster_indices.is_empty()) {
-          centroids.row(j) = mean(data.rows(cluster_indices), 0);
-        } else {
-          empty_clusters.push_back(j);
-        }
-      }
-      
-      for (int j = empty_clusters.size() - 1; j >= 0; --j) {
-        centroids.shed_row(empty_clusters[j]);
-      }
-      ncluster -= empty_clusters.size();
-    }
-    
-    map<int, int> new_labels;
-    int new_label = 0;
-    for (int j = 0; j < centroids.n_rows; ++j) {
-      new_labels[j] = new_label++;
-    }
-    
-    vector<int> stdVec(n_samples);
-    for (size_t i = 0; i < labels.n_elem; ++i) {
-      stdVec[i] = new_labels[labels[i]];
-    }
-    
-    vector<vector<double>> centroidsVec;
-    centroidsVec.reserve(centroids.n_rows);
-    for (size_t i = 0; i < centroids.n_rows; ++i) {
-      centroidsVec.push_back(conv_to<vector<double>>::from(centroids.row(i)));
-    }
-    
-    return make_pair(stdVec, centroidsVec);
+  mat centroids(ncluster, n_features);
+  for (int j = 0; j < ncluster; ++j) {
+    centroids.row(j) = data.row(randi<uword>(distr_param(0, n_samples - 1)));
   }
+  
+  vec labels = zeros<vec>(n_samples);
+  bool converged = false;
+  int iterations = 0;
+  
+  while (!converged && iterations < max_ite) {
+    converged = true;
+    ++iterations;
+    
+    for (int i = 0; i < n_samples; ++i) {
+      rowvec sample = data.row(i);
+      vec distances = sum(square(centroids.each_row() - sample), 1);
+      uword min_index;
+      double min_distance = distances.min(min_index);
+      
+      if (min_index != labels[i]) {
+        labels[i] = min_index;
+        converged = false;
+      }
+    }
+    
+    vector<int> empty_clusters;
+    for (int j = 0; j < ncluster; ++j) {
+      uvec cluster_indices = find(labels == j);
+      if (!cluster_indices.is_empty()) {
+        centroids.row(j) = mean(data.rows(cluster_indices), 0);
+      } else {
+        empty_clusters.push_back(j);
+      }
+    }
+    
+    for (int j = empty_clusters.size() - 1; j >= 0; --j) {
+      centroids.shed_row(empty_clusters[j]);
+    }
+    ncluster -= empty_clusters.size();
+  }
+  
+  map<int, int> new_labels;
+  int new_label = 0;
+  for (int j = 0; j < centroids.n_rows; ++j) {
+    new_labels[j] = new_label++;
+  }
+  
+  vector<int> stdVec(n_samples);
+  for (size_t i = 0; i < labels.n_elem; ++i) {
+    stdVec[i] = new_labels[labels[i]];
+  }
+  
+  vector<vector<double>> centroidsVec;
+  centroidsVec.reserve(centroids.n_rows);
+  for (size_t i = 0; i < centroids.n_rows; ++i) {
+    centroidsVec.push_back(conv_to<vector<double>>::from(centroids.row(i)));
+  }
+  
+  return make_pair(stdVec, centroidsVec);
+}
 
 
 
@@ -1287,7 +1287,7 @@ vector<double> cal_sameprob(const int nsnp,
   for(int j=0;j<nsnp-1;++j){
     sameprob[j]=exp(-lambda*(gd[j+1]-gd[j]));
     if(sameprob[j]>1-nref*2e-10){ //control the value within the limit of C++
-        sameprob[j]=1-nref*2e-10;
+      sameprob[j]=1-nref*2e-10;
     } 
   }
   return(sameprob);
@@ -1545,7 +1545,7 @@ pair<vector<int>,vector<string>> readpopfile(const string popfile) {
   }
   
   file.close();
-
+  
   map<string, int> ref_map;
   vector<int> refindex;
   vector<string> refidmatch;
@@ -1747,7 +1747,7 @@ double est_lambda_EM_average(const hAnc& refidx,
     for (int k = 0; k < samples.size(); ++k) {
       match_use[k] = get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samples[k], true,haploid);
     }// this reduces memory
-    #pragma omp parallel for reduction(+:count)
+#pragma omp parallel for reduction(+:count)
     for(int k=0;k<samples.size();++k){
       //leave-one-out
       vector<vector<int>> matchdata=match_use[k];
@@ -1971,6 +1971,69 @@ vector<double> chunkcount_each(hMat& mat,
   return(sumc);
 }
 
+vector<vector<int>> sample_each(pair<hMat, vector<double>>& forwardprob,
+                                const vector<double>& sameprob,
+                                const vector<double>& otherprob,
+                                const int nsample){
+  
+  hMat forward_prob=forwardprob.first;
+  
+  int nsnp=forward_prob.d2;
+  
+  vector<vector<int>> sample_state(nsample,vector<int>(nsnp));
+  
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<double> dis(0.0, 1.0);
+  double random_value;
+  double temp_sum=0;
+  
+  vector<int> twj;
+  vector<double> valuef;
+  double f_use;
+  double total_prob;
+  
+  for(int round=0;round<nsample;round++){
+    //sample the reference haplotype for the last SNP
+    temp_sum=0;
+    random_value = dis(gen);
+    twj=forward_prob.m[nsnp-1].k;
+    valuef=forward_prob.m[nsnp-1].getall(twj);
+    for(int i=0;i<twj.size();i++){
+      temp_sum+=valuef[i];
+      if(temp_sum>=random_value){
+        sample_state[round][nsnp-1]=twj[i];
+        break;
+      }
+    }
+    for(int j=nsnp-2;j>=0;j--){
+      temp_sum=0;
+      f_use=forward_prob.m[j].get(sample_state[round][j+1]);
+      total_prob= f_use*sameprob[j]+otherprob[j];
+      random_value = dis(gen)*total_prob;
+      temp_sum=f_use*sameprob[j];
+      // do sampling to determine if switch happens
+      if(temp_sum>=random_value){
+        // no switch, the previous sampled haplotype carries on
+        sample_state[round][j]=sample_state[round][j+1];
+      }else{
+        // switch happens (still possible to switch to the previous haplotype if there is a match)
+        twj=forward_prob.m[j].k;
+        valuef=forward_prob.m[j].getall(twj);
+        for(int i=0;i<twj.size();i++){
+          temp_sum+=valuef[i]*otherprob[j];
+          if(temp_sum>=random_value){
+            sample_state[round][j]=twj[i];
+            break;
+          }
+        }
+      }
+    }
+  }
+  
+  return sample_state;
+}
+
 
 void doLDAS(hMat &LDA_result,
             const string LDASfile,
@@ -1985,7 +2048,7 @@ void doLDAS(hMat &LDA_result,
   vector<double> LDAS_score(nsnp,0);
   vector<double> LDAS_upper(nsnp,0);
   vector<double> LDAS_lower(nsnp,0);
-  #pragma omp parallel for
+#pragma omp parallel for
   for(int i=0;i<nsnp;++i){
     vector<double> gdgap;
     vector<double> LDA_ave;
@@ -2133,7 +2196,7 @@ void doAAS(vector<double>& pd,
   
   arma::mat Astar(nsnp, npop);
   for (int i = 0; i < npop; ++i) {
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int j = 0; j < nsnp; ++j) {
       double random_error = distribution(generator);
       Astar(j, i) = aveSNPpainting[i][j] - mu[i] + random_error; // compute A*(j,k) for all j,k and store it in Astar
@@ -2157,7 +2220,7 @@ void doAAS(vector<double>& pd,
   // Compute Z = Astar * W
   arma::mat Z = Astar * W;
   
-  #pragma omp parallel for
+#pragma omp parallel for
   for (int j = 0; j < nsnp; ++j) {
     double t = arma::norm(Z.row(j), "fro");
     test_statistic[j]=t*t; // square of Frobenius norm
@@ -2203,6 +2266,7 @@ void paintall(const string method,
               bool outputpainting,
               bool clength,
               bool ccount,
+              bool csample,
               bool outputaveSNPpainting,
               bool outputaveindpainting,
               bool outputLDA,
@@ -2216,6 +2280,7 @@ void paintall(const string method,
               const string aveindprobfile,
               const string chunklengthfile,
               const string chunkcountfile,
+              const string samplefile,
               const string LDAfile,
               const string LDASfile,
               const string AASfile,
@@ -2223,6 +2288,7 @@ void paintall(const string method,
               const string probstore,
               const double window,
               const int dp,
+              const int nsample,
               const double rmsethre,
               const double relafrac,
               const int ncluster,
@@ -2256,7 +2322,7 @@ void paintall(const string method,
   }
   
   pair<vector<int>,vector<string>> refindex_read = readpopfile(popfile);
-
+  
   vector<int> refindex=refindex_read.first;
   vector<string> refmatch=refindex_read.second;
   
@@ -2381,13 +2447,13 @@ void paintall(const string method,
           for (int ii = v_nsamples - v_nhap_left; ii < v_nsamples - v_nhap_left + v_nsamples_use; ++ii) {
             // leave one out if the donor file is the same as the target file
             v_targetmatch_use[ii - (v_nsamples - v_nhap_left)] = get_matchdata(queryidall_target,
-                                                                               donorid_target,
-                                                                               startpos_target,
-                                                                               endpos_target,
-                                                                               v_samples[ii], loo,haploid);
+                                    donorid_target,
+                                    startpos_target,
+                                    endpos_target,
+                                    v_samples[ii], loo,haploid);
           }
           
-          #pragma omp parallel for reduction(+:lambda_sum)
+#pragma omp parallel for reduction(+:lambda_sum)
           for(int ii = v_nsamples - v_nhap_left; ii < v_nsamples - v_nhap_left + v_nsamples_use; ++ii){
             vector<vector<int>> v_targetmatchdata=v_targetmatch_use[ii - (v_nsamples - v_nhap_left)];
             
@@ -2508,463 +2574,493 @@ void paintall(const string method,
       outputFile << "#Storage Mode: Raw" <<"\n";
       outputFile << "ind_name" << " ";
       //the first row is the SNP's physical position
-        for (int i = 0; i < nsnp_op; ++i) {
-          outputFile << static_cast<int>(pd_op[i]);
-          if(i != nsnp_op-1) outputFile << " ";
-        }
+      for (int i = 0; i < nsnp_op; ++i) {
+        outputFile << static_cast<int>(pd_op[i]);
+        if(i != nsnp_op-1) outputFile << " ";
       }
-      outputFile <<"\n";
-      outputFile.unsetf(std::ios_base::fixed);
+    }
+    outputFile <<"\n";
+    outputFile.unsetf(std::ios_base::fixed);
+  }
+  
+  ogzstream outputclFile;
+  ogzstream outputccFile;
+  ogzstream outputcsFile;
+  if(run!="prob"){
+    if(clength){
+      outputclFile.open(chunklengthfile.c_str());
+      if (!outputclFile) {
+        cerr << "Error: unable to open file: " << chunklengthfile << endl;
+        abort();
+      }
+      outputclFile << "indnames" << " ";
+    }
+    if(ccount){
+      outputccFile.open(chunkcountfile.c_str());
+      if (!outputccFile) {
+        cerr << "Error: unable to open file: " << chunkcountfile << endl;
+        abort();
+      }
+      outputccFile << "indnames" << " ";
+    }
+    if(csample){
+      outputcsFile.open(samplefile.c_str());
+      if (!outputcsFile) {
+        cerr << "Error: unable to open file: " << samplefile << endl;
+        abort();
+      }
     }
     
-    ogzstream outputclFile;
-    ogzstream outputccFile;
-    if(run!="prob"){
+    for (int i = 0; i < npop; ++i) {
       if(clength){
-        outputclFile.open(chunklengthfile.c_str());
-        if (!outputclFile) {
-          cerr << "Error: unable to open file: " << chunklengthfile << endl;
-          abort();
-        }
-        outputclFile << "indnames" << " ";
+        outputclFile << refmatch[i];
+        if(i != npop-1){
+          outputclFile << " ";
+        } 
       }
       if(ccount){
-        outputccFile.open(chunkcountfile.c_str());
-        if (!outputccFile) {
-          cerr << "Error: unable to open file: " << chunkcountfile << endl;
-          abort();
-        }
-        outputccFile << "indnames" << " ";
+        outputccFile << refmatch[i];
+        if(i != npop-1){
+          outputccFile << " ";
+        } 
       }
+    }
+    if(clength) outputclFile << "\n";
+    if(ccount) outputccFile << "\n";
+  }
+  
+  //output nmatch file
+  ogzstream outputnmatchFile;
+  if(outputnmatch){
+    outputnmatchFile.open(nmatchfile.c_str());
+    outputnmatchFile << "haplotype_name" << " ";
+    for (int k = 0; k < nsnp; ++k) {
+      outputnmatchFile << fixed << setprecision(0) << pd[k];
+      if(k != nsnp-1) outputnmatchFile << " ";
+    }
+    outputnmatchFile << "\n";
+  }
+  
+  int looptime=0;
+  
+  while(nhap_left>0){
+    nsamples_use = (ncores*2*LDAfactor < nhap_left) ? ncores*2*LDAfactor : nhap_left; //ensure both copies are included
     
-      for (int i = 0; i < npop; ++i) {
-        if(clength){
-          outputclFile << refmatch[i];
-          if(i != npop-1){
-            outputclFile << " ";
-          } 
-        }
-        if(ccount){
-          outputccFile << refmatch[i];
-          if(i != npop-1){
-            outputccFile << " ";
-          } 
-        }
-      }
-      if(clength) outputclFile << "\n";
-      if(ccount) outputccFile << "\n";
+    vector<vector<vector<double>>> painting_all(nsamples_use, 
+                                                vector<vector<double>>(npop, vector<double>(nsnp)));
+    
+    vector<vector<double>> chunklength(nsamples_use, vector<double>(npop));
+    vector<vector<double>> chunkcount(nsamples_use, vector<double>(npop));
+    vector<vector<vector<int>>> samplestate(nsamples_use, vector<vector<int>>(nsample, vector<int>(nsnp)));
+    
+    
+    // get the matches before the loop
+    vector<vector<vector<int>>> targetmatch_use(nsamples_use);
+    
+    for (int ii = nhap_use - nhap_left; ii < nhap_use - nhap_left + nsamples_use; ++ii) {
+      // leave one out if the donor file is the same as the target file
+      
+      targetmatch_use[ii - (nhap_use - nhap_left)] = get_matchdata(queryidall_target,
+                            donorid_target,
+                            startpos_target,
+                            endpos_target,ii, loo,haploid);
     }
     
-    //output nmatch file
-    ogzstream outputnmatchFile;
-    if(outputnmatch){
-      outputnmatchFile.open(nmatchfile.c_str());
-      outputnmatchFile << "haplotype_name" << " ";
-      for (int k = 0; k < nsnp; ++k) {
-        outputnmatchFile << fixed << setprecision(0) << pd[k];
-        if(k != nsnp-1) outputnmatchFile << " ";
-      }
-      outputnmatchFile << "\n";
-    }
-    
-    int looptime=0;
-    
-    while(nhap_left>0){
-      nsamples_use = (ncores*2*LDAfactor < nhap_left) ? ncores*2*LDAfactor : nhap_left; //ensure both copies are included
-      
-      vector<vector<vector<double>>> painting_all(nsamples_use, 
-                                                  vector<vector<double>>(npop, vector<double>(nsnp)));
-      
-      vector<vector<double>> chunklength(nsamples_use, vector<double>(npop));
-      vector<vector<double>> chunkcount(nsamples_use, vector<double>(npop));
-      
-      // get the matches before the loop
-      vector<vector<vector<int>>> targetmatch_use(nsamples_use);
-      
-      for (int ii = nhap_use - nhap_left; ii < nhap_use - nhap_left + nsamples_use; ++ii) {
-        // leave one out if the donor file is the same as the target file
-        
-        targetmatch_use[ii - (nhap_use - nhap_left)] = get_matchdata(queryidall_target,
-                                                                     donorid_target,
-                                                                     startpos_target,
-                                                                     endpos_target,ii, loo,haploid);
-      }
-      
-      if(run=="prob"){
-        cout<<"Calculating painting for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+    if(run=="prob"){
+      cout<<"Calculating painting for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+    }else{
+      if(run=="both"){
+        if(clength&&ccount&&csample){
+          cout<<"Calculating painting, chunk length, chunk counts, and sampling reference haplotypes for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(clength && !ccount && !csample){
+          cout<<"Calculating painting, chunk length and chunk counts for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(clength && !ccount && !csample){
+          cout<<"Calculating painting and chunk length for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(!clength && ccount && !csample){
+          cout<<"Calculating painting and chunk counts for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(!clength && !ccount && csample){
+          cout<<"Calculating painting and sampling reference haplotypes for target haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(clength&&!ccount&&csample){
+          cout<<"Calculating painting, chunk length, and sampling reference haplotypes for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(!clength&&ccount&&csample){
+          cout<<"Calculating painting, chunk counts, and sampling reference haplotypes for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }
       }else{
-        if(run=="both"){
-          if(clength&&ccount){
-            cout<<"Calculating painting, chunk length, and chunk count for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        if(clength&&ccount&&csample){
+          cout<<"Calculating chunk length, chunk counts, and sampling reference haplotypes for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(clength && !ccount && !csample){
+          cout<<"Calculating chunk length and chunk counts for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(clength && !ccount && !csample){
+          cout<<"Calculating chunk length for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(!clength && ccount && !csample){
+          cout<<"Calculating chunk counts for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(!clength && !ccount && csample){
+          cout<<"Sampling reference haplotypes for target haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(clength&&!ccount&&csample){
+          cout<<"Calculating chunk length and sampling reference haplotypes for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }else if(!clength&&ccount&&csample){
+          cout<<"Calculating chunk counts and sampling reference haplotypes for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }
+      }
+    }
+    
+    vector<vector<int>> nmatch_use(nsamples_use);
+    
+#pragma omp parallel for
+    for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+      
+      double lambda_use;
+      
+      vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
+      vector<int> removeidx;
+      
+      vector<int> maxind(npop,0);
+      vector<double> maxPHAT(npop,0.0);
+      if(leaveoneout && rmrelative){
+        vector<int> nsameSNP(nref_ind, 0);
+        for(int j = 0; j < targetmatchdata.size(); ++j) {
+          int val = targetmatchdata[j][0];
+          if(haploid){
+            nsameSNP[val]+=targetmatchdata[j][2]-targetmatchdata[j][1]+1;
+          }else{
+            nsameSNP[val/2]+=targetmatchdata[j][2]-targetmatchdata[j][1]+1;
           }
-          if(clength && !ccount){
-            cout<<"Calculating painting and chunk length for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        }
+        int refpopidx;
+        for(int j=0;j<nref_ind;++j){
+          if(haploid){
+            refpopidx=refindex[j];
+          }else{
+            refpopidx=refindex[2*j];
           }
-          if(!clength && ccount){
-            cout<<"Calculating painting and chunk count for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
-          }
-        }else{
-          if(clength&&ccount){
-            cout<<"Calculating chunk length and chunk count for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
-          }
-          if(clength && !ccount){
-            cout<<"Calculating chunk length for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
-          }
-          if(!clength && ccount){
-            cout<<"Calculating chunk count for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+          if(nsameSNP[j]>maxPHAT[refpopidx]){
+            maxind[refpopidx]=j;
+            maxPHAT[refpopidx]=nsameSNP[j];
           }
         }
       }
       
-      vector<vector<int>> nmatch_use(nsamples_use);
       
-      #pragma omp parallel for
-      for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-        
-        double lambda_use;
-        
-        vector<vector<int>> targetmatchdata=targetmatch_use[ii - (nhap_use - nhap_left)];
-        vector<int> removeidx;
-        
-        vector<int> maxind(npop,0);
-        vector<double> maxPHAT(npop,0.0);
-        if(leaveoneout && rmrelative){
-          vector<int> nsameSNP(nref_ind, 0);
-          for(int j = 0; j < targetmatchdata.size(); ++j) {
-            int val = targetmatchdata[j][0];
-            if(haploid){
-              nsameSNP[val]+=targetmatchdata[j][2]-targetmatchdata[j][1]+1;
-            }else{
-              nsameSNP[val/2]+=targetmatchdata[j][2]-targetmatchdata[j][1]+1;
-            }
-          }
-          int refpopidx;
-          for(int j=0;j<nref_ind;++j){
-            if(haploid){
-              refpopidx=refindex[j];
-            }else{
-              refpopidx=refindex[2*j];
-            }
-            if(nsameSNP[j]>maxPHAT[refpopidx]){
-              maxind[refpopidx]=j;
-              maxPHAT[refpopidx]=nsameSNP[j];
-            }
-          }
-        }
-        
-        
-        if(leaveoneout){
-          if(reffile==targetfile){
-            int popidx=refindex[queryidx[ii]];
-            for(int j=0;j<npop;++j){
-              if(j!=popidx){
-                int rmidx1=randomsample(refidx.findrows(j),1)[0];
-                removeidx.push_back(rmidx1);
-                if(!haploid){
-                  int rmidx2;
-                  if(rmidx1%2==0){
-                    rmidx2=rmidx1+1;
-                  }else{
-                    rmidx2=rmidx1-1;
-                  }
-                  removeidx.push_back(rmidx2);
+      if(leaveoneout){
+        if(reffile==targetfile){
+          int popidx=refindex[queryidx[ii]];
+          for(int j=0;j<npop;++j){
+            if(j!=popidx){
+              int rmidx1=randomsample(refidx.findrows(j),1)[0];
+              removeidx.push_back(rmidx1);
+              if(!haploid){
+                int rmidx2;
+                if(rmidx1%2==0){
+                  rmidx2=rmidx1+1;
+                }else{
+                  rmidx2=rmidx1-1;
                 }
+                removeidx.push_back(rmidx2);
               }
-              //removeidx contains the indices to be removed for leave-one-out
-              //the same individual has already been removed
+            }
+            //removeidx contains the indices to be removed for leave-one-out
+            //the same individual has already been removed
+          }
+          removeRowsWithValue(targetmatchdata,removeidx);
+        }else{
+          for(int j=0;j<npop;++j){
+            if(rmrelative && maxPHAT[j]/nsnp/2>=relafrac){
+              removeidx.push_back(maxind[j]*2);
+              removeidx.push_back(maxind[j]*2+1);
+            }else{
+              int rmidx1=randomsample(refidx.findrows(j),1)[0];
+              removeidx.push_back(rmidx1);
+              if(!haploid){
+                int rmidx2;
+                if(rmidx1%2==0){
+                  rmidx2=rmidx1+1;
+                }else{
+                  rmidx2=rmidx1-1;
+                }
+                removeidx.push_back(rmidx2);
+              }
             }
             removeRowsWithValue(targetmatchdata,removeidx);
-          }else{
-            for(int j=0;j<npop;++j){
-              if(rmrelative && maxPHAT[j]/nsnp/2>=relafrac){
-                removeidx.push_back(maxind[j]*2);
-                removeidx.push_back(maxind[j]*2+1);
-              }else{
-                int rmidx1=randomsample(refidx.findrows(j),1)[0];
-                removeidx.push_back(rmidx1);
-                if(!haploid){
-                  int rmidx2;
-                  if(rmidx1%2==0){
-                    rmidx2=rmidx1+1;
-                  }else{
-                    rmidx2=rmidx1-1;
-                  }
-                  removeidx.push_back(rmidx2);
-                }
-              }
-              removeRowsWithValue(targetmatchdata,removeidx);
-            }
-            
-          }
-        }
-        
-        pair<hMat,vector<int>> matall=matchfiletohMat(targetmatchdata,nref,nsnp,gd); 
-        hMat mat=matall.first;
-        nmatch_use[ii - (nhap_use - nhap_left)]=matall.second;
-        
-        if(diff_lambda){
-          vector<int> startpos, endpos;
-          for (const auto& row : targetmatchdata) {
-            startpos.push_back(row[1]);
-            endpos.push_back(row[2]);
-          }
-          lambda_use=est_lambda_Viterbi(startpos,endpos,nsnp,gdall);
-        }else{
-          lambda_use=lambda;
-        }
-        
-        
-        vector<double> sameprob=cal_sameprob(nsnp,lambda_use,gd,nref);
-        vector<double> otherprob=cal_otherprob(nref,sameprob);
-        pair<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
-        pair<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
-        
-        if(run!="chunk"){
-          hMat pind=indpainting(mat,gd,lambda_use,npop,refindex,dp,f,b);
-          
-          vector<vector<double>> pind_dense=hMatrix2matrix(pind);
-          for(int j=0;j<npop;++j){
-            for(int k=0;k<nsnp;++k){
-              painting_all[ii-nhap_use+nhap_left][j][k]=pind_dense[j][k];
-            }
-          }
-        }
-        
-        if(run!="prob"){
-          if(clength){
-            vector<double> cl=chunklength_each(gd,mat,npop,refindex,f,b,gdall);
-            for(int j=0;j<npop;++j){
-              chunklength[ii-nhap_use+nhap_left][j]=cl[j];
-            }
-          }
-          if(ccount){
-            vector<double> cc=chunkcount_each(mat,npop,refindex,f,b,sameprob);
-            for(int j=0;j<npop;++j){
-              chunkcount[ii-nhap_use+nhap_left][j]=cc[j];
-            }
           }
           
         }
       }
       
+      pair<hMat,vector<int>> matall=matchfiletohMat(targetmatchdata,nref,nsnp,gd); 
+      hMat mat=matall.first;
+      nmatch_use[ii - (nhap_use - nhap_left)]=matall.second;
+      
+      if(diff_lambda){
+        vector<int> startpos, endpos;
+        for (const auto& row : targetmatchdata) {
+          startpos.push_back(row[1]);
+          endpos.push_back(row[2]);
+        }
+        lambda_use=est_lambda_Viterbi(startpos,endpos,nsnp,gdall);
+      }else{
+        lambda_use=lambda;
+      }
+      
+      
+      vector<double> sameprob=cal_sameprob(nsnp,lambda_use,gd,nref);
+      vector<double> otherprob=cal_otherprob(nref,sameprob);
+      pair<hMat, vector<double>> f=forwardProb(mat,sameprob,otherprob);
+      pair<hMat, vector<double>> b=backwardProb(mat,sameprob,otherprob);
+      
       if(run!="chunk"){
-        //compute average painting for each SNP
-        if(outputaveSNPpainting||outputAAS){
+        hMat pind=indpainting(mat,gd,lambda_use,npop,refindex,dp,f,b);
+        
+        vector<vector<double>> pind_dense=hMatrix2matrix(pind);
+        for(int j=0;j<npop;++j){
+          for(int k=0;k<nsnp;++k){
+            painting_all[ii-nhap_use+nhap_left][j][k]=pind_dense[j][k];
+          }
+        }
+      }
+      
+      if(run!="prob"){
+        if(clength){
+          vector<double> cl=chunklength_each(gd,mat,npop,refindex,f,b,gdall);
+          for(int j=0;j<npop;++j){
+            chunklength[ii-nhap_use+nhap_left][j]=cl[j];
+          }
+        }
+        if(ccount){
+          vector<double> cc=chunkcount_each(mat,npop,refindex,f,b,sameprob);
+          for(int j=0;j<npop;++j){
+            chunkcount[ii-nhap_use+nhap_left][j]=cc[j];
+          }
+        }
+       if(csample){
+          vector<vector<int>> cs=sample_each(f,sameprob,otherprob,nsample);
+          for(int j=0;j<nsample;++j){
+            for(int z=0;z<nsnp;++z){
+              samplestate[ii-nhap_use+nhap_left][j][z]=cs[j][z];
+            }
+          }
+        }
+        
+      }
+    }
+    
+    if(run!="chunk"){
+      //compute average painting for each SNP
+      if(outputaveSNPpainting||outputAAS){
+        for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+          for(int j=0;j<npop;++j){
+#pragma omp parallel for
+            for(int k=0;k<nsnp;++k){
+              aveSNPpainting[j][k]+=painting_all[ii-nhap_use+nhap_left][j][k];
+            }
+          }
+        }
+      }
+      
+      // compute the average painting for each individual and output.
+      if(outputaveindpainting){
+        if(haploid){
           for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
             for(int j=0;j<npop;++j){
-              #pragma omp parallel for
+              double sumpaint=0;
+#pragma omp parallel for
               for(int k=0;k<nsnp;++k){
-                aveSNPpainting[j][k]+=painting_all[ii-nhap_use+nhap_left][j][k];
+                sumpaint+=painting_all[ii-nhap_use+nhap_left][j][k];
               }
+              aveindpainting[ii][j] = sumpaint/nsnp;
+            }
+          }
+        }else{
+          for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+            for (int j = 0; j < npop; ++j) {
+              double sumpaint=0;
+              for(int k=0;k<nsnp;++k){
+                sumpaint+=painting_all[2*ii-nhap_use+nhap_left][j][k]+painting_all[2*ii-nhap_use+nhap_left+1][j][k];
+              }
+              aveindpainting[ii][j] = sumpaint/(2*nsnp);
             }
           }
         }
-        
-        // compute the average painting for each individual and output.
-        if(outputaveindpainting){
-          if(haploid){
-            for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-              for(int j=0;j<npop;++j){
-                double sumpaint=0;
-                #pragma omp parallel for
-                for(int k=0;k<nsnp;++k){
-                  sumpaint+=painting_all[ii-nhap_use+nhap_left][j][k];
-                }
-                aveindpainting[ii][j] = sumpaint/nsnp;
-              }
-            }
-          }else{
-            for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
-              for (int j = 0; j < npop; ++j) {
-                double sumpaint=0;
-                for(int k=0;k<nsnp;++k){
-                  sumpaint+=painting_all[2*ii-nhap_use+nhap_left][j][k]+painting_all[2*ii-nhap_use+nhap_left+1][j][k];
-                }
-                aveindpainting[ii][j] = sumpaint/(2*nsnp);
-              }
-            }
-          }
+      }
+      
+      //compute LDA
+      
+      if(outputLDA || outputLDAS){
+        cout<<"Calculating LDA for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
+        vector<int> allhaps_idx;
+        for(int i=0;i<nsamples_use;++i){
+          allhaps_idx.push_back(i);
         }
-        
-        //compute LDA
-        
-        if(outputLDA || outputLDAS){
-          cout<<"Calculating LDA for haplotypes "<<nhap_use-nhap_left<<"-"<<nhap_use-nhap_left+nsamples_use-1<<endl;
-          vector<int> allhaps_idx;
-          for(int i=0;i<nsamples_use;++i){
-            allhaps_idx.push_back(i);
-          }
-          vector<int> resample_idx = randomsample(allhaps_idx,nsamples_use);
-          #pragma omp parallel for
-          for(int i=0;i<nsnp-1;++i){
-            if(nsnp_right[i]!=0){
-              for(int j=i+1;j<=i+nsnp_right[i];++j){
-                double distance=0;
-                double theo_distance=0;
-                for (int nn=0; nn<nsamples_use; nn++){
-                  double sum_squared_diff=0;
-                  double sum_squared_diff_theo=0;
-                  for (int k=0; k<npop; k++){
-                    sum_squared_diff+= pow(painting_all[nn][k][i]-painting_all[nn][k][j],2);
-                    sum_squared_diff_theo+= pow(painting_all[resample_idx[nn]][k][i]-painting_all[nn][k][j],2);
-                  }
-                  distance += sqrt(sum_squared_diff/npop);
-                  theo_distance += sqrt(sum_squared_diff_theo/npop);
+        vector<int> resample_idx = randomsample(allhaps_idx,nsamples_use);
+#pragma omp parallel for
+        for(int i=0;i<nsnp-1;++i){
+          if(nsnp_right[i]!=0){
+            for(int j=i+1;j<=i+nsnp_right[i];++j){
+              double distance=0;
+              double theo_distance=0;
+              for (int nn=0; nn<nsamples_use; nn++){
+                double sum_squared_diff=0;
+                double sum_squared_diff_theo=0;
+                for (int k=0; k<npop; k++){
+                  sum_squared_diff+= pow(painting_all[nn][k][i]-painting_all[nn][k][j],2);
+                  sum_squared_diff_theo+= pow(painting_all[resample_idx[nn]][k][i]-painting_all[nn][k][j],2);
                 }
-                if(looptime==0){
-                  Dscore[i][j-i-1]=distance;
-                  Dprime[i][j-i-1]=theo_distance;
-                }else{
-                  Dscore[i][j-i-1]+=distance;
-                  Dprime[i][j-i-1]+=theo_distance;
-                }
+                distance += sqrt(sum_squared_diff/npop);
+                theo_distance += sqrt(sum_squared_diff_theo/npop);
               }
-            }
-          }
-        }
-        
-        if(outputpainting){
-          //output painting
-          if(outputallSNP){
-            if(probstore=="constant"){
-              if(haploid){
-                for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-                  outputFile << indnames[ii] << " "<<"\n";
-                  int snpidx=1;
-                  bool same=true;
-                  for (int j = 1; j < nsnp; ++j) {
-                    for(int k=0;k<npop;++k){
-                      if(painting_all[ii-nhap_use+nhap_left][k][j]!=painting_all[ii-nhap_use+nhap_left][k][j-1]){
-                        same=false;
-                        break;
-                      }
-                    }
-                    if(!same || j==nsnp-1){
-                      if(j==nsnp-1){
-                        outputFile << snpidx <<" "<<j+1<<" ";
-                      }else{
-                        outputFile << snpidx <<" "<<j<<" ";
-                      }
-                      
-                      for(int k=0;k<npop;++k){
-                        if(j==nsnp-1){
-                          outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
-                        }else{
-                          outputFile << painting_all[ii-nhap_use+nhap_left][k][j-1];
-                        }
-                        if(k!=npop-1) outputFile << " ";
-                      }
-                      same=true;
-                      snpidx=j+1;
-                      outputFile <<"\n";
-                    }
-                    if(j==nsnp-1) snpidx=1;
-                  }
-                }
+              if(looptime==0){
+                Dscore[i][j-i-1]=distance;
+                Dprime[i][j-i-1]=theo_distance;
               }else{
-                for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
-                  outputFile << indnames[ii] << "_0 "<<"\n";
-                  int snpidx=1;
-                  bool same=true;
-                  
-                  for (int j = 1; j < nsnp; ++j) {
-                    for(int k=0;k<npop;++k){
-                      if(painting_all[2*ii-nhap_use+nhap_left][k][j]!=painting_all[2*ii-nhap_use+nhap_left][k][j-1]){
-                        same=false;
-                        break;
-                      }
+                Dscore[i][j-i-1]+=distance;
+                Dprime[i][j-i-1]+=theo_distance;
+              }
+            }
+          }
+        }
+      }
+      
+      if(outputpainting){
+        //output painting
+        if(outputallSNP){
+          if(probstore=="constant"){
+            if(haploid){
+              for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+                outputFile << indnames[ii] << " "<<"\n";
+                int snpidx=1;
+                bool same=true;
+                for (int j = 1; j < nsnp; ++j) {
+                  for(int k=0;k<npop;++k){
+                    if(painting_all[ii-nhap_use+nhap_left][k][j]!=painting_all[ii-nhap_use+nhap_left][k][j-1]){
+                      same=false;
+                      break;
                     }
-                    if(!same || j==nsnp-1){
-                      if(j==nsnp-1){
-                        outputFile << snpidx <<" "<<j+1<<" ";
-                      }else{
-                        outputFile << snpidx <<" "<<j<<" ";
-                      }
-                      
-                      for(int k=0;k<npop;++k){
-                        if(j==nsnp-1){
-                          outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
-                        }else{
-                          outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j-1];
-                        }
-                        if(k!=npop-1) outputFile << " ";
-                      }
-                      same=true;
-                      snpidx=j+1;
-                      outputFile <<"\n";
-                    }
-                    if(j==nsnp-1) snpidx=1;
                   }
-                  
-                  outputFile << indnames[ii] << "_1 "<<"\n";
-                  
-                  for (int j = 1; j < nsnp; ++j) {
+                  if(!same || j==nsnp-1){
+                    if(j==nsnp-1){
+                      outputFile << snpidx <<" "<<j+1<<" ";
+                    }else{
+                      outputFile << snpidx <<" "<<j<<" ";
+                    }
+                    
                     for(int k=0;k<npop;++k){
-                      if(painting_all[2*ii-nhap_use+nhap_left+1][k][j]!=painting_all[2*ii-nhap_use+nhap_left+1][k][j-1]){
-                        same=false;
-                        break;
-                      }
-                    }
-                    if(!same || j==nsnp-1){
                       if(j==nsnp-1){
-                        outputFile << snpidx <<" "<<j+1<<" ";
+                        outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
                       }else{
-                        outputFile << snpidx <<" "<<j<<" ";
+                        outputFile << painting_all[ii-nhap_use+nhap_left][k][j-1];
                       }
-                      
-                      for(int k=0;k<npop;++k){
-                        if(j==nsnp-1){
-                          outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
-                        }else{
-                          outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j-1];
-                        }
-                        if(k!=npop-1) outputFile << " ";
-                      }
-                      same=true;
-                      snpidx=j+1;
-                      outputFile <<"\n";
+                      if(k!=npop-1) outputFile << " ";
                     }
-                    if(j==nsnp-1) snpidx=1;
+                    same=true;
+                    snpidx=j+1;
+                    outputFile <<"\n";
                   }
+                  if(j==nsnp-1) snpidx=1;
                 }
               }
-            }else if(probstore=="raw"){
-              if(haploid){
-                for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-                  outputFile << indnames[ii] << " ";
-                  for (int j = 0; j < nsnp; ++j) {
-                    for(int k=0;k<npop;++k){
-                      outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
-                      if(k!=npop-1) outputFile << ",";
+            }else{
+              for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+                outputFile << indnames[ii] << "_0 "<<"\n";
+                int snpidx=1;
+                bool same=true;
+                
+                for (int j = 1; j < nsnp; ++j) {
+                  for(int k=0;k<npop;++k){
+                    if(painting_all[2*ii-nhap_use+nhap_left][k][j]!=painting_all[2*ii-nhap_use+nhap_left][k][j-1]){
+                      same=false;
+                      break;
                     }
-                    if(j!=nsnp-1) outputFile << " ";
                   }
-                  outputFile << "\n";
+                  if(!same || j==nsnp-1){
+                    if(j==nsnp-1){
+                      outputFile << snpidx <<" "<<j+1<<" ";
+                    }else{
+                      outputFile << snpidx <<" "<<j<<" ";
+                    }
+                    
+                    for(int k=0;k<npop;++k){
+                      if(j==nsnp-1){
+                        outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                      }else{
+                        outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j-1];
+                      }
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    same=true;
+                    snpidx=j+1;
+                    outputFile <<"\n";
+                  }
+                  if(j==nsnp-1) snpidx=1;
                 }
-              }else{
-                for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
-                  outputFile << indnames[ii] << " ";
-                  for (int j = 0; j < nsnp; ++j) {
-                    for(int k=0;k<npop;++k){
-                      outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
-                      if(k!=npop-1) outputFile << ",";
+                
+                outputFile << indnames[ii] << "_1 "<<"\n";
+                
+                for (int j = 1; j < nsnp; ++j) {
+                  for(int k=0;k<npop;++k){
+                    if(painting_all[2*ii-nhap_use+nhap_left+1][k][j]!=painting_all[2*ii-nhap_use+nhap_left+1][k][j-1]){
+                      same=false;
+                      break;
                     }
-                    outputFile << "|";
-                    for(int k=0;k<npop;++k){
-                      outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
-                      if(k!=npop-1) outputFile << ",";
-                    }
-                    if(j!=nsnp-1) outputFile << " ";
                   }
-                  outputFile << "\n";
+                  if(!same || j==nsnp-1){
+                    if(j==nsnp-1){
+                      outputFile << snpidx <<" "<<j+1<<" ";
+                    }else{
+                      outputFile << snpidx <<" "<<j<<" ";
+                    }
+                    
+                    for(int k=0;k<npop;++k){
+                      if(j==nsnp-1){
+                        outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+                      }else{
+                        outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j-1];
+                      }
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    same=true;
+                    snpidx=j+1;
+                    outputFile <<"\n";
+                  }
+                  if(j==nsnp-1) snpidx=1;
                 }
               }
-            }else if(probstore=="linear"){
-              // piecewise linear output which is the most sparse version
-              if(haploid){
-                for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-                  outputFile << indnames[ii]<<"\n";
-                  //output the first SNP's painting
+            }
+          }else if(probstore=="raw"){
+            if(haploid){
+              for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+                outputFile << indnames[ii] << " ";
+                for (int j = 0; j < nsnp; ++j) {
+                  for(int k=0;k<npop;++k){
+                    outputFile << painting_all[ii-nhap_use+nhap_left][k][j];
+                    if(k!=npop-1) outputFile << ",";
+                  }
+                  if(j!=nsnp-1) outputFile << " ";
+                }
+                outputFile << "\n";
+              }
+            }else{
+              for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+                outputFile << indnames[ii] << " ";
+                for (int j = 0; j < nsnp; ++j) {
+                  for(int k=0;k<npop;++k){
+                    outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                    if(k!=npop-1) outputFile << ",";
+                  }
+                  outputFile << "|";
+                  for(int k=0;k<npop;++k){
+                    outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][j];
+                    if(k!=npop-1) outputFile << ",";
+                  }
+                  if(j!=nsnp-1) outputFile << " ";
+                }
+                outputFile << "\n";
+              }
+            }
+          }else if(probstore=="linear"){
+            // piecewise linear output which is the most sparse version
+            if(haploid){
+              for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+                outputFile << indnames[ii]<<"\n";
+                //output the first SNP's painting
                 outputFile << 1 <<" ";
                 for(int k=0;k<npop;++k){
                   outputFile << painting_all[ii-nhap_use+nhap_left][k][0];
@@ -3019,58 +3115,58 @@ void paintall(const string method,
               for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
                 outputFile << indnames[ii] << "_0 "<<"\n";
                 //output the first SNP's painting
-                  outputFile << 1 <<" ";
+                outputFile << 1 <<" ";
+                for(int k=0;k<npop;++k){
+                  outputFile << painting_all[2*ii-nhap_use+nhap_left][k][0];
+                  if(k!=npop-1) outputFile << " ";
+                }
+                outputFile <<"\n";
+                
+                int startidx=0;
+                for (int j = 1; j < nsnp; ++j) {
+                  double rmse=0;
                   for(int k=0;k<npop;++k){
-                    outputFile << painting_all[2*ii-nhap_use+nhap_left][k][0];
-                    if(k!=npop-1) outputFile << " ";
-                  }
-                  outputFile <<"\n";
-                  
-                  int startidx=0;
-                  for (int j = 1; j < nsnp; ++j) {
-                    double rmse=0;
-                    for(int k=0;k<npop;++k){
-                      double slope=(painting_all[2*ii-nhap_use+nhap_left][k][j]-painting_all[2*ii-nhap_use+nhap_left][k][startidx])/(j-startidx);
-                      if(j-startidx>=2){
-                        for(int jj=startidx+1;jj<j;++jj){
-                          double se=painting_all[2*ii-nhap_use+nhap_left][k][startidx]+slope*(jj-startidx)-painting_all[2*ii-nhap_use+nhap_left][k][jj];
-                          rmse+=se*se;
-                        }
-                      }
-                    }
+                    double slope=(painting_all[2*ii-nhap_use+nhap_left][k][j]-painting_all[2*ii-nhap_use+nhap_left][k][startidx])/(j-startidx);
                     if(j-startidx>=2){
-                      rmse=sqrt(rmse/npop/(j-startidx-1));
-                    }
-                    
-                    if(rmse>rmsethre){
-                      startidx=j;
-                      // output the painting of the previous SNP
-                      outputFile << j <<" ";
-                      for(int k=0;k<npop;++k){
-                        outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j-1];
-                        if(k!=npop-1) outputFile << " ";
+                      for(int jj=startidx+1;jj<j;++jj){
+                        double se=painting_all[2*ii-nhap_use+nhap_left][k][startidx]+slope*(jj-startidx)-painting_all[2*ii-nhap_use+nhap_left][k][jj];
+                        rmse+=se*se;
                       }
-                      outputFile <<"\n";
-                      // output the painting of the this SNP
-                      outputFile << j+1 <<" ";
-                      for(int k=0;k<npop;++k){
-                        outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
-                        if(k!=npop-1) outputFile << " ";
-                      }
-                      outputFile <<"\n";
-                    }else if(j==nsnp-1){
-                      outputFile << j+1 <<" ";
-                      for(int k=0;k<npop;++k){
-                        outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
-                        if(k!=npop-1) outputFile << " ";
-                      }
-                      outputFile <<"\n";
                     }
                   }
+                  if(j-startidx>=2){
+                    rmse=sqrt(rmse/npop/(j-startidx-1));
+                  }
                   
-                  
-                  outputFile << indnames[ii] << "_1 "<<"\n";
-                  //output the first SNP's painting
+                  if(rmse>rmsethre){
+                    startidx=j;
+                    // output the painting of the previous SNP
+                    outputFile << j <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j-1];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                    // output the painting of the this SNP
+                    outputFile << j+1 <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                  }else if(j==nsnp-1){
+                    outputFile << j+1 <<" ";
+                    for(int k=0;k<npop;++k){
+                      outputFile << painting_all[2*ii-nhap_use+nhap_left][k][j];
+                      if(k!=npop-1) outputFile << " ";
+                    }
+                    outputFile <<"\n";
+                  }
+                }
+                
+                
+                outputFile << indnames[ii] << "_1 "<<"\n";
+                //output the first SNP's painting
                 outputFile << 1 <<" ";
                 for(int k=0;k<npop;++k){
                   outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][0];
@@ -3227,205 +3323,243 @@ void paintall(const string method,
           }
         }else{
           // output specific SNPs' local ancestry probabilities
-                  if(haploid){
-                    for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-                      outputFile << indnames[ii] << " ";
-                      for (int j = 0; j < nsnp_op; ++j) {
-                        for(int k=0;k<npop;++k){
-                          outputFile << painting_all[ii-nhap_use+nhap_left][k][SNPidx_op[j]];
-                          if(k!=npop-1) outputFile << ",";
-                        }
-                        if(j!=nsnp_op-1) outputFile << " ";
-                      }
-                      outputFile << "\n";
-                    }
-                  }else{
-                    for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
-                      outputFile << indnames[ii] << " ";
-                      for (int j = 0; j < nsnp_op; ++j) {
-                        for(int k=0;k<npop;++k){
-                          outputFile << painting_all[2*ii-nhap_use+nhap_left][k][SNPidx_op[j]];
-                          if(k!=npop-1) outputFile << ",";
-                        }
-                        outputFile << "|";
-                        for(int k=0;k<npop;++k){
-                          outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][SNPidx_op[j]];
-                          if(k!=npop-1) outputFile << ",";
-                        }
-                        if(j!=nsnp_op-1) outputFile << " ";
-                      }
-                      outputFile << "\n";
-                    }
-                  }
+          if(haploid){
+            for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+              outputFile << indnames[ii] << " ";
+              for (int j = 0; j < nsnp_op; ++j) {
+                for(int k=0;k<npop;++k){
+                  outputFile << painting_all[ii-nhap_use+nhap_left][k][SNPidx_op[j]];
+                  if(k!=npop-1) outputFile << ",";
                 }
-                
+                if(j!=nsnp_op-1) outputFile << " ";
               }
-              
-              
-              vector<vector<vector<double>>>().swap(painting_all);
+              outputFile << "\n";
             }
-            
-            if(run!="prob"){
-              //output chunk length
-              
-              if(haploid){
-                for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-                  if(clength){
-                    outputclFile << indnames[ii] << " ";
-                    for(int j=0;j<npop;++j){
-                      outputclFile << fixed << setprecision(5) << chunklength[ii-nhap_use+nhap_left][j];
-                      if(j!=npop-1){
-                        outputclFile << " ";
-                      } 
-                    }
-                    outputclFile << "\n";
-                  }
-                  if(ccount){
-                    outputccFile << indnames[ii] << " ";
-                    for(int j=0;j<npop;++j){
-                      outputccFile << fixed << setprecision(5) << chunkcount[ii-nhap_use+nhap_left][j];
-                      if(j!=npop-1){
-                        outputccFile << " ";
-                      } 
-                    }
-                    outputccFile << "\n";
-                  }
+          }else{
+            for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+              outputFile << indnames[ii] << " ";
+              for (int j = 0; j < nsnp_op; ++j) {
+                for(int k=0;k<npop;++k){
+                  outputFile << painting_all[2*ii-nhap_use+nhap_left][k][SNPidx_op[j]];
+                  if(k!=npop-1) outputFile << ",";
                 }
-              }else{
-                for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
-                  if(clength){
-                    outputclFile << indnames[ii] <<"_0 ";
-                    for(int j=0;j<npop;++j){
-                      outputclFile << fixed << setprecision(3) << chunklength[2*ii-nhap_use+nhap_left][j];
-                      if(j!=npop-1){
-                        outputclFile << " ";
-                      }
-                    }
-                    outputclFile << "\n";
-                    outputclFile << indnames[ii] <<"_1 ";
-                    for(int j=0;j<npop;++j){
-                      outputclFile << fixed << setprecision(3) << chunklength[2*ii-nhap_use+nhap_left+1][j];
-                      if(j!=npop-1){
-                        outputclFile << " ";
-                      }
-                    }
-                    outputclFile << "\n";
-                  }
-                  if(ccount){
-                    outputccFile << indnames[ii] <<"_0 ";
-                    for(int j=0;j<npop;++j){
-                      outputccFile << fixed << setprecision(3) << chunkcount[2*ii-nhap_use+nhap_left][j];
-                      if(j!=npop-1){
-                        outputccFile << " ";
-                      }
-                    }
-                    outputccFile << "\n";
-                    outputccFile << indnames[ii] <<"_1 ";
-                    for(int j=0;j<npop;++j){
-                      outputccFile << fixed << setprecision(3) << chunkcount[2*ii-nhap_use+nhap_left+1][j];
-                      if(j!=npop-1){
-                        outputccFile << " ";
-                      }
-                    }
-                    outputccFile << "\n";
-                  }
+                outputFile << "|";
+                for(int k=0;k<npop;++k){
+                  outputFile << painting_all[2*ii-nhap_use+nhap_left+1][k][SNPidx_op[j]];
+                  if(k!=npop-1) outputFile << ",";
                 }
+                if(j!=nsnp_op-1) outputFile << " ";
               }
-              if(clength) vector<vector<double>>().swap(chunklength);
-              if(ccount) vector<vector<double>>().swap(chunkcount);
+              outputFile << "\n";
             }
-            
-            //output nmatch file
-            if(outputnmatch){
-              if(haploid){
-                for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
-                  outputnmatchFile << indnames[ii] << " ";
-                  for(int j=0;j<nsnp;++j){
-                    outputnmatchFile << fixed << setprecision(0) << nmatch_use[ii-nhap_use+nhap_left][j];
-                    if(j!=nsnp-1) outputnmatchFile << " ";
-                  }
-                  outputnmatchFile << "\n";
-                }
-              }else{
-                for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
-                  outputnmatchFile << indnames[ii] <<"_0 ";
-                  for(int j=0;j<nsnp;++j){
-                    outputnmatchFile << fixed << setprecision(0) << nmatch_use[2*ii-nhap_use+nhap_left][j];
-                    if(j!=nsnp-1) outputnmatchFile << " ";
-                  }
-                  outputnmatchFile << "\n";
-                  
-                  outputnmatchFile << indnames[ii] <<"_1 ";
-                  for(int j=0;j<nsnp;++j){
-                    outputnmatchFile << fixed << setprecision(0) << nmatch_use[2*ii-nhap_use+nhap_left+1][j];
-                    if(j!=nsnp-1) outputnmatchFile << " ";
-                  }
-                  outputnmatchFile << "\n";
-                }
-              }
-            }
-            
-            nhap_left=nhap_left-nsamples_use;
-            looptime++;
           }
-          if(outputnmatch){
-            outputnmatchFile.close();
-          }
-          
-          if(run!="prob"){
-            if(clength) outputclFile.close();
-            if(ccount) outputccFile.close();
-          }
-          
-          
-          if(run!="chunk"){
-            if(outputpainting){
-              outputFile.close();
+        }
+        
+      }
+      
+      
+      vector<vector<vector<double>>>().swap(painting_all);
+    }
+    
+    if(run!="prob"){
+      //output chunk length
+      
+      if(haploid){
+        //haploid output
+        for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+          if(clength){
+            outputclFile << indnames[ii] << " ";
+            for(int j=0;j<npop;++j){
+              outputclFile << fixed << setprecision(5) << chunklength[ii-nhap_use+nhap_left][j];
+              if(j!=npop-1){
+                outputclFile << " ";
+              } 
             }
-            
-            
-            // get the average painting for each SNP and output
-            if(outputaveSNPpainting||outputAAS){
-              for(int j=0;j<npop;++j){
-                #pragma omp parallel for
-                for(int k=0;k<nsnp;++k){
-                  aveSNPpainting[j][k]=aveSNPpainting[j][k]/nhap_use;
-                }
+            outputclFile << "\n";
+          }
+          if(ccount){
+            outputccFile << indnames[ii] << " ";
+            for(int j=0;j<npop;++j){
+              outputccFile << fixed << setprecision(5) << chunkcount[ii-nhap_use+nhap_left][j];
+              if(j!=npop-1){
+                outputccFile << " ";
+              } 
+            }
+            outputccFile << "\n";
+          }
+          if(csample){
+            outputcsFile << indnames[ii] << "\n";
+            for(int j=0;j<nsample;++j){
+              for(int z=0;z<nsnp;++z){
+                outputcsFile << fixed << samplestate[ii-nhap_use+nhap_left][j][z];
+                if(z!=nsnp-1){
+                  outputcsFile << " ";
+                } 
               }
-              
-              if(outputaveSNPpainting){
-                //output the average painting for each SNP
-                ofstream outputFile(aveSNPprobfile.c_str());
-                
-                if (outputFile) {
-                  outputFile << "physical_position" <<" ";
-                  for (int j = 0; j < npop; ++j){
-                    outputFile << "pop"<<j << " ";
-                  }
-                  outputFile<< "\n";
-                  for (int k = 0; k < nsnp; ++k) {
-                    outputFile << fixed << setprecision(0) << pd[k]<< " ";
-                    for (int j = 0; j < npop; ++j){
-                      outputFile << fixed << setprecision(4) <<aveSNPpainting[j][k];
-                      if(j != npop-1) outputFile << " ";
-                    }
-                    if(k != nsnp-1) outputFile<< "\n";
-                  }
-                  outputFile.close();
-                }else {
-                  cerr << "Unable to open file" << aveSNPprobfile;
-                  abort();
-                }
+              outputcsFile << "\n";
+            }
+          }
+        }
+      }else{
+        //diploid output
+        for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+          if(clength){
+            outputclFile << indnames[ii] <<"_0 ";
+            for(int j=0;j<npop;++j){
+              outputclFile << fixed << setprecision(3) << chunklength[2*ii-nhap_use+nhap_left][j];
+              if(j!=npop-1){
+                outputclFile << " ";
               }
             }
-            
-            //output the average painting for each individual
-            if(outputaveindpainting){
-              //output the average painting for each SNP
-              ofstream outputFile(aveindprobfile.c_str());
-              if (outputFile) {
-                outputFile << "individual_name" << " ";
-                //the first row is the SNP's populations
+            outputclFile << "\n";
+            outputclFile << indnames[ii] <<"_1 ";
+            for(int j=0;j<npop;++j){
+              outputclFile << fixed << setprecision(3) << chunklength[2*ii-nhap_use+nhap_left+1][j];
+              if(j!=npop-1){
+                outputclFile << " ";
+              }
+            }
+            outputclFile << "\n";
+          }
+          if(ccount){
+            outputccFile << indnames[ii] <<"_0 ";
+            for(int j=0;j<npop;++j){
+              outputccFile << fixed << setprecision(3) << chunkcount[2*ii-nhap_use+nhap_left][j];
+              if(j!=npop-1){
+                outputccFile << " ";
+              }
+            }
+            outputccFile << "\n";
+            outputccFile << indnames[ii] <<"_1 ";
+            for(int j=0;j<npop;++j){
+              outputccFile << fixed << setprecision(3) << chunkcount[2*ii-nhap_use+nhap_left+1][j];
+              if(j!=npop-1){
+                outputccFile << " ";
+              }
+            }
+            outputccFile << "\n";
+          }
+          if(csample){
+            outputcsFile << indnames[ii] <<"_0"<< "\n";
+            for(int j=0;j<nsample;++j){
+              for(int z=0;z<nsnp;++z){
+                outputcsFile << samplestate[2*ii-nhap_use+nhap_left][j][z];
+                if(z!=nsnp-1){
+                  outputcsFile << " ";
+                } 
+              }
+              outputcsFile << "\n";
+            }
+            outputcsFile << indnames[ii] <<"_1"<< "\n";
+            for(int j=0;j<nsample;++j){
+              for(int z=0;z<nsnp;++z){
+                outputcsFile << samplestate[2*ii-nhap_use+nhap_left+1][j][z];
+                if(z!=nsnp-1){
+                  outputcsFile << " ";
+                } 
+              }
+              outputcsFile << "\n";
+            }
+          }
+        }
+      }
+      if(clength) vector<vector<double>>().swap(chunklength);
+      if(ccount) vector<vector<double>>().swap(chunkcount);
+      if(csample) vector<vector<vector<int>>>().swap(samplestate);
+    }
+    
+    //output nmatch file
+    if(outputnmatch){
+      if(haploid){
+        for(int ii=nhap_use-nhap_left; ii<nhap_use-nhap_left+nsamples_use; ++ii){
+          outputnmatchFile << indnames[ii] << " ";
+          for(int j=0;j<nsnp;++j){
+            outputnmatchFile << fixed << setprecision(0) << nmatch_use[ii-nhap_use+nhap_left][j];
+            if(j!=nsnp-1) outputnmatchFile << " ";
+          }
+          outputnmatchFile << "\n";
+        }
+      }else{
+        for(int ii=(nhap_use-nhap_left)/2; ii<(nhap_use-nhap_left+nsamples_use)/2; ++ii){
+          outputnmatchFile << indnames[ii] <<"_0 ";
+          for(int j=0;j<nsnp;++j){
+            outputnmatchFile << fixed << setprecision(0) << nmatch_use[2*ii-nhap_use+nhap_left][j];
+            if(j!=nsnp-1) outputnmatchFile << " ";
+          }
+          outputnmatchFile << "\n";
+          
+          outputnmatchFile << indnames[ii] <<"_1 ";
+          for(int j=0;j<nsnp;++j){
+            outputnmatchFile << fixed << setprecision(0) << nmatch_use[2*ii-nhap_use+nhap_left+1][j];
+            if(j!=nsnp-1) outputnmatchFile << " ";
+          }
+          outputnmatchFile << "\n";
+        }
+      }
+    }
+    
+    nhap_left=nhap_left-nsamples_use;
+    looptime++;
+  }
+  if(outputnmatch){
+    outputnmatchFile.close();
+  }
+  
+  if(run!="prob"){
+    if(clength) outputclFile.close();
+    if(ccount) outputccFile.close();
+    if(csample) outputcsFile.close();
+  }
+  
+  
+  if(run!="chunk"){
+    if(outputpainting){
+      outputFile.close();
+    }
+    
+    
+    // get the average painting for each SNP and output
+    if(outputaveSNPpainting||outputAAS){
+      for(int j=0;j<npop;++j){
+#pragma omp parallel for
+        for(int k=0;k<nsnp;++k){
+          aveSNPpainting[j][k]=aveSNPpainting[j][k]/nhap_use;
+        }
+      }
+      
+      if(outputaveSNPpainting){
+        //output the average painting for each SNP
+        ofstream outputFile(aveSNPprobfile.c_str());
+        
+        if (outputFile) {
+          outputFile << "physical_position" <<" ";
+          for (int j = 0; j < npop; ++j){
+            outputFile << "pop"<<j << " ";
+          }
+          outputFile<< "\n";
+          for (int k = 0; k < nsnp; ++k) {
+            outputFile << fixed << setprecision(0) << pd[k]<< " ";
+            for (int j = 0; j < npop; ++j){
+              outputFile << fixed << setprecision(4) <<aveSNPpainting[j][k];
+              if(j != npop-1) outputFile << " ";
+            }
+            if(k != nsnp-1) outputFile<< "\n";
+          }
+          outputFile.close();
+        }else {
+          cerr << "Unable to open file" << aveSNPprobfile;
+          abort();
+        }
+      }
+    }
+    
+    //output the average painting for each individual
+    if(outputaveindpainting){
+      //output the average painting for each SNP
+      ofstream outputFile(aveindprobfile.c_str());
+      if (outputFile) {
+        outputFile << "individual_name" << " ";
+        //the first row is the SNP's populations
         for (int k = 0; k < npop; ++k) {
           outputFile << "pop" << k;
           if(k != npop-1) outputFile << " ";
@@ -3515,7 +3649,7 @@ int main(int argc, char *argv[]){
   // Check if no commands are provided
   if (argc == 1 || string(argv[1]) == "-help" || string(argv[1]) == "-h") {
     cout << "Program: SparsePainter" << endl<< endl;
-    cout << "Version: 1.2.1" << endl<< endl;
+    cout << "Version: 1.3.0" << endl<< endl;
     cout << "SparsePainter reference: Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. Nature Communications (in press) (2025)." << endl<< endl;
     cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl<< endl;
     cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl<< endl;
@@ -3544,6 +3678,8 @@ int main(int argc, char *argv[]){
     cout << "  -chunklength: Output the expected length (in centiMorgan) of copied chunks of each local ancestry for each target sample. The output is a gzipped text file (.txt.gz)." << endl<< endl;
     
     cout << "  -chunkcount: Output the expected number of copied chunks of each local ancestry for each target sample. The output is a gzipped text file (.txt.gz)." << endl<< endl;
+    
+    cout << "  -sample: Output the sampled reference haplotypes' indices for each target sample at each SNP. The output is a gzipped text file (.txt.gz), which is the same format as the .samples.out file of ChromoPainter, and is the required input file to run GLOBETROTTER and fastGLOBETROTTER."<< endl<< endl;
     
     cout << "  -aveSNP: Output the average local ancestry probabilities for each SNP. The output is a text file (.txt)." << endl<< endl;
     
@@ -3586,6 +3722,8 @@ int main(int argc, char *argv[]){
     
     cout << "  -dp [integer>0]: The decimal places of the output of local ancestry probabilities (default=2). This also controls the size of the output file for local ancestry probabilities." << endl<< endl;
     
+    cout << "  -nsample [integer>0]: The number of different sampled reference haplotypes for each target haplotype at each SNP (default=10) implemented by command [-sample]." << endl<< endl;
+    
     cout << "  -rmsethre [number∈(0,1)]: The upper bound that the root mean squared error of the estimated local ancestry probabilities (default=0.01) when storing them in linear form by argument, i.e. [-probstore linear]." <<endl<< endl;
     
     cout << "  -relafrac [number∈(0,1)]: The proportion of total number of SNPs shared between a reference and target haplotype sample (default=0.2). The reference sample will be removed under the leave-one-out [-loo] and remove relative [-rmrelative] modes. " << endl<< endl;
@@ -3616,6 +3754,7 @@ int main(int argc, char *argv[]){
   bool chunk=false;
   bool clength=false;
   bool ccount=false;
+  bool csample=false;
   string method="Viterbi";
   bool haploid=false;
   bool leaveoneout=false;
@@ -3649,6 +3788,7 @@ int main(int argc, char *argv[]){
   double window=4;
   string probstore="constant";
   int dp=2;
+  int nsample=10;
   double rmsethre=0.01;
   double relafrac=0.2;
   int ncluster=100;
@@ -3665,7 +3805,7 @@ int main(int argc, char *argv[]){
     param = param.substr(1);  // Remove the -
     
     if(param=="prob" || param=="chunklength" || param=="chunkcount" ||
-       param=="aveSNP" || param=="aveind" ||
+       param=="sample" || param=="aveSNP" || param=="aveind" ||
        param=="LDA" || param=="LDAS" || param=="outmatch" || 
        param=="AAS" || param=="diff_lambda" || param=="rmrelative" ||
        param=="haploid" || param=="loo"){
@@ -3686,7 +3826,7 @@ int main(int argc, char *argv[]){
        param=="targetfile" || param=="mapfile"|| param=="rmsethre"||
        param=="popfile" || param=="namefile"|| param=="SNPfile"|| 
        param=="matchfile" || param=="out" || param=="probstore" ||
-       param=="window" || param=="ncores" || param=="dp"){
+       param=="window" || param=="ncores" || param=="dp" || param=="nsample"){
       if(i==argc-1){
         cerr << "Error: Parameters should be given following -"<<param<<"."<<endl;
         cerr<<"Type -h or -help to see the help file."<<endl;
@@ -3706,6 +3846,9 @@ int main(int argc, char *argv[]){
       chunk=true;
     } else if (param == "chunkcount") {
       ccount=true;
+      chunk=true;
+    } else if (param == "sample") {
+      csample=true;
       chunk=true;
     } else if (param == "aveSNP") {
       aveSNPpainting = true;
@@ -3772,6 +3915,8 @@ int main(int argc, char *argv[]){
       window = stod(argv[++i]);
     } else if (param == "dp") {
       dp = stoi(argv[++i]);
+    } else if (param == "nsample") {
+      nsample = stoi(argv[++i]);
     } else if (param == "rmsethre") {
       rmsethre = stod(argv[++i]);
     } else if (param == "relafrac") {
@@ -3790,32 +3935,28 @@ int main(int argc, char *argv[]){
   }
   
   if(reffile.empty()){
-    reffile="donor.vcf.gz";
-    cout << "Warning: No `-reffile filename' input is found, use donor.vcf.gz as default."<<endl;
+    cerr << "Warning: No `-reffile filename' input is found, please check your command." <<endl;
+    abort();
   }
   
   if(targetfile.empty()){
-    targetfile="target.vcf.gz";
-    cout << "Warning: No `-targetfile filename' input is found, use target.vcf.gz as default."<<endl;
+    cerr << "Warning: No `-targetfile filename' input is found, please check your command." <<endl;
   }
   
   if(mapfile.empty()){
-    mapfile="map.txt";
-    cout << "Warning: No `-mapfile filename' input is found, use map.txt as default."<<endl;
+    cerr << "Warning: No `-mapfile filename' input is found, please check your command." <<endl;
   }
   
   if(popfile.empty()){
-    popfile="popnames.txt";
-    cout << "Warning: No `-popfile filename' input is found, use popnames.txt as default."<<endl;
+    cerr << "Warning: No `-popfile filename' input is found, please check your command." <<endl;
   }
   
   if(namefile.empty()){
-    namefile="targetname.txt";
-    cout << "Warning: No `-namefile filename' input is found, use targetname.txt as default."<<endl;
+    cerr << "Warning: No `-namefile filename' input is found, please check your command." <<endl;
   }
   
   if(rmrelative && !leaveoneout){
-    cout<<"Error: Argument rmrelative is invalid because it only works when -loo is specified."<<endl;
+    cerr<<"Error: Argument rmrelative is invalid because it only works when -loo is specified." <<endl;
     abort();
   }
   
@@ -3845,6 +3986,7 @@ int main(int argc, char *argv[]){
   string AASfile = out + "_AAS.txt";
   string chunklengthfile = out+ "_chunklength.txt.gz";
   string chunkcountfile = out+ "_chunkcount.txt.gz";
+  string samplefile = out+ "_samples.txt.gz";
   string lambdafile = out+ "_fixedlambda.txt";
   string nmatchfile = out + "_nmatches.txt.gz";
   
@@ -3856,11 +3998,12 @@ int main(int argc, char *argv[]){
     outputallSNP=false;
   }
   
-  if(!runpaint && !clength && !ccount){
+  if(!runpaint && !clength && !ccount && !csample){
     cerr<<"Please give at least one of the following command in order to run SparsePainter:"<<endl;
     cerr<<"-prob: output the local ancestry probabilities for each target sample at each SNP."<<endl;
     cerr<<"-chunklength: output the expected chunk length of each local ancestry for each target sample."<<endl;
     cerr<<"-chunkcount: output the expected chunk connts of each local ancestry for each target sample."<<endl;
+    cerr<<"-sample: output the sampled reference haplotypes for each target sample at each SNP."<<endl;
     cerr<<"-aveSNP: output the average local ancestry probabilities for each SNP."<<endl;
     cerr<<"-aveind: output the average local ancestry probabilities for each target sample."<<endl;
     cerr<<"-LDA: output the LDA of each pair of SNPs."<<endl;
@@ -3898,9 +4041,9 @@ int main(int argc, char *argv[]){
   
   paintall(method, diff_lambda, fixlambda, EM_ite, indfrac, minsnpEM, EMsnpfrac, L_initial, nmatch, L_minmatch, haploid, 
            leaveoneout, reffile, targetfile, mapfile, popfile, namefile, matchfile, SNPfile, nmatchfile, 
-           outputpainting, clength,ccount, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputnmatch,outputallSNP, 
-           rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, chunkcountfile, LDAfile, LDASfile, AASfile, 
-           lambdafile, probstore, window/100, dp, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
+           outputpainting, clength, ccount, csample, aveSNPpainting, aveindpainting, LDA, LDAS, AAS, outputnmatch,outputallSNP, 
+           rmrelative, probfile, aveSNPprobfile, aveindprobfile, chunklengthfile, chunkcountfile, samplefile, LDAfile, LDASfile, AASfile, 
+           lambdafile, probstore, window/100, dp, nsample, rmsethre, relafrac, ncluster,max_ite, ncores, run, phase);
   cout<<"SparsePainter completed successfully!"<<endl;
   return 0;
 } 

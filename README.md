@@ -1,5 +1,5 @@
 # SparsePainter
-**SparsePainter** is an efficient tool for local ancestry inference (LAI) coded in C++. It extends [**PBWT**](https://github.com/richarddurbin/pbwt) algorithm to find K longest matches at each position, and uses the **Hash Map** structure to implement the forward and backward algorithm in the Hidden Markov Model (HMM) leveraging the sparsity of haplotype matches. SparsePainter can infer **fine-scale local ancestry** (per individual per SNP) and **genome-wide total ancestry**, it also enables efficiently calculating [**Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)**](https://github.com/YaolingYang/LDAandLDAscore) and [**Ancestry Anomaly Score (AAS)**](https://github.com/danjlawson/ms_paper) for understanding the population structure, evolution, selection, etc..  
+**SparsePainter** is an efficient tool for local ancestry inference (LAI) coded in C++. It extends [**PBWT**](https://github.com/richarddurbin/pbwt) algorithm to find K longest matches at each position, and uses the **Hash Map** structure to implement the forward and backward algorithm in the Hidden Markov Model (HMM) leveraging the sparsity of haplotype matches. SparsePainter can infer **fine-scale local ancestry** (per individual per SNP) and **genome-wide total ancestry**, it also enables efficiently calculating [**Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)**](https://github.com/YaolingYang/LDAandLDAscore) and [**Ancestry Anomaly Score (AAS)**](https://github.com/danjlawson/ms_paper) for understanding the population structure, evolution, selection, etc.. SparsePainter also produces output required to run [GLOBETROTTER](https://github.com/hellenthal-group-UCL/GLOBETROTTER) and [fastGLOBETROTTER](https://github.com/hellenthal-group-UCL/fastGLOBETROTTER).  
 
 -   Authors:  
     Yaoling Yang (<yaoling.yang@bristol.ac.uk>)  
@@ -10,7 +10,7 @@
 
 -   **SparsePainter website:**  https://sparsepainter.github.io/
 
--   Version: 1.2.1 (**[Changelog](#changelog)**)
+-   Version: 1.3.0 (**[Changelog](#changelog)**)
 
 -   **SparsePainter and PBWTpaint Reference:** [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. Nature Communications (in press) (2025). doi:10.1101/2024.03.13.24304206](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v2)
 
@@ -80,6 +80,8 @@ To run **SparsePainter**, enter the following command:
 
 * **-chunkcount** Output the expected number of copied chunks of each local ancestry for each target sample. The output is a gzipped text file (.txt.gz).
 
+* **-sample** Output the sampled reference haplotypes' indices for each target sample at each SNP. The output is a gzipped text file (.txt.gz), which is the same format as the `.samples.out` file of [ChromoPainter](https://github.com/danjlawson/finestructure4), and is the required input file to run [GLOBETROTTER](https://github.com/hellenthal-group-UCL/GLOBETROTTER) and [fastGLOBETROTTER](https://github.com/hellenthal-group-UCL/fastGLOBETROTTER).
+
 * **-aveSNP** Output the average local ancestry probabilities for each SNP. The output is a text file (.txt).
 
 * **-aveind** Output the average local ancestry probabilities for each target individual. The output is a text file (.txt).
@@ -121,6 +123,8 @@ To run **SparsePainter**, enter the following command:
 * **-probstore [raw/constant/linear/cluster]** Output the local ancestry probabilities in raw, constant, linear or cluster form (**default=constant**). For each haplotype, in ``raw`` form, we output the probabilities of each SNP with the SNP name being their physical positions in base; in ``constant`` form, we output the range of SNP index, and the painting probabilities that those SNPs share; in ``linear`` form, we output the range of SNP index, and the painting probabilities of the start SNP and the end SNP, while the intermediate SNPs are estimated by the simple linear regression with root mean squared error smaller than ``rmsethre``; in ``cluster`` form, we perform K-means clustering on the painting of each haplotype with ``ncluster`` clusters and maximum ``max_ite`` iterations, and output the average probabilities of each cluster and the cluster of each SNP. Storing in ``constant`` considerably reduces the file size while has the same accuracy compared with storing in ``raw``; storing in ``linear`` has an even smaller file size but becomes slightly slower and loses some accuracy; storing in ``cluster`` has the smallest file size but with slowest speed.
 
 * **-dp [integer>0]** The decimal places of the output of local ancestry probabilities (**default=2**). This also controls the size of the output file for local ancestry probabilities.
+
+* **-nsample [integer>0]**: The number of different sampled reference haplotypes for each target haplotype at each SNP (**default=10**) implemented by command ``-sample``.
 
 * **-rmsethre [number&isin(0,1)]** The upper bound that the root mean squared error of the estimated local ancestry probabilities (**default=0.01**) when storing them in linear form by argument, i.e. ``-probstore linear``.
 
@@ -164,16 +168,16 @@ The example dataset is contained in the /example folder. This example includes 8
 *  If your input file is in vcf or vcf.gz format:
 
 ``
-./SparsePainter -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunklength -chunkcount -aveSNP -aveind
+./SparsePainter -reffile donor.vcf.gz -targetfile target.vcf.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunklength -chunkcount -aveSNP -aveind -sample
 ``
 
 *  If your input file is in phase of phase.gz format:
 
 ``
-./SparsePainter -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunklength -chunkcount -aveSNP -aveind
+./SparsePainter -reffile donor.phase.gz -targetfile target.phase.gz -popfile popnames.txt -mapfile map.txt -namefile targetname.txt -out target_vs_ref -prob -chunklength -chunkcount -aveSNP -aveind -sample
 ``
 
-The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_chunkcount.txt.gz``, ``target_vs_ref_aveSNPprob.txt``, ``target_vs_ref_aveindprob.txt`` and ``target_vs_ref_fixedlambda.txt``.
+The output file for this example includes ``target_vs_ref_prob.txt.gz``, ``target_vs_ref_chunklength.txt.gz``, ``target_vs_ref_chunkcount.txt.gz``, ``target_vs_ref_aveSNPprob.txt``, ``target_vs_ref_aveindprob.txt``, ``target_vs_ref_samples.txt.gz`` and ``target_vs_ref_fixedlambda.txt``.
 
 To paint the reference individuals against themselves with leave-one-out strategy, run with:
 
@@ -224,6 +228,9 @@ Retain the first subfile, and then append the rows (excluding the first two rows
 * ``-chunklength`` and ``-chunkcount``:
 Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles. To obtain genome-wide chunk length and chunk count, please sum over all chromosomes. 
 
+* ``-sample``:
+Retain the first subfile, and then append the rows of the other subfiles.
+
 * ``-aveindpainting``:
 Retain the first subfile, and then append the rows (excluding the first row) of the other subfiles.  To obtain genome-wide average painting for individuals, please compute the weighted average of all chromosomes (weighted by the number of SNPs in each chromosome).
 
@@ -244,6 +251,9 @@ Finally run the code:
 
 <a id="changelog"></a>
 # Changelog
+* **2025-02-06 Version 1.3.0**  
+Add command ``-sample`` and ``-nsample`` to sample reference haplotype for each target haplotype at each SNP.
+This produces the same output as the `.samples.out` file of [ChromoPainter](https://github.com/danjlawson/finestructure4), and is the required input file to run [GLOBETROTTER](https://github.com/hellenthal-group-UCL/GLOBETROTTER) and [fastGLOBETROTTER](https://github.com/hellenthal-group-UCL/fastGLOBETROTTER).
 * **2024-10-07 Version 1.2.1**  
 Check if the VCF data input includes genotypes that are not 0 or 1, then return the error.
 * **2024-06-18 Version 1.2.0**  

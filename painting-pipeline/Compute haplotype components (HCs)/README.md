@@ -16,7 +16,9 @@ This command generates ``chr${i}_UKBall.chunklengths.s.out.gz`` for i from 1 to 
 
 ## Step 2: Generate the overall chunk length matrix
 
-The next step is to do a "weighted" sum of each entry of the N*N sparse matrix (N is the number of individuals), because PBWTpaint reports the chunk length based on the number of SNPs while it should be based on the genetic distance. Here we provide an example **C++** code ``combine_chunklength.cpp``. Please **replace row 197-198 with the number of SNPs for each chromosome in the dataset**, (row 199-201 is the genetic distance in centiMorgan for each chromosome, which do not need to change if you use a standard recombination map), and **in line 203 replace 487409 with the actual N**.  
+The next step is to do a "weighted" sum of each entry of the N*N sparse matrix (N is the number of individuals), because PBWTpaint reports the chunk length based on the number of SNPs while it should be based on the genetic distance. Here we provide an example **C++** code ``combine_chunklength.cpp``. Please **replace row 197-198 with the number of SNPs for each chromosome in the dataset**, (row 199-201 is the genetic distance in centiMorgan for each chromosome, which do not need to change if you use a standard recombination map), and **in line 203 replace 487409 with the actual N**. If you use a different file name, please also **replace row 214 and 218 with the actual file name**.    
+
+Note that to run this step, we require chunklength files ``chr${i}_UKBall.chunklengths.s.out.gz`` to be generated from ``-paintSparse`` command form ``pbwt``, which have 3 columns: the first two columns are individual index (integer, starting from 1), and the 3rd column is the chunk length.  
 
 Please ensure ``gzstream.C`` and ``gzstream.h`` are in the same directory as ``combine_chunklength.cpp``, and then compile with:
 

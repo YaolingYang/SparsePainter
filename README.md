@@ -10,9 +10,9 @@
 
 -   **SparsePainter website:**  https://sparsepainter.github.io/
 
--   Version: 1.3.0 (**[Changelog](#changelog)**)
+-   Version: 1.3.1 (**[Changelog](#changelog)**)
 
--   **SparsePainter and PBWTpaint Reference:** [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. Nature Communications (in press) (2025). doi:10.1101/2024.03.13.24304206](https://www.medrxiv.org/content/10.1101/2024.03.13.24304206v2)
+-   **SparsePainter and PBWTpaint Reference: [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. Nature Communications 16, 2742 (2025).](https://www.nature.com/articles/s41467-025-57601-3)**
 
 -   **Pipeline for** [biobank-scale painting](https://github.com/YaolingYang/SparsePainter/tree/main/painting-pipeline/standard%20painting) and [computing haplotype components (HCs)](https://github.com/YaolingYang/SparsePainter/tree/main/painting-pipeline/Compute%20haplotype%20components%20(HCs)) **are available.**
 
@@ -251,6 +251,8 @@ Finally run the code:
 
 <a id="changelog"></a>
 # Changelog
+* **2025-03-20 Version 1.3.0**  
+Update the publication of SparsePainter and PBWTpaint at Nature Communications.  
 * **2025-02-06 Version 1.3.0**  
 Add command ``-sample`` and ``-nsample`` to sample reference haplotype for each target haplotype at each SNP.
 This produces the same output as the `.samples.out` file of [ChromoPainter](https://github.com/danjlawson/finestructure4), and is the required input file to run [GLOBETROTTER](https://github.com/hellenthal-group-UCL/GLOBETROTTER) and [fastGLOBETROTTER](https://github.com/hellenthal-group-UCL/fastGLOBETROTTER).

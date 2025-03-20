@@ -2447,10 +2447,10 @@ void paintall(const string method,
           for (int ii = v_nsamples - v_nhap_left; ii < v_nsamples - v_nhap_left + v_nsamples_use; ++ii) {
             // leave one out if the donor file is the same as the target file
             v_targetmatch_use[ii - (v_nsamples - v_nhap_left)] = get_matchdata(queryidall_target,
-                                    donorid_target,
-                                    startpos_target,
-                                    endpos_target,
-                                    v_samples[ii], loo,haploid);
+                                                                               donorid_target,
+                                                                               startpos_target,
+                                                                               endpos_target,
+                                                                               v_samples[ii], loo,haploid);
           }
           
 #pragma omp parallel for reduction(+:lambda_sum)
@@ -3650,7 +3650,7 @@ int main(int argc, char *argv[]){
   if (argc == 1 || string(argv[1]) == "-help" || string(argv[1]) == "-h") {
     cout << "Program: SparsePainter" << endl<< endl;
     cout << "Version: 1.3.0" << endl<< endl;
-    cout << "SparsePainter reference: Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. Nature Communications (in press) (2025)." << endl<< endl;
+    cout << "SparsePainter reference: Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. Nature Communications 16, 2742 (2025)." << endl<< endl;
     cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl<< endl;
     cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl<< endl;
     

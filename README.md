@@ -20,6 +20,8 @@
 
 -   **PBWTpaint GitHub Repository:** [https://github.com/richarddurbin/pbwt](https://github.com/richarddurbin/pbwt)
 
+-   **A use case of HCs:** [Yang, Y., Lawson, D.J. From individuals to ancestries: towards attributing trait variation to haplotypes. medRxiv (2025), doi: https://doi.org/10.1101/2025.03.13.25323895.](https://www.medrxiv.org/content/10.1101/2025.03.13.25323895v1)
+
 -   Overview of SparsePainter and PBWTpaint
 ![overview](overview.png)
 

@@ -1,5 +1,5 @@
 # SparsePainter
-**SparsePainter** is an efficient tool for local ancestry inference (LAI) coded in C++. It extends [**PBWT**](https://github.com/richarddurbin/pbwt) algorithm to find K longest matches at each position, and uses the **Hash Map** structure to implement the forward and backward algorithm in the Hidden Markov Model (HMM) leveraging the sparsity of haplotype matches. SparsePainter can infer **fine-scale local ancestry** (per individual per SNP) and **genome-wide total ancestry**, it also enables efficiently calculating [**Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)**](https://github.com/YaolingYang/LDAandLDAscore) and [**Ancestry Anomaly Score (AAS)**](https://github.com/danjlawson/ms_paper) for understanding the population structure, evolution, selection, etc.. SparsePainter also produces output required to run [GLOBETROTTER](https://github.com/hellenthal-group-UCL/GLOBETROTTER) and [fastGLOBETROTTER](https://github.com/hellenthal-group-UCL/fastGLOBETROTTER).  
+**SparsePainter** is an efficient tool for local ancestry inference (LAI) coded in C++. It extends [**PBWT**](https://github.com/richarddurbin/pbwt) algorithm to find K longest matches at each position, and uses the **Hash Map** structure to implement the forward and backward algorithm in the Hidden Markov Model (HMM) leveraging the sparsity of haplotype matches. SparsePainter can infer **fine-scale local ancestry** (per individual per SNP) and **genome-wide total ancestry**, it also enables efficiently calculating [**Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)**](https://github.com/YaolingYang/LDAandLDAscore) and [**Ancestry Anomaly Score (AAS)**](https://github.com/danjlawson/ms_paper) for understanding the population structure, evolution, selection, etc. SparsePainter also produces output required to run [GLOBETROTTER](https://github.com/hellenthal-group-UCL/GLOBETROTTER) and [fastGLOBETROTTER](https://github.com/hellenthal-group-UCL/fastGLOBETROTTER).  
 
 -   Authors:  
     Yaoling Yang (<yaoling.yang@bristol.ac.uk>)  
@@ -251,7 +251,7 @@ Finally run the code:
 
 <a id="changelog"></a>
 # Changelog
-* **2025-03-20 Version 1.3.0**  
+* **2025-03-20 Version 1.3.1**  
 Update the publication of SparsePainter and PBWTpaint at Nature Communications.  
 * **2025-02-06 Version 1.3.0**  
 Add command ``-sample`` and ``-nsample`` to sample reference haplotype for each target haplotype at each SNP.

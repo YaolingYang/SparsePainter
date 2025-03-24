@@ -1,7 +1,7 @@
 # SparsePainter
 **SparsePainter** is an efficient tool for local ancestry inference (LAI) coded in C++. It extends [**PBWT**](https://github.com/richarddurbin/pbwt) algorithm to find K longest matches at each position, and uses the **Hash Map** structure to implement the forward and backward algorithm in the Hidden Markov Model (HMM) leveraging the sparsity of haplotype matches. SparsePainter can infer **fine-scale local ancestry** (per individual per SNP) and **genome-wide total ancestry**, it also enables efficiently calculating [**Linkage Disequilibrium of Ancestry (LDA), LDA score (LDAS)**](https://github.com/YaolingYang/LDAandLDAscore) and [**Ancestry Anomaly Score (AAS)**](https://github.com/danjlawson/ms_paper) for understanding the population structure, evolution, selection, etc.   
 
-SparsePainter also produces output required to run [**GLOBETROTTER**](https://github.com/hellenthal-group-UCL/GLOBETROTTER), [**fastGLOBETROTTER**](https://github.com/hellenthal-group-UCL/fastGLOBETROTTER) and [**SOURCEFIND**](https://github.com/will-camb/misc/blob/main/sparsepainter2sourcefind.py) ([example codes](https://github.com/will-camb/misc/blob/main/sparsepainter2sourcefind.py) to run SOURCEFIND based on SparsePainter output are available).   
+SparsePainter also produces output required to run [**GLOBETROTTER**](https://github.com/hellenthal-group-UCL/GLOBETROTTER), [**fastGLOBETROTTER**](https://github.com/hellenthal-group-UCL/fastGLOBETROTTER) and [**SOURCEFIND**](https://github.com/hellenthal-group-UCL/sourcefindV2) ([example codes](https://github.com/will-camb/misc/blob/main/sparsepainter2sourcefind.py) to run SOURCEFIND based on SparsePainter output are available).   
 
 -   Authors:  
     Yaoling Yang (<yaoling.yang@bristol.ac.uk>)  

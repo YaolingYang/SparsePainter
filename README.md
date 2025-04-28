@@ -12,7 +12,7 @@ SparsePainter also produces output required to run [**GLOBETROTTER**](https://gi
 
 -   **SparsePainter website:**  https://sparsepainter.github.io/
 
--   Version: 1.3.1 (**[Changelog](#changelog)**)
+-   Version: 1.3.2 (**[Changelog](#changelog)**)
 
 -   **SparsePainter and PBWTpaint Reference: [Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. Nature Communications 16, 2742 (2025).](https://www.nature.com/articles/s41467-025-57601-3)**
 
@@ -255,6 +255,8 @@ Finally run the code:
 
 <a id="changelog"></a>
 # Changelog
+* **2025-04-28 Version 1.3.2**  
+Display the actual population labels for output of ``-aveind`` and ``-aveSNP``.    
 * **2025-03-20 Version 1.3.1**  
 Update the publication of SparsePainter and PBWTpaint at Nature Communications.  
 * **2025-02-06 Version 1.3.0**  

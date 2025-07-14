@@ -3651,7 +3651,7 @@ int main(int argc, char *argv[]){
     cout << "Program: SparsePainter" << endl<< endl;
     cout << "Version: 1.3.2" << endl<< endl;
     cout << "SparsePainter reference: Yang, Y., Durbin, R., Iversen, A.K.N & Lawson, D.J. Sparse haplotype-based fine-scale local ancestry inference at scale reveals recent selection on immune responses. Nature Communications 16, 2742 (2025)." << endl<< endl;
-    cout << "Contact: Yaoling Yang [yaoling.yang@bristol.ac.uk] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl<< endl;
+    cout << "Contact: Yaoling Yang [yaolingyang1998@gmail.com] or Daniel Lawson [dan.lawson@bristol.ac.uk]" << endl<< endl;
     cout << "Usage: ./SparsePainter [-command1 -command2 ...... -command3 parameter3 -command4 parameter4 ......]" << endl<< endl;
 
     cout << "Type ./SparsePainter, ./SparsePainter -h or ./SparsePainter -help to see this help file." << endl<< endl;

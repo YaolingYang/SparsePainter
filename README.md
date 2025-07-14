@@ -4,11 +4,11 @@
 SparsePainter also produces output required to run [**GLOBETROTTER**](https://github.com/hellenthal-group-UCL/GLOBETROTTER), [**fastGLOBETROTTER**](https://github.com/hellenthal-group-UCL/fastGLOBETROTTER) and [**SOURCEFIND**](https://github.com/hellenthal-group-UCL/sourcefindV2) ([example codes](https://github.com/will-camb/misc/blob/main/sparsepainter2sourcefind.py) to run SOURCEFIND based on SparsePainter output are available).   
 
 -   Authors:  
-    Yaoling Yang (<yaoling.yang@bristol.ac.uk>)  
+    Yaoling Yang (<yaolingyang1998@gmail.com>)  
     Daniel Lawson (<dan.lawson@bristol.ac.uk>)
 
 -   Maintainer:  
-    Yaoling Yang (<yaoling.yang@bristol.ac.uk>)  
+    Yaoling Yang (<yaolingyang1998@gmail.com>)  
 
 -   **SparsePainter website:**  https://sparsepainter.github.io/
 

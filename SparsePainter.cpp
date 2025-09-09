@@ -6,10 +6,6 @@
 #define omp_get_thread_num() 0
 #endif
 
-#ifndef DEBUG
-#define DEBUG 1
-#endif
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -178,7 +174,7 @@ public:
 
 /////////////////////beginning of pbwt contents///////////////////////////
 
-void free_PBWT_memory(vector<vector<int>> &panel, int** &prefix, int** &divergence, int** &u, int** &v, int ** &w) {
+void free_PBWT_memory(vector<vector<bool>> &panel, int** &prefix, int** &divergence, int** &u, int** &v) {
   // First, delete the inner arrays of prefix, divergence, u, and v
   // Note: Since temp1, temp2, temp3, and temp4 are continuous blocks of memory
   // you only need to delete their base pointers (the pointers originally returned by 'new').
@@ -186,167 +182,69 @@ void free_PBWT_memory(vector<vector<int>> &panel, int** &prefix, int** &divergen
   delete[] divergence[0]; // which is temp2
   delete[] u[0];          // which is temp3
   delete[] v[0];          // which is temp4
-  delete[] w[0];          // which is temp5
 
   // Now, delete the outer arrays of prefix, divergence, u, and v
   delete[] prefix;
   delete[] divergence;
   delete[] u;
   delete[] v;
-  delete[] w;
 
   // Clear the panel vector and minimize its memory usage
   panel.clear();
-  vector<vector<int>>().swap(panel); // This technique is used to shrink the vector's capacity to fit its size.
+  vector<vector<bool>>().swap(panel); // This technique is used to shrink the vector's capacity to fit its size.
 
   // Nullify the pointers to ensure that they don't dangle.
   prefix = nullptr;
   divergence = nullptr;
   u = nullptr;
   v = nullptr;
-  w = nullptr;
 }
 
-void reversePBWT(vector<vector<int>> &recon,
-                 int **prefix, int **u, int **v, int **w,
-                 int num, int N)
-{
-    recon.assign(num, std::vector<int>(N, -1));
 
-
-    for (int k = 0; k < N; ++k) {
-        // totals for this column (after your forward v/w shifts)
-        const int zeros_total = v[0][k];
-        const int ones_total  = w[0][k] - v[0][k];
-        // const int twos_total  = num - w[0][k]; // not needed explicitly
-
-        for (int i = 0; i < num; ++i) {
-            int seq = prefix[i][k];
-            int allele;
-
-            if (i < num - 1) {
-                if (u[i+1][k] > u[i][k])      allele = 0;
-                else if (v[i+1][k] > v[i][k]) allele = 1;
-                else                           allele = 2;
-            } else {
-                // last row: compare to totals
-                if (zeros_total - u[i][k] == 1)           allele = 0;
-                else if (w[0][k] - v[i][k] == 1)          allele = 1; // same as: ones_total - (v[i]-v0) == 1
-                else                                       allele = 2;
-            }
-
-            recon[seq][k] = (allele == 0 ? 0 : (allele == 1 ? 1 : 9));
-        }
-    }
-    #if DEBUG
-    cout<<"Reconstructed sequence data:"<<endl;
-    for (int i = 0; i < num; ++i) {
-      for (int k = 0; k < N; ++k) {
-        cout<<recon[i][k]<<" ";
-      }
-      cout<<endl;
-    }
-    #endif
-}
-
-void PBWT(vector<vector<int>> &panel, int **prefix, int **divergence,
-          int **u, int **v, int **w, int num, int N){
+void PBWT(vector<vector<bool>> &panel, int **prefix, int **divergence,
+          int **u, int **v, int num, int N){
   for (int i = 0; i<num; ++i){
     prefix[i][0] = i;
     divergence[i][0] = 0;
   }
-  // Made multi-allelic following https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-019-2821-6
-  for (int k = 0; k<N; ++k) {
-    int u2 = 0, v2 = 0, w2=0,
-              p = k+1, q = k+1, r=k+1;
-    vector<int> a,b,c,  d,e,f;
-    for (int i = 0; i<num; ++i) {
+  for (int k = 0; k<N; ++k){
+    int u2 = 0, v2 = 0, p = k+1, q = k+1;
+    vector<int> a,b,d,e;
+    for (int i = 0; i<num; ++i){
       u[i][k] = u2;
       v[i][k] = v2;
-      w[i][k] = w2;
       if (divergence[i][k] > p) { p = divergence[i][k];}
       if (divergence[i][k] > q) { q = divergence[i][k];}
-      if (divergence[i][k] > r) { r = divergence[i][k];}
-
-      int seq = prefix[i][k];
-      int allele = panel[seq][k];
-
-      if (allele==0){
-        a.push_back(seq);
+      if (!panel[prefix[i][k]][k]){
+        a.push_back(prefix[i][k]);
         d.push_back(p);
         ++u2;
         p = 0;
-      }else if (allele==1){
-        b.push_back(seq);
+      }
+      else{
+        b.push_back(prefix[i][k]);
         e.push_back(q);
         ++v2;
         q = 0;
-      }else{
-        c.push_back(seq);
-        f.push_back(r);
-	      ++w2;
-      	r = 0;
       }
     }
     for (int i = 0; i<num; ++i){
-      v[i][k] += a.size(); // number of 0's
-      w[i][k] += a.size() + b.size(); // number of 0's + 1's
+      v[i][k] += a.size();
       if (i < a.size()){
         prefix[i][k+1] = a[i];
         divergence[i][k+1] = d[i];
-      }else if (i < a.size()+b.size()){
+      }
+      else{
         prefix[i][k+1] = b[i-a.size()];
         divergence[i][k+1] = e[i-a.size()];
-      }else{
-        prefix[i][k+1] = c[i-a.size()-b.size()];
-        divergence[i][k+1] = f[i-a.size()-b.size()];
       }
     }
   }
-  #if DEBUG
-  cout<<"Divergence:"<<endl;
-  for (int i = 0; i<num; ++i){
-    for (int k = 0; k<N; ++k) {
-    cout<<divergence[i][k]<<" ";
-    }
-    cout<<endl;
-  }
-  cout<<"Prefix:"<<endl;
-  for (int i = 0; i<num; ++i){
-    for (int k = 0; k<N; ++k) {
-    cout<<prefix[i][k]<<" ";
-    }
-    cout<<endl;
-  }
-  cout<<"u:"<<endl;
-  for (int i = 0; i<num; ++i){
-    for (int k = 0; k<N; ++k) {
-    cout<<u[i][k]<<" ";
-    }
-    cout<<endl;
-  }
-  cout<<"v:"<<endl;
-  for (int i = 0; i<num; ++i){
-    for (int k = 0; k<N; ++k) {
-    cout<<v[i][k]<<" ";
-    }
-    cout<<endl;
-  }
-  cout<<"w:"<<endl;
-  for (int i = 0; i<num; ++i){
-    for (int k = 0; k<N; ++k) {
-    cout<<w[i][k]<<" ";
-    }
-    cout<<endl;
-  }
-  vector<vector<int>> recon;  // empty at first
-  reversePBWT(recon,prefix,u,v,w,num,N);
-  #endif
 }
 
 void ReadVCF(const string inFile,
              const string qinFile,
-             vector<vector<int>> &panel,
+             vector<vector<bool>> &panel,
              const int N,
              const int M,
              const int qM,
@@ -359,8 +257,6 @@ void ReadVCF(const string inFile,
     cout<<endl;
   }
 
-  long nummissing=0; // counter of missing alleles read
-
   igzstream in,qin;
   if(inFile==qinFile){
     string line = "##";
@@ -372,8 +268,7 @@ void ReadVCF(const string inFile,
     stringstream linestr;
     int x = 0;
     char y = 0;
-    char tx = 0;
-    
+
     while (line[1] == '#')
       getline(in, line);
     for(int j = 0; j<N; ++j){
@@ -385,27 +280,30 @@ void ReadVCF(const string inFile,
       }
       if(!haploid){
         for (int i = 0; i<(M-qM)/2; ++i){
-          linestr >> tx >> y;
-          if((tx != '0')&&(tx!='1')){
-	          tx='9';++nummissing;
-      	  }
-          x=tx-'0';
-          panel[i*2][j] = (int)x;
-          linestr >> tx;
-          if((tx != '0')&&(tx!='1')){
-	          tx='9';++nummissing;
-      	  }
-          x=tx-'0';
-          panel[i*2 + 1][j] = (int)x;
+          linestr >> x >> y;
+          if(x==0 || x==1){
+            panel[i*2][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
+          linestr >> x;
+          if(x==0 || x==1){
+            panel[i*2 + 1][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
         }
       }else{
         for (int i = 0; i<M-qM; ++i){
-          linestr >> tx;
-          if((tx != '0')&&(tx!='1')){
-	          tx='9';++nummissing;
-      	  }
-          x=tx-'0';
-          panel[i][j] = (int)x;
+          linestr >> x;
+          if(x==0 || x==1){
+            panel[i][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
         }
       }
     }
@@ -423,9 +321,8 @@ void ReadVCF(const string inFile,
       abort();
     }
     stringstream linestr, qlinestr;
-    int x = 0; // int valued allele read
-    char y = 0; // a separator detector
-    char tx =0; // the raw allele read
+    int x = 0;
+    char y = 0;
 
     while (line[1] == '#')
       getline(in, line);
@@ -444,68 +341,66 @@ void ReadVCF(const string inFile,
       }
       if(!haploid){
         for (int i = 0; i<(M-qM)/2; ++i){
-          linestr >> tx >> y;
-          if((tx != '0')&&(tx!='1')){
-	          tx='9';++nummissing;
-      	  }
-      	  x=tx-'0';
-          panel[i*2][j] = (int)x;
-          linestr >> tx;
-          if((tx != '0')&&(tx!='1')){
-	          tx='9';++nummissing;
-      	  }
-      	  x=tx-'0';
-          panel[i*2 + 1][j] = (int)x;
+          linestr >> x >> y;
+          if(x==0 || x==1){
+            panel[i*2][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
+          linestr >> x;
+          if(x==0 || x==1){
+            panel[i*2 + 1][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
         }
         for (int i = (M-qM)/2; i < M/2; ++i){
-          qlinestr >> tx >> y;
-          if((tx != '0')&&(tx!='1')){
-	          tx='9';
-      	  }
-      	  x=tx-'0';
-          panel[i*2][j] = (int)x;
-          qlinestr >> tx;
-          if((tx != '0')&&(tx!='1')){
-	          tx='9';
-      	  }
-      	  x=tx-'0';
-          panel[i*2 + 1][j] = (int)x;
+          qlinestr >> x >> y;
+          if(x==0 || x==1){
+            panel[i*2][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << qinFile << endl;
+            abort();
+          }
+          qlinestr >> x;
+          if(x==0 || x==1){
+            panel[i*2 + 1][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << qinFile << endl;
+            abort();
+          }
         }
       }else{
-        for (int i = 0; i<M-qM; ++i) {
-          linestr >> tx;
-          if((tx != '0')&&(tx!='1')){
-	          tx='9';++nummissing;
-      	  }
-      	  x=tx-'0';
-      	  panel[i][j] = (int)x;
+        for (int i = 0; i<M-qM; ++i){
+          linestr >> x;
+          if(x==0 || x==1){
+            panel[i][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << inFile << endl;
+            abort();
+          }
         }
         for (int i = (M-qM); i < M; ++i){
-          qlinestr >> tx;
-        if((tx != '0')&&(tx!='1')){
-	          tx='9';
-      	  }
-      	  x=tx-'0';
-          panel[i][j] = (int)x;
+          qlinestr >> x;
+          if(x==0 || x==1){
+            panel[i][j] = (bool)x;
+          }else{
+            cerr << "Error: Genotypes are not represented as 0 or 1 in " << qinFile << endl;
+            abort();
+          }
         }
       }
+
     }
     in.close();
     qin.close();
   }
-  if(nummissing>0){
-    cout<<"IMPORTANT NOTE! "<<nummissing<<" sites were TREATED AS MISSING in the reference."<<endl;
-    cout<<"  Missing sites are defined as any non 0/1 allele."<<endl;
-    cout<<"  References that are missing are removed from consideration as a match."<<endl;
-    cout<<"  This is intended behavior to represent structural missingness, but for short"<<endl;
-    cout<<"  missing regions, you should impute beforehand."<<endl;
-    cout<<"  Additionally, if you have multi-allelic sites they are treated as missing which is not desirable."<<endl;
-    cout<<"  The least-bad option is to remove multi-allelic sites and re-impute their painting from binary sites."<<endl;
-  }
 }
 
 void Readphase_donor(const string inFile,
-                     vector<vector<int>> &panel,
+                     vector<vector<bool>> &panel,
                      const int N,
                      const int M,
                      const int qM) {
@@ -523,7 +418,6 @@ void Readphase_donor(const string inFile,
   }
 
   string line;
-  long nummissing=0;
 
   // Read and discard the first three lines
   for (int i = 0; i < 3; ++i) {
@@ -535,20 +429,16 @@ void Readphase_donor(const string inFile,
   for(int i=0; i<M-qM; ++i) {
     // i indicates which sample we are looking at
     getline(in, line);
-    vector<int> panelsnp;
+    vector<bool> panelsnp;
 
     // convert SNP data to binary
     for (char c : line) {
-      if((c != '0')&&(c!='1')){
-	          c='9';++nummissing;
-      }
-      int x=c-'0';
-      panelsnp.push_back(x);
+      panelsnp.push_back(c == '1');
     }
 
     int Oid = i;
     // add snps to the panel
-    panel.push_back(vector<int>());
+    panel.push_back(vector<bool>());
     panel[i].resize(N);
 
     for (int k = 0; k<N; ++k){ // for every SNP
@@ -556,15 +446,6 @@ void Readphase_donor(const string inFile,
       panel[i][k] = panelsnp[k];
 
     } // end loop over snps
-    if(nummissing>0){
-      cout<<"IMPORTANT NOTE! "<<nummissing<<" sites were TREATED AS MISSING in the REFERENCE file."<<endl;
-      cout<<"  Missing sites are defined as any non 0/1 allele."<<endl;
-      cout<<"  References that are missing are removed from consideration as a match."<<endl;
-      cout<<"  This is intended behavior to represent structural missingness, but for short"<<endl;
-      cout<<"  missing regions, you should impute beforehand."<<endl;
-      cout<<"  Additionally, if you have multi-allelic sites they are treated as missing which is not desirable."<<endl;
-      cout<<"  The least-bad option is to remove multi-allelic sites and re-impute their painting from binary sites."<<endl;
-  }
   }
 
   cout<<"Finish reading reference data"<<endl;
@@ -613,312 +494,13 @@ bool containsIndex(const vector<int>& fullidx,
   return(contain);
 }
 
-/*
-// returns: (seq_i, seq_j, start_pos, end_pos)
-tuple<vector<int>, vector<int>, vector<int>, vector<int>>
-singleseqsiteMultialleleLongMatchpbwt(const int L_initial,
-              const vector<int>& xk,       // alleles at site k (N entries from panelsnp)
-              const vector<int>& ak,       // PBWT ordering at site k
-              const vector<int>& dk,       // divergence array at site k
-              int minmatch,
-              int k,                       // site index
-              int N, int M)
-{
-   // Output vectors
-    vector<int> out_i;
-    vector<int> out_j;
-    vector<int> out_start;
-    vector<int> out_end;
-
-    // Convenience: minimal L to use (length threshold)
-    const int L = L_initial;//std::max(L_initial, L_minmatch);
-    if (L <= 0) {
-        // nothing to do if L <= 0; early return
-        return make_tuple(out_i, out_j, out_start, out_end);
-    }
-
-    // We'll sweep over all columns k (0..N-1)
-    // For each column we run the algorithm to find all matches > L ending at k
-    for (int k = 0; k < N; ++k) {
-
-        // We'll create a small mapping from allele value -> index [0..t-1] used by m[]
-        // but algorithm only needs to know whether two different alleles exist inside the run.
-        // Instead of a fixed-size m[], we'll use an unordered_map<int,bool> to mark seen alleles.
-        // However the paper uses small t and clears m[0..t-1]; we mimic equivalent behaviour here.
-        // We'll implement the exact loop of Algorithm 3:
-
-        // m: map allele -> seen (bool)
-        unordered_map<int, bool> m;
-        // zero the map: not necessary (constructed empty)
-        // i0 = 0
-        int i0 = 0;
-
-        // iterate i over PBWT order at column k
-        for (int i = 0; i < M; ++i) {
-          cout<<"CHECK i="<<i<<endl;
-            // check divergence condition
-            // The paper checks if d_k[i] > k - L then treat as candidate group
-            int dval = divergence[i][k];
-            if (dval > k - L) {
-                // The candidate group (i0 .. i) is not yet closed; update m for this row
-                int seqIndex = prefix[i][k];      // a_k[i]
-                int allele = panel[seqIndex][k];  // x_k[a_k[i]]
-
-                m[allele] = true;  // mark allele seen
-                // move on to next i until group closed
-            } else {
-                // When we reach a row whose divergence <= k - L, we need to process the group
-                // from i0 .. i-1 (if any). The paper's logic is:
-                // if there are at least two different alleles present in the group:
-                //   report = true; then do inner two-loop block to find dmin and report matches
-                // then reset i0 = i and clear m
-                int groupStart = i0;
-                int groupEnd = i - 1; // inclusive; if i == i0 then group is empty and skip
-                if (groupEnd >= groupStart) {
-                    // check if more than one allele exists in m
-                    if (m.size() >= 2) {
-                        // We have polymorphism in the group -> potential matches
-                        // Now implement the part:
-                        // for ia = i0 to i do
-                        //   dmin = 0
-                        //   for ib = ia+1 to i do
-                        //       if d_k[ib] > dmin then dmin = d_k[ib]
-                        //   if x_k[a_k[ia]] != x_k[a_k[ib]] then report match from dmin to k
-                        //
-                        // This nested loop is O(groupSize^2). For large group sizes you may want
-                        // to optimise (e.g., bucket by allele and then cross-product).
-                        //
-                        // We'll implement a safe nested loop but avoid repeated work where possible.
-                        int ia = groupStart;
-                        while (ia <= groupEnd) {
-                            int seq_ia = prefix[ia][k];
-                            int allele_ia = panel[seq_ia][k];
-
-                            // inner loop ib = ia+1..groupEnd
-                            for (int ib = ia+1; ib <= groupEnd; ++ib) {
-                                int seq_ib = prefix[ib][k];
-                                int allele_ib = panel[seq_ib][k];
-
-                                if (allele_ia == allele_ib) continue; // only interested in different alleles
-
-                                // compute dmin = max over d_k[ia+1..ib]
-                                // (paper sets dmin=0 and then updates to d_k[ib] if larger)
-                                // To follow the paper precisely we compute:
-                                int dmin = 0;
-                                for (int iz = ia+1; iz <= ib; ++iz) {
-                                    int dv = divergence[iz][k];
-                                    if (dv > dmin) dmin = dv;
-                                }
-
-                                // Now check the extra condition from the paper:
-                                // if x_k[a_k[ia]] != x_k[a_k[ib]] then report match from dmin to k
-                                // (we already ensured alleles differ)
-                                // But the paper also has a small conditional: "if report then
-                                //   for ia = i0 to i do
-                                //     for ib = ia+1 to i do
-                                //       if dk[ib] > dmin then dmin = dk[ib]
-                                //     if xk[ak[ia]] != xk[ak[ib]] then report match from dmin to k"
-                                //
-                                // We'll follow this and append matches (seq_ia, seq_ib, dmin, k)
-                                out_i.push_back(seq_ia);
-                                out_j.push_back(seq_ib);
-                                out_start.push_back(dmin); // dmin is start of match (per paper's definition)
-                                out_end.push_back(k);
-                            }
-                            ++ia;
-                        }
-                    } // end if polymorphic group
-
-                    // reset group
-                    i0 = i;
-                    m.clear();
-                } else {
-                    // group was empty, just move i0 forward
-                    i0 = i;
-                    m.clear();
-                }
-                // continue loop; we still need to process row i itself (since divergence[i] <= k-L,
-                // we do not include it in next group unless d_k[i] > k-L). So just continue.
-            }
-        } // end for i
-
-        // process the final group from i0..M-1 (if any)
-        if (i0 <= M-1) {
-            if (m.size() >= 2) {
-                int groupStart = i0;
-                int groupEnd = M - 1;
-                for (int ia = groupStart; ia <= groupEnd; ++ia) {
-                    int seq_ia = prefix[ia][k];
-                    int allele_ia = panel[seq_ia][k];
-                    for (int ib = ia+1; ib <= groupEnd; ++ib) {
-                        int seq_ib = prefix[ib][k];
-                        int allele_ib = panel[seq_ib][k];
-                        if (allele_ia == allele_ib) continue;
-                        int dmin = 0;
-                        for (int iz = ia+1; iz <= ib; ++iz) {
-                            int dv = divergence[iz][k];
-                            if (dv > dmin) dmin = dv;
-                        }
-                        out_i.push_back(seq_ia);
-                        out_j.push_back(seq_ib);
-                        out_start.push_back(dmin);
-                        out_end.push_back(k);
-                    }
-                }
-            }
-        }
-
-    } // end for k
-
-    return make_tuple(out_i, out_j, out_start, out_end);
-  
-}
-*/
-/*
-tuple<vector<int>,vector<int>,vector<int>,vector<int>> multialleleLongMatchpbwt(const int L_initial,
-                                                                     vector<vector<int>> &panel,
-                                                                     int **prefix,
-                                                                     int **divergence,
-                                                                     int **u,
-                                                                     int **v,
-                                                                     int **w,
-                                                                     int minmatch,
-                                                                     vector<double> &gd,
-                                                                     vector<int>& queryidx,
-                                                                     const int N,
-                                                                     const int M,
-                                                                     const int qM,
-                                                                     const int L_minmatch,
-                                                                     const int ncores,
-                                                                     const bool samefile,
-                                                                     const bool phase,
-                                                                     const string qinFile) {
-    igzstream in;
-
-  string line;
-
-  if(phase & !samefile){
-    in.open(qinFile.c_str());
-    if (!in) {
-      cerr << "Error: unable to open file: " << qinFile << endl;
-      abort();
-    }
-
-    // Read and discard the first three lines
-    for (int i = 0; i < 3; ++i) {
-      getline(in, line);
-    }
-  }
-
-  // match of which query sample
-  vector<int> queryidall={0};
-  // match to which reference sample (donor)
-  vector<int> donorid;
-  // start position of match
-  vector<int> startpos;
-  // end position of match
-  vector<int> endpos;
-
-  struct LoopResult {
-    vector<int> donorid;
-    vector<int> startpos;
-    vector<int> endpos;
-    int queryid;
-  };
-
-  // define a results vector
-  vector<LoopResult> allResults(queryidx.size());
-
-  /////////////////////////////
-  //read data for target haplotypes
-
-  // store ncores lines of target data
-  // paneltarget has ncore rows and N columns
-
-  int nind=queryidx.size();
-
-  int nind_left=nind;
-  long nummissing=0;
-  omp_set_num_threads(ncores);
-
-  if(samefile){
-    minmatch++;
-  }
-
-  while(nind_left>0) {
-    int ncores_use = (ncores < nind_left) ? ncores : nind_left;
-    vector<vector<int>> panelsnp;
-    if(samefile){
-      panelsnp=vector<vector<int>>(ncores_use,vector<int>(N));
-      for(int i=nind-nind_left; i<nind-nind_left+ncores_use; ++i) {
-        for(int j=0;j<N;++j){
-          panelsnp[i-nind+nind_left][j]=panel[i][j];
-        }
-      }
-    }else{
-      if(!phase){
-        panelsnp=vector<vector<int>>(ncores_use,vector<int>(N));
-        for(int i=nind-nind_left; i<nind-nind_left+ncores_use; ++i) {
-          for(int j=0;j<N;++j){
-            panelsnp[i-nind+nind_left][j]=panel[M-qM+i][j];
-            nummissing+=(panel[M-qM+i][j]==9);
-          }
-        }
-      }else{
-        panelsnp=vector<vector<int>>(ncores_use);
-        for(int i=nind-nind_left; i<nind-nind_left+ncores_use; ++i) {
-          getline(in, line);
-          for (char c : line) {
-            if((c != '0')&&(c!='1')){
-	            c='9';++nummissing;
-            }
-            int x=c-'0';
-            panelsnp[i-nind+nind_left].push_back(x);
-          }
-        }
-      }
-    }
-///////////////
-#if DEBUG
-    for(int i=nind-nind_left; i<nind-nind_left+ncores_use; ++i) {
-    cout<<"panelsnp:"<<i<<endl;
-      for(int j=0;j<N;++j){
-        cout<<panelsnp[i-nind+nind_left][j]<<" ";
-      }
-      cout<<endl;
-    }
-#endif
-///////////////
-    cout<<"Finding matches with PBWT for target haplotypes "<<nind-nind_left<<"-"<<nind-nind_left+ncores_use-1<<endl;
-  vector<int> queryidall={0};
-  // match to which reference sample (donor)
-  vector<int> donorid;
-  // start position of match
-  vector<int> startpos;
-  // end position of match
-  vector<int> endpos;
-#pragma omp parallel for
-        for (int idx=nind-nind_left; idx<nind-nind_left+ncores_use; ++idx) {
-  auto [startpos, endpos, left, right] = singleseqsiteMultialleleLongMatchpbwt(
-                                L_initial,
-                                panelsnp[idx],   // alleles at site k
-                                prefix[k],          // a_k
-                                divergence[k],      // d_k
-                                minmatch,
-                                k, N, M);          
-
-        }                                                                  
-    } // end while(nind_left>0)
- } 
-*/
 
 tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L_initial,
-                                                                     vector<vector<int>> &panel,
+                                                                     vector<vector<bool>> &panel,
                                                                      int **prefix,
                                                                      int **divergence,
                                                                      int **u,
                                                                      int **v,
-                                                                     int **w,
                                                                      int minmatch,
                                                                      vector<double> &gd,
                                                                      vector<int>& queryidx,
@@ -967,7 +549,6 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
   // define a results vector
   vector<LoopResult> allResults(queryidx.size());
 
-  /////////////////////////////
   //read data for target haplotypes
 
   // store ncores lines of target data
@@ -976,18 +557,18 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
   int nind=queryidx.size();
 
   int nind_left=nind;
-  long nummissing=0;
+
   omp_set_num_threads(ncores);
 
   if(samefile){
     minmatch++;
   }
 
-  while(nind_left>0) {
+  while(nind_left>0){
     int ncores_use = (ncores < nind_left) ? ncores : nind_left;
-    vector<vector<int>> panelsnp;
+    vector<vector<bool>> panelsnp;
     if(samefile){
-      panelsnp=vector<vector<int>>(ncores_use,vector<int>(N));
+      panelsnp=vector<vector<bool>>(ncores_use,vector<bool>(N));
       for(int i=nind-nind_left; i<nind-nind_left+ncores_use; ++i) {
         for(int j=0;j<N;++j){
           panelsnp[i-nind+nind_left][j]=panel[i][j];
@@ -995,42 +576,27 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
       }
     }else{
       if(!phase){
-        panelsnp=vector<vector<int>>(ncores_use,vector<int>(N));
+        panelsnp=vector<vector<bool>>(ncores_use,vector<bool>(N));
         for(int i=nind-nind_left; i<nind-nind_left+ncores_use; ++i) {
           for(int j=0;j<N;++j){
             panelsnp[i-nind+nind_left][j]=panel[M-qM+i][j];
-            nummissing+=(panel[M-qM+i][j]==9);
           }
         }
       }else{
-        panelsnp=vector<vector<int>>(ncores_use);
+        panelsnp=vector<vector<bool>>(ncores_use);
         for(int i=nind-nind_left; i<nind-nind_left+ncores_use; ++i) {
           getline(in, line);
           for (char c : line) {
-            if((c != '0')&&(c!='1')){
-	            c='9';++nummissing;
-            }
-            int x=c-'0';
-            panelsnp[i-nind+nind_left].push_back(x);
+            panelsnp[i-nind+nind_left].push_back(c == '1');
           }
         }
       }
     }
-///////////////
-#if DEBUG
-    for(int i=nind-nind_left; i<nind-nind_left+ncores_use; ++i) {
-    cout<<"panelsnp:"<<i<<endl;
-      for(int j=0;j<N;++j){
-        cout<<panelsnp[i-nind+nind_left][j]<<" ";
-      }
-      cout<<endl;
-    }
-#endif
-///////////////
+
     cout<<"Finding matches with PBWT for target haplotypes "<<nind-nind_left<<"-"<<nind-nind_left+ncores_use-1<<endl;
 
 #pragma omp parallel for
-  // XXXX UPDATEME
+
     for (int idx=nind-nind_left; idx<nind-nind_left+ncores_use; ++idx) {
 
       int *dZ;
@@ -1051,27 +617,18 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
       t[0] = 0;
 
       for (int k=0; k<N; ++k){
-        if (t[k]!=M-qM) // still in match
-          if (panelsnp[Oid-nind+nind_left][k]==0)
+        if (t[k]!=M-qM)
+          if (!panelsnp[Oid-nind+nind_left][k])
             t[k+1] = u[t[k]][k];
-          else if (panelsnp[Oid-nind+nind_left][k]==1)
-            t[k+1] = v[t[k]][k];
-          else 
-            t[k+1] = w[t[k]][k];
-        else // already in mismatch
-           if (panelsnp[Oid-nind+nind_left][k]==0)
-            t[k+1] = v[0][k];
-          else if (panelsnp[Oid-nind+nind_left][k]==1)
-            t[k+1] = w[0][k];
           else
-            t[k+1] = M-qM;
+            t[k+1] = v[t[k]][k];
+          else
+            if (!panelsnp[Oid-nind+nind_left][k])
+              t[k+1] = v[0][k];
+            else
+              t[k+1] = M-qM;
       }
 
-      #if DEBUG
-      cout<<"t array:"<<endl;
-      for (int k=0; k<N; ++k) cout<<t[k+1]<<" ";
-      cout<<endl;
-      #endif
 
       zd[N+1] = bd[N+1] = N;
 
@@ -1132,53 +689,44 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
         f = g = t[0];
 
         for(int k = 0; k<N; ++k){
-          int allele = panelsnp[Oid-nind+nind_left][k];  // now can be 0, 1, or 9
-          cout<<"BEFORE k="<<k<<" allele="<<allele<<" f="<<f<<" ftemp="<<ftemp<<" g="<<g<<" gtemp="<<gtemp<<endl;
-          if((allele !=0)&&(allele!=1)) {
-              // missing data: terminate matches
-              cout<<"Allele "<<k<<" missing"<<endl;
-              ftemp = M - qM;
-              gtemp = M - qM;
-              f = M - qM;
-              g = M - qM;
-//              continue;
-          }else 
-          if (g == M-qM) { // sentinel case
-            // update f
-            if (f == M-qM){ // both are sentinel
-              if (allele==0){ //update
+          if (g == M-qM){
+            if (f == M-qM){
+              if (!panelsnp[Oid-nind+nind_left][k]){
                 ftemp = M-qM;
                 f = v[0][k];
-              }else if (allele==1){ //update
+              }
+              else{
                 ftemp = v[0][k];
                 f = M-qM;
               }
             }
-            else{ // g is sentinel, f not
-              if (allele==0){ // update
+            else{
+              if (!panelsnp[Oid-nind+nind_left][k]){
                 ftemp = v[f][k];
                 f = u[f][k];
-              }else if (allele==1){ // update
+              }
+              else{
                 ftemp = u[f][k];
                 f = v[f][k];
               }
             }
-            // update g when g was sentinel
-            if (allele==0){
+            if (!panelsnp[Oid-nind+nind_left][k]){
               gtemp = M-qM;
               g = v[0][k];
-            }else if (allele==1){
+            }
+            else{
               gtemp = v[0][k];
               g = M-qM;
             }
           }
-          else // g is not sentinel
-            if (allele==0){
+          else
+            if (!panelsnp[Oid-nind+nind_left][k]){
               ftemp = v[f][k];
               gtemp = v[g][k];
               f = u[f][k];
               g = u[g][k];
-            }else if (allele==1){
+            }
+            else{
               ftemp = u[f][k];
               gtemp = u[g][k];
               f = v[f][k];
@@ -1242,7 +790,7 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
                 ++g;
               }
             }
-        } // end loop over SNPs
+        }
 
         while (f != g){
           int end2=N-1;
@@ -1367,16 +915,8 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
     }
 
     nind_left=nind_left-ncores_use;
-  } // end while(nind_left>0)
-  if(nummissing>0){
-      cout<<"IMPORTANT NOTE! "<<nummissing<<" sites were TREATED AS MISSING in this section of the TARGET file."<<endl;
-      cout<<"  Missing sites are defined as any non 0/1 allele."<<endl;
-      cout<<"  Target SNPs that are missing are treated as having zero matches."<<endl;
-      cout<<"  This is intended behavior to represent structural missingness, but for short"<<endl;
-      cout<<"  missing regions, you should impute beforehand."<<endl;
-      cout<<"  Additionally, if you have multi-allelic sites they are treated as missing which is not desirable."<<endl;
-      cout<<"  The least-bad option is to remove multi-allelic sites and re-impute their painting from binary sites."<<endl;
   }
+
 
   for (const auto& result : allResults) {
     donorid.insert(donorid.end(), result.donorid.begin(), result.donorid.end());
@@ -1413,11 +953,11 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
     nrow_panel=M;
     samefile=false;
   }
-  vector<vector<int>> panel;
-  int **prefix, **divergence, **u, **v, **w;
+  vector<vector<bool>> panel;
+  int **prefix, **divergence, **u, **v;
 
   if (!phase) {
-    panel = vector<vector<int>>(nrow_panel, vector<int>(N));
+    panel = vector<vector<bool>>(nrow_panel, vector<bool>(N));
     ReadVCF(reffile,targetfile,panel,N,M,qM,haploid);
   }else{
     Readphase_donor(reffile,panel,N,M,qM);
@@ -1425,43 +965,22 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
 
   cout<<"Begin building PBWT for reference haplotypes"<<endl;
 
-  #if DEBUG
-  for(int i=0;i<M-qM;++i){
-    for(int j=0;j<N;++j){
-      cout<<panel[i][j]<<" ";
-    }
-    cout<<"\n";
-  }
-
-    cout<<"Will use PBWT for target haplotypes"<<endl;
-
-  for(int i=M-qM;i<M;++i){
-    for(int j=0;j<N;++j){
-      cout<<panel[i][j]<<", ";
-    }
-    cout<<"\n";
-  }
-  #endif
-
   prefix = new int*[M-qM];
   divergence = new int*[M-qM];
   u = new int*[M-qM];
   v = new int*[M-qM];
-  w = new int*[M-qM];
   int *temp1 = new int[(long long)(M-qM)*(N+1)];
   int *temp2 = new int[(long long)(M-qM)*(N+1)];
   int *temp3 = new int[(long long)(M-qM)*(N)];
   int *temp4 = new int[(long long)(M-qM)*(N)];
-  int *temp5 = new int[(long long)(M-qM)*(N)];
   for (long long i = 0; i<M-qM; i++){
     prefix[i] = &(temp1[i*(N+1)]);
     divergence[i] = &(temp2[i*(N+1)]);
     u[i] = &(temp3[i*(N)]);
     v[i] = &(temp4[i*(N)]);
-    w[i] = &(temp5[i*(N)]);
   }
 
-  PBWT(panel, prefix, divergence, u, v, w, M-qM, N);
+  PBWT(panel, prefix, divergence, u, v, M-qM, N);
 
   cout<<"Finish building PBWT for reference haplotypes"<<endl;
 
@@ -1471,19 +990,12 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
   }
 
   tuple<vector<int>,vector<int>,vector<int>,vector<int>> matchresults=longMatchpbwt(L_initial,panel,prefix,
-                                                                                    divergence,u,v,w,minmatch,
+                                                                                    divergence,u,v,minmatch,
                                                                                     gd,queryidx,N,M,qM,
                                                                                     L_minmatch,ncores,samefile,
                                                                                     phase,targetfile);
 
-/*
-tuple<vector<int>,vector<int>,vector<int>,vector<int>> matchresults=multialleleLongMatchpbwt(L_initial,panel,prefix,
-                                                                                    divergence,u,v,w,minmatch,
-                                                                                    gd,queryidx,N,M,qM,
-                                                                                    L_minmatch,ncores,samefile,
-                                                                                    phase,targetfile);
-*/
-  free_PBWT_memory(panel, prefix, divergence, u, v,w);
+  free_PBWT_memory(panel, prefix, divergence, u, v);
 
   return(matchresults);
 
@@ -1647,12 +1159,6 @@ vector<vector<int>> get_matchdata(vector<int>& queryidall,
       matchinfo[p-querystart][2]=endpos[p];
     }
   }
-  /// XXXXX outputs
-  #if DEBUG
-  for(int p=querystart;p<nextquerystart;++p){
-    cout<<"Match "<<p<<": "<<matchinfo[p-querystart][0]<<"("<<matchinfo[p-querystart][1]<<" - "<< matchinfo[p-querystart][2]<<")"<<endl;
-  }
-  #endif
   return(matchinfo);
 }
 
@@ -4483,7 +3989,6 @@ int main(int argc, char *argv[]){
   string samplefile = out+ "_samples.txt.gz";
   string lambdafile = out+ "_fixedlambda.txt";
   string nmatchfile = out + "_nmatches.txt.gz";
-  string omatchfile = out + "_nmatches.txt.gz";
 
   if (!matchfile.empty()){
     targetfile=reffile;

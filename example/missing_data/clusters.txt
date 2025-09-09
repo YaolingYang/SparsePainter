@@ -1,0 +1,10 @@
+tsk_0	A
+tsk_1	A
+tsk_2	A
+tsk_3	A
+tsk_4	A
+tsk_5	B
+tsk_6	B
+tsk_7	B
+tsk_8	B
+tsk_9	B

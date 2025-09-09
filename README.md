@@ -271,3 +271,22 @@ In the 2nd column of ``mapfile``, change the unit of genetic distance from Morga
 Enable the output of expected number of copied chunks by command ``-chunkcount``.
 * **2024-03-12 Version 1.0.0**  
 Release SparsePainter and preprint.
+
+
+--
+# Missing data tolerant algorithm:
+## Checking update
+
+Version sent to me:
+
+> SparsePainter -reffile exp_5_simulated_data_run_1576_clean.target_rm.vcf -targetfile tsk_100.vcf -mapfile map.txt -popfile clusters.txt -namefile target.txt -out tsk_100 -prob -haploid -chunklength -probstore raw
+
+Sometimes gives
+terminate called after throwing an instance of 'std::bad_array_new_length'
+  what():  std::bad_array_new_length
+Abort trap: 6
+
+> SparsePainter -reffile exp_5_simulated_data_run_1576_clean.target_rm_test.vcf -targetfile tsk_100_test.vcf -mapfile map_test.txt -popfile clusters.txt -namefile target.txt -out tsk_100_test -prob -haploid -chunklength -probstore raw -Lmin 2 -L0 4
+
+
+

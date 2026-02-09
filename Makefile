@@ -15,7 +15,8 @@ armadillo:
 CXX = g++
 
 # Directories and Libraries
-ARMA_DIR = ./armadillo-12.6.5
+current_dir = $(shell pwd)
+ARMA_DIR = $(current_dir)/armadillo-12.6.5
 INCLUDE_DIR = $(ARMA_DIR)/include
 LIB_DIR = $(ARMA_DIR)
 
@@ -48,7 +49,7 @@ ifeq ($(UNAME_S),Darwin)  # Darwin is the result for macOS
 endif
 
 $(TARGET): SparsePainter.cpp
-	$(CXX) $< -o $@ $(CXXFLAGS) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $<  -o $@ $(CXXFLAGS) $(LDFLAGS) $(LDLIBS)
 
 clean:
 	rm -f $(TARGET)

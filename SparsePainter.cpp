@@ -2968,7 +2968,7 @@ void paintall(const string method,
     }
 
     ofstream outputlambda(lambdafile);
-    outputlambda << "The fixed lambda used for SparsePainter is "<<lambda<<".";
+    outputlambda << "The fixed lambda used for SparsePainter is: "<<lambda<<endl;
     outputlambda.close();
   }
 

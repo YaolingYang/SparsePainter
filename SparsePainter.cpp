@@ -7,7 +7,7 @@
 #endif
 
 #ifndef DEBUG
-#define DEBUG 1
+#define DEBUG 0
 #endif
 
 #include <iostream>
@@ -1133,7 +1133,9 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> longMatchpbwt(const int L
 
         for(int k = 0; k<N; ++k){
           int allele = panelsnp[Oid-nind+nind_left][k];  // now can be 0, 1, or 9
+#if DEBUG
           cout<<"BEFORE k="<<k<<" allele="<<allele<<" f="<<f<<" ftemp="<<ftemp<<" g="<<g<<" gtemp="<<gtemp<<endl;
+#endif
           if((allele !=0)&&(allele!=1)) {
               // missing data: terminate matches
               cout<<"Allele "<<k<<" missing"<<endl;
@@ -1435,12 +1437,12 @@ tuple<vector<int>,vector<int>,vector<int>,vector<int>> do_pbwt(int& L_initial,
 
     cout<<"Will use PBWT for target haplotypes"<<endl;
 
-  for(int i=M-qM;i<M;++i){
+    /*  for(int i=M-qM;i<M;++i){
     for(int j=0;j<N;++j){
       cout<<panel[i][j]<<", ";
     }
-    cout<<"\n";
-  }
+    cout<<"\n"; 
+  }*/
   #endif
 
   prefix = new int*[M-qM];
@@ -2242,12 +2244,12 @@ double est_lambda_EM_average(const hAnc& refidx,
       match_use[k] = get_matchdata(queryidall,donorid_ref,startpos_ref,endpos_ref,samples[k], true,haploid);
     }// this reduces memory
 #pragma omp parallel for reduction(+:count)
-    for(int k=0;k<samples.size();++k){
+    for(int k=0;k<samples.size();++k) {
       //leave-one-out
       vector<vector<int>> matchdata=match_use[k];
       vector<int> removeidx;
 
-      if(leaveoneout){
+      if(leaveoneout) {
         for(int j=0;j<npop;++j){
           if(j!=i){
             int rmidx1=randomsample(refidx.findrows(j),1)[0];
@@ -3210,7 +3212,7 @@ void paintall(const string method,
 
       vector<int> maxind(npop,0);
       vector<double> maxPHAT(npop,0.0);
-      if(leaveoneout && rmrelative){
+      if(leaveoneout && rmrelative) {
         vector<int> nsameSNP(nref_ind, 0);
         for(int j = 0; j < targetmatchdata.size(); ++j) {
           int val = targetmatchdata[j][0];
@@ -3232,13 +3234,16 @@ void paintall(const string method,
             maxPHAT[refpopidx]=nsameSNP[j];
           }
         }
+	for (int i=0;i<maxind.size();++i){
+	  cout<<"-rmrelative: For hap "<<ii<<" and pop "<<i<<" found "<<maxind[i]<<" as closest relative with PHAT "<<maxPHAT[i]<<endl;
+	}
       }
 
 
       if(leaveoneout){
-        if(reffile==targetfile){
+        if(reffile==targetfile) {
           int popidx=refindex[queryidx[ii]];
-          for(int j=0;j<npop;++j){
+          for(int j=0;j<npop;++j) {
             if(j!=popidx){
               int rmidx1=randomsample(refidx.findrows(j),1)[0];
               removeidx.push_back(rmidx1);
@@ -3255,10 +3260,14 @@ void paintall(const string method,
             //removeidx contains the indices to be removed for leave-one-out
             //the same individual has already been removed
           }
-          removeRowsWithValue(targetmatchdata,removeidx);
+          	  int sizebefore=targetmatchdata.size();
+      	  removeRowsWithValue(targetmatchdata,removeidx);
+	  int sizeafter=targetmatchdata.size();
+/*          cout<<"SIZE: changed from "<<sizebefore<<" to "<<sizeafter<<endl; */ //Debugging
+
         }else{
           for(int j=0;j<npop;++j){
-            if(rmrelative && maxPHAT[j]/nsnp/2>=relafrac){
+            if(rmrelative && maxPHAT[j]/nsnp/(2-haploid)>=relafrac){
               removeidx.push_back(maxind[j]*2);
               removeidx.push_back(maxind[j]*2+1);
             }else{
@@ -3274,9 +3283,14 @@ void paintall(const string method,
                 removeidx.push_back(rmidx2);
               }
             }
-            removeRowsWithValue(targetmatchdata,removeidx);
           }
-
+	  for( int i=0;i<npop;++i){
+	    cout<<"-rmrelative: For hap "<<ii<<" removing "<<i<<" of "<<npop<<" with indexes "<<removeidx[2*i]<<" and "<<removeidx[2*i+1] <<" with shared SNP fraction "<<maxPHAT[i]/nsnp/(2-haploid)<<endl;
+	  }
+	  int sizebefore=targetmatchdata.size();
+  	  removeRowsWithValue(targetmatchdata,removeidx);
+	  int sizeafter=targetmatchdata.size();
+/*          cout<<"SIZE: changed from "<<sizebefore<<" to "<<sizeafter<<endl; */ //Debugging
         }
       }
 
@@ -4198,6 +4212,7 @@ int main(int argc, char *argv[]){
 
     cout << "  -outmatch: Output the number of matches at each SNP for each target haplotype. The output file format is a gzipped text file (.txt.gz)." << endl<< endl;
 
+    cout << "  -forlambda:  If NE_iter>0, specify that the purpose is to generate the _fixedlambda.txt parameter estimate, and still run without any other requested outputs." <<endl<< endl;
     cout << "(b) Commands with parameters" << endl<< endl;
 
     cout << "  -ncores [integer>=0]: The number of CPU cores used for the analysis (default=0). The default ncores uses all the available CPU cores of your device." << endl<< endl;
@@ -4268,6 +4283,7 @@ int main(int argc, char *argv[]){
   string namefile={};
   string matchfile={};
   string SNPfile={};
+  bool forlambda=false;
   bool outputpainting=false;
   bool aveSNPpainting=false;
   bool aveindpainting=false;
@@ -4302,7 +4318,7 @@ int main(int argc, char *argv[]){
        param=="sample" || param=="aveSNP" || param=="aveind" ||
        param=="LDA" || param=="LDAS" || param=="outmatch" ||
        param=="AAS" || param=="diff_lambda" || param=="rmrelative" ||
-       param=="haploid" || param=="loo"){
+       param=="haploid" || param=="loo" || param=="forlambda"){
       if(i!=argc-1){
         if(argv[i+1][0]!='-'){
           cerr << "Error: No values should be given following -"<<param<<"."<<endl;
@@ -4369,7 +4385,9 @@ int main(int argc, char *argv[]){
       leaveoneout = true;
     } else if (param == "rmrelative") {
       rmrelative = true;
-    }else if (param == "method") {
+    } else if (param == "forlambda") {
+      forlambda = true;
+    } else if (param == "method") {
       method = argv[++i];
     } else if (param == "fixlambda") {
       fixlambda = stod(argv[++i]);
@@ -4493,7 +4511,11 @@ int main(int argc, char *argv[]){
     outputallSNP=false;
   }
 
-  if(!runpaint && !clength && !ccount && !csample){
+  if(EM_ite==0) {
+      forlambda = false;
+    } 
+
+  if(!runpaint && !clength && !ccount && !csample && !forlambda){
     cerr<<"Please give at least one of the following command in order to run SparsePainter:"<<endl;
     cerr<<"-prob: output the local ancestry probabilities for each target sample at each SNP."<<endl;
     cerr<<"-chunklength: output the expected chunk length of each local ancestry for each target sample."<<endl;
@@ -4501,6 +4523,7 @@ int main(int argc, char *argv[]){
     cerr<<"-sample: output the sampled reference haplotypes for each target sample at each SNP."<<endl;
     cerr<<"-aveSNP: output the average local ancestry probabilities for each SNP."<<endl;
     cerr<<"-aveind: output the average local ancestry probabilities for each target sample."<<endl;
+    cerr<<"-forlambda: If NE_iter>0, specify that the purpose is to generate the _fixedlambda.txt parameter estimate."<<endl;
     cerr<<"-LDA: output the LDA of each pair of SNPs."<<endl;
     cerr<<"-LDAS: output the LDAS of each SNP."<<endl;
     cerr<<"-AAS: output the AAS of each SNP."<<endl;

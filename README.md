@@ -38,9 +38,9 @@ To update the newer version of SparsePainter, you can remove lines 10-12 of Make
 
 # Dependencies
 
-SparsePainter requires g++ >=6 and depends on   
-[Armadillo-v12.6.5](https://arma.sourceforge.net/download.html) to compute AAS;   
-[gzstream-v1.5](https://www.cs.unc.edu/Research/compgeom/gzstream/) to read and write gzipped files.
+SparsePainter requires g++ >=6.
+
+It has NO external dependencies that are non-standard. The required files are included. These are [Armadillo-v12.6.5](https://arma.sourceforge.net/download.html) to compute AAS, and [gzstream-v1.5](https://github.com/kanedo/gzstream) (this is a Mirror of the oriinal [CompGeom](https://www.cs.unc.edu/Research/compgeom/gzstream/) site which is currently down) to read and write gzipped files. This is included in the SparsePainter repo 
 
 
 # Usage

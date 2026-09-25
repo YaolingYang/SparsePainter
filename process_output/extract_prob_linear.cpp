@@ -114,7 +114,7 @@ int main(int argc, char *argv[]){
     lineStream >> firstToken;
     
     istringstream tokenStream(firstToken);
-    if (tokenStream >> end) {
+    if ((tokenStream >> end) && (tokenStream >> ws).eof()) { // whole token must be numeric, so IDs like 011KKT_0 are not parsed as 11
       if(end==1){
         for(int k=0;k<npop;++k){
           lineStream >> vl;

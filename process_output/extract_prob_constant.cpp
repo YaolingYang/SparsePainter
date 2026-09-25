@@ -112,7 +112,7 @@ int main(int argc, char *argv[]){
     lineStream >> firstToken;
     
     istringstream tokenStream(firstToken);
-    if (tokenStream >> start) {
+    if ((tokenStream >> start) && (tokenStream >> ws).eof()) { // whole token must be numeric, so IDs like 011KKT_0 are not parsed as 11
       lineStream >> end;
       if(SNPidx[j]>=start && SNPidx[j]<=end){
         vector<double> values;
